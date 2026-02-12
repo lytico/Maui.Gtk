@@ -14,7 +14,7 @@ class App : Application
 
 class MainShell : FlyoutPage
 {
-	private readonly (string name, Func<ContentPage> factory)[] _pages =
+	private readonly (string name, Func<Page> factory)[] _pages =
 	[
 		("🏠 Home", () => new HomePage()),
 		("🎛️ Controls", () => new ControlsPage()),

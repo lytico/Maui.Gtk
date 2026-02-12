@@ -3,115 +3,82 @@ using Microsoft.Maui.Graphics;
 
 namespace Maui.Linux.Sample.Pages;
 
-public class TabbedPageDemo : ContentPage
+public class TabbedPageDemo : TabbedPage
 {
 	public TabbedPageDemo()
 	{
 		Title = "TabbedPage Demo";
 
-		var tabs = new (string title, Func<View> builder)[]
+		Children.Add(new ContentPage
 		{
-			("🏠 Overview", BuildOverview),
-			("⚙️ Settings", BuildSettings),
-			("📊 Stats", BuildStats),
-		};
-
-		var tabBar = new HorizontalStackLayout { Spacing = 0 };
-		var contentArea = new VerticalStackLayout();
-		Button? activeTab = null;
-
-		foreach (var (title, builder) in tabs)
-		{
-			var btn = new Button
+			Title = "🏠 Overview",
+			Content = new ScrollView
 			{
-				Text = title,
-				FontSize = 13,
-				BackgroundColor = Colors.Transparent,
-				TextColor = Colors.Gray,
-				Padding = new Thickness(16, 8),
-			};
-			var capturedBuilder = builder;
-			btn.Clicked += (s, e) =>
-			{
-				if (activeTab != null)
+				Content = new VerticalStackLayout
 				{
-					activeTab.TextColor = Colors.Gray;
-					activeTab.BackgroundColor = Colors.Transparent;
+					Spacing = 12,
+					Padding = new Thickness(24),
+					Children =
+					{
+						new Label { Text = "TabbedPage Overview", FontSize = 24, FontAttributes = FontAttributes.Bold },
+						new Label { Text = "This is a real TabbedPage rendered with GTK4's Notebook widget.", FontSize = 13, TextColor = Colors.Gray },
+						new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+						new Label { Text = "✅ Native GTK4 Notebook tab rendering", FontSize = 14 },
+						new Label { Text = "✅ Automatic tab label from Page.Title", FontSize = 14 },
+						new Label { Text = "✅ Tab switching syncs with MAUI CurrentPage", FontSize = 14 },
+						new Label { Text = "✅ Dynamic page collection support", FontSize = 14 },
+					}
 				}
-				btn.TextColor = Colors.Black;
-				btn.BackgroundColor = Colors.LightSkyBlue;
-				activeTab = btn;
-				contentArea.Children.Clear();
-				contentArea.Children.Add(capturedBuilder());
-			};
-			tabBar.Children.Add(btn);
-		}
-
-		// Activate first tab
-		var firstBtn = (Button)tabBar.Children[0];
-		firstBtn.TextColor = Colors.Black;
-		firstBtn.BackgroundColor = Colors.LightSkyBlue;
-		activeTab = firstBtn;
-		contentArea.Children.Add(tabs[0].builder());
-
-		Content = new VerticalStackLayout
-		{
-			Spacing = 8,
-			Padding = new Thickness(24),
-			Children =
-			{
-				new Label { Text = "TabbedPage Demo", FontSize = 24, FontAttributes = FontAttributes.Bold },
-				new Label { Text = "Simulates a TabbedPage with tab switching. The real TabbedPageHandler uses GTK4's Notebook widget.", FontSize = 13, TextColor = Colors.Gray },
-				new BoxView { HeightRequest = 2, Color = Colors.DodgerBlue },
-				tabBar,
-				new BoxView { HeightRequest = 1, Color = Colors.LightGray },
-				contentArea,
 			}
-		};
+		});
+
+		Children.Add(new ContentPage
+		{
+			Title = "⚙️ Settings",
+			Content = new ScrollView
+			{
+				Content = new VerticalStackLayout
+				{
+					Spacing = 12,
+					Padding = new Thickness(24),
+					Children =
+					{
+						new Label { Text = "Settings", FontSize = 20, FontAttributes = FontAttributes.Bold },
+						new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+						BuildSettingRow("Dark Mode", new Switch()),
+						BuildSettingRow("Notifications", new Switch { IsToggled = true }),
+						BuildSettingRow("Volume", new Slider { Minimum = 0, Maximum = 100, Value = 75 }),
+						BuildSettingRow("Language", new Picker { ItemsSource = new[] { "English", "Spanish", "French", "German" }, SelectedIndex = 0 }),
+					}
+				}
+			}
+		});
+
+		Children.Add(new ContentPage
+		{
+			Title = "📊 Stats",
+			Content = new ScrollView
+			{
+				Content = new VerticalStackLayout
+				{
+					Spacing = 12,
+					Padding = new Thickness(24),
+					Children =
+					{
+						new Label { Text = "Statistics", FontSize = 20, FontAttributes = FontAttributes.Bold },
+						new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+						BuildStatRow("Projects", "12", Colors.DodgerBlue),
+						BuildStatRow("Tasks Done", "847", Colors.MediumSeaGreen),
+						BuildStatRow("Open Issues", "23", Colors.Orange),
+						BuildStatRow("Contributors", "6", Colors.MediumOrchid),
+						new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+						new ProgressBar { Progress = 0.73 },
+						new Label { Text = "73% sprint completion", FontSize = 12, TextColor = Colors.Gray },
+					}
+				}
+			}
+		});
 	}
-
-	static View BuildOverview() => new VerticalStackLayout
-	{
-		Spacing = 12,
-		Children =
-		{
-			new Label { Text = "✅ Native GTK4 Notebook tab rendering", FontSize = 14 },
-			new Label { Text = "✅ Automatic tab label from Page.Title", FontSize = 14 },
-			new Label { Text = "✅ Tab switching syncs with MAUI CurrentPage", FontSize = 14 },
-			new Label { Text = "✅ Dynamic page collection support", FontSize = 14 },
-		}
-	};
-
-	static View BuildSettings() => new VerticalStackLayout
-	{
-		Spacing = 12,
-		Children =
-		{
-			new Label { Text = "Settings", FontSize = 20, FontAttributes = FontAttributes.Bold },
-			new BoxView { HeightRequest = 1, Color = Colors.LightGray },
-			BuildSettingRow("Dark Mode", new Switch()),
-			BuildSettingRow("Notifications", new Switch { IsToggled = true }),
-			BuildSettingRow("Volume", new Slider { Minimum = 0, Maximum = 100, Value = 75 }),
-			BuildSettingRow("Language", new Picker { ItemsSource = new[] { "English", "Spanish", "French", "German" }, SelectedIndex = 0 }),
-		}
-	};
-
-	static View BuildStats() => new VerticalStackLayout
-	{
-		Spacing = 12,
-		Children =
-		{
-			new Label { Text = "Statistics", FontSize = 20, FontAttributes = FontAttributes.Bold },
-			new BoxView { HeightRequest = 1, Color = Colors.LightGray },
-			BuildStatRow("Projects", "12", Colors.DodgerBlue),
-			BuildStatRow("Tasks Done", "847", Colors.MediumSeaGreen),
-			BuildStatRow("Open Issues", "23", Colors.Orange),
-			BuildStatRow("Contributors", "6", Colors.MediumOrchid),
-			new BoxView { HeightRequest = 1, Color = Colors.LightGray },
-			new ProgressBar { Progress = 0.73 },
-			new Label { Text = "73% sprint completion", FontSize = 12, TextColor = Colors.Gray },
-		}
-	};
 
 	static View BuildSettingRow(string label, View control)
 	{

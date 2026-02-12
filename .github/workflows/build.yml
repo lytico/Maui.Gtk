@@ -36,10 +36,10 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore -p:EnableMauiDevFlow=false
 
       - name: Build
-        run: dotnet build -c Release --no-restore
+        run: dotnet build -c Release --no-restore -p:EnableMauiDevFlow=false
 
       - name: Pack libraries
         run: |

@@ -14,6 +14,9 @@
     <ProjectReference Include="..\..\src\Maui.Linux\Maui.Linux.csproj" />
     <ProjectReference Include="..\..\src\Maui.Linux.Essentials\Maui.Linux.Essentials.csproj" />
     <ProjectReference Include="..\..\src\Maui.Linux.BlazorWebView\Maui.Linux.BlazorWebView.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(EnableMauiDevFlow)' == 'true'">
     <ProjectReference Include="..\..\..\MauiDevFlow\src\MauiDevFlow.Agent.Gtk\MauiDevFlow.Agent.Gtk.csproj" />
     <ProjectReference Include="..\..\..\MauiDevFlow\src\MauiDevFlow.Blazor.Gtk\MauiDevFlow.Blazor.Gtk.csproj" />
   </ItemGroup>

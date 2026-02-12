@@ -2,7 +2,9 @@ using Maui.Linux.Platform;
 using Maui.Linux.BlazorWebView;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Hosting;
+#if MAUIDEVFLOW
 using MauiDevFlow.Agent.Gtk;
+#endif
 
 namespace Maui.Linux.Sample;
 
@@ -12,7 +14,7 @@ public class Program : GtkMauiApplication
 
 	protected override void OnStarted()
 	{
-#if DEBUG
+#if MAUIDEVFLOW
 		(Application as Application)?.StartDevFlowAgent();
 #endif
 	}

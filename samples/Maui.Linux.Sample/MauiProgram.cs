@@ -1,8 +1,10 @@
 using Maui.Linux.Hosting;
 using Maui.Linux.Essentials.Hosting;
 using Maui.Linux.BlazorWebView;
+#if MAUIDEVFLOW
 using MauiDevFlow.Agent.Gtk;
 using MauiDevFlow.Blazor.Gtk;
+#endif
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Hosting;
 
@@ -25,7 +27,7 @@ public static class MauiProgram
 			handlers.AddHandler<Microsoft.AspNetCore.Components.WebView.Maui.BlazorWebView, BlazorWebViewHandler>();
 		});
 
-#if DEBUG
+#if MAUIDEVFLOW
 		builder.AddMauiDevFlowAgent();
 		builder.AddMauiBlazorDevFlowTools();
 #endif

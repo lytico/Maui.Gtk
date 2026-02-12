@@ -4,6 +4,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <MauiVersion>10.0.31</MauiVersion>
+    <!-- Set to false in CI or when MauiDevFlow repo is not available -->
+    <EnableMauiDevFlow Condition="'$(EnableMauiDevFlow)' == ''">true</EnableMauiDevFlow>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(EnableMauiDevFlow)' == 'true'">
+    <DefineConstants>$(DefineConstants);MAUIDEVFLOW</DefineConstants>
   </PropertyGroup>
 
   <!-- Common NuGet package properties for all src/ projects -->

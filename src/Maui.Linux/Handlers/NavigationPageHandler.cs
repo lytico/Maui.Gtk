@@ -1,10 +1,17 @@
 using Microsoft.Maui;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Platform;
 
 namespace Maui.Linux.Handlers;
 
-public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.Stack>
+public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.Box>
 {
+	Gtk.Box? _navBar;
+	Gtk.Button? _backButton;
+	Gtk.Label? _titleLabel;
+	Gtk.Stack? _stack;
+	IReadOnlyList<IView>? _currentStack;
+
 	public static new IPropertyMapper<IStackNavigationView, NavigationPageHandler> Mapper =
 		new PropertyMapper<IStackNavigationView, NavigationPageHandler>(ViewMapper)
 		{
@@ -19,14 +26,89 @@ public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.St
 	{
 	}
 
-	protected override Gtk.Stack CreatePlatformView()
+	protected override Gtk.Box CreatePlatformView()
 	{
-		var stack = Gtk.Stack.New();
-		stack.SetTransitionType(Gtk.StackTransitionType.SlideLeftRight);
-		stack.SetTransitionDuration(250);
-		stack.SetVexpand(true);
-		stack.SetHexpand(true);
-		return stack;
+		var container = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+		container.SetVexpand(true);
+		container.SetHexpand(true);
+
+		// Navigation bar
+		_navBar = Gtk.Box.New(Gtk.Orientation.Horizontal, 8);
+		_navBar.SetName("maui-nav-bar");
+
+		_backButton = Gtk.Button.New();
+		_backButton.SetLabel("◀ Back");
+		_backButton.SetVisible(false);
+		_backButton.OnClicked += OnBackClicked;
+		_backButton.AddCssClass("flat");
+		_navBar.Append(_backButton);
+
+		_titleLabel = Gtk.Label.New("");
+		_titleLabel.SetHexpand(true);
+		_titleLabel.SetXalign(0);
+		_navBar.Append(_titleLabel);
+
+		// Style the nav bar
+		ApplyNavBarStyle();
+
+		container.Append(_navBar);
+
+		// Separator below nav bar
+		var sep = Gtk.Separator.New(Gtk.Orientation.Horizontal);
+		container.Append(sep);
+
+		// Page content stack
+		_stack = Gtk.Stack.New();
+		_stack.SetTransitionType(Gtk.StackTransitionType.SlideLeftRight);
+		_stack.SetTransitionDuration(250);
+		_stack.SetVexpand(true);
+		_stack.SetHexpand(true);
+		container.Append(_stack);
+
+		return container;
+	}
+
+	void ApplyNavBarStyle()
+	{
+		if (_navBar == null) return;
+
+		var css = "padding: 8px 12px;";
+
+		if (VirtualView is NavigationPage navPage)
+		{
+			if (navPage.BarBackgroundColor != null)
+				css += $" background-color: {ToGtkColor(navPage.BarBackgroundColor)};";
+
+			if (navPage.BarTextColor != null && _titleLabel != null)
+			{
+				var titleCss = $"color: {ToGtkColor(navPage.BarTextColor)};";
+				ApplyCss(_titleLabel, titleCss);
+			}
+
+			if (navPage.BarTextColor != null && _backButton != null)
+			{
+				var btnCss = $"color: {ToGtkColor(navPage.BarTextColor)};";
+				ApplyCss(_backButton, btnCss);
+			}
+		}
+
+		ApplyCss(_navBar, css);
+	}
+
+	void OnBackClicked(Gtk.Button sender, EventArgs args)
+	{
+		if (VirtualView is NavigationPage navPage && navPage.Navigation.NavigationStack.Count > 1)
+		{
+			_ = navPage.PopAsync();
+		}
+	}
+
+	protected override void DisconnectHandler(Gtk.Box platformView)
+	{
+		if (_backButton != null)
+			_backButton.OnClicked -= OnBackClicked;
+
+		base.DisconnectHandler(platformView);
 	}
 
 	public static void MapRequestNavigation(NavigationPageHandler handler, IStackNavigationView view, object? arg)
@@ -41,16 +123,19 @@ public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.St
 	{
 		_ = MauiContext ?? throw new InvalidOperationException("MauiContext not set.");
 
-		var stack = PlatformView;
+		if (_stack == null) return;
 
-		// Add new pages
+		var newNames = new HashSet<string>();
+
+		// Add new pages to the stack
 		foreach (var page in request.NavigationStack)
 		{
 			var name = page.GetHashCode().ToString();
-			if (stack.GetChildByName(name) == null)
+			newNames.Add(name);
+			if (_stack.GetChildByName(name) == null)
 			{
 				var platformPage = (Gtk.Widget)page.ToPlatform(MauiContext);
-				stack.AddNamed(platformPage, name);
+				_stack.AddNamed(platformPage, name);
 			}
 		}
 
@@ -59,7 +144,65 @@ public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.St
 		{
 			var topPage = request.NavigationStack[^1];
 			var name = topPage.GetHashCode().ToString();
-			stack.SetVisibleChildName(name);
+			_stack.SetVisibleChildName(name);
+
+			UpdateNavBar(topPage, request.NavigationStack.Count);
+		}
+
+		// Remove pages no longer in the stack (after pop)
+		if (_currentStack != null)
+		{
+			foreach (var oldPage in _currentStack)
+			{
+				var oldName = oldPage.GetHashCode().ToString();
+				if (!newNames.Contains(oldName))
+				{
+					var child = _stack.GetChildByName(oldName);
+					if (child != null)
+						_stack.Remove(child);
+				}
+			}
+		}
+
+		_currentStack = request.NavigationStack;
+
+		// Notify MAUI that navigation is complete
+		((IStackNavigation)VirtualView).NavigationFinished(request.NavigationStack);
+	}
+
+	void UpdateNavBar(IView topPage, int stackDepth)
+	{
+		// Update back button visibility
+		if (_backButton != null)
+		{
+			var showBack = stackDepth > 1;
+
+			// Check HasBackButton attached property
+			if (topPage is Page mauiPage)
+				showBack = showBack && NavigationPage.GetHasBackButton(mauiPage);
+
+			_backButton.SetVisible(showBack);
+		}
+
+		// Update title
+		if (_titleLabel != null)
+		{
+			var title = (topPage as Page)?.Title ?? "";
+			_titleLabel.SetLabel(title);
+
+			// Bold title via Pango markup
+			var escaped = GLib.Functions.MarkupEscapeText(title, -1);
+			_titleLabel.SetMarkup($"<b>{escaped}</b>");
+		}
+
+		// Check HasNavigationBar attached property
+		if (_navBar != null && topPage is Page page)
+		{
+			_navBar.SetVisible(NavigationPage.GetHasNavigationBar(page));
+			// Also hide the separator
+			var sep = _navBar.GetNextSibling();
+			if (sep is Gtk.Separator separator)
+				separator.SetVisible(NavigationPage.GetHasNavigationBar(page));
 		}
 	}
 }

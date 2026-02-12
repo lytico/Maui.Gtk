@@ -28,6 +28,7 @@ class MainShell : FlyoutPage
 		("📋 Clipboard & Storage", () => new ClipboardPrefsPage()),
 		("🚀 Launch & Share", () => new LaunchSharePage()),
 		("🌐 Blazor Hybrid", () => new BlazorPage()),
+		("🧭 Navigation", () => new NavigationPage(new NavigationDemoPage())),
 		("📑 TabbedPage", () => new TabbedPageDemo()),
 		("📂 FlyoutPage", () => new FlyoutPageDemo()),
 	];

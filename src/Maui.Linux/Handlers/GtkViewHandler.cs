@@ -90,7 +90,10 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 	{
 		if (view.Background is SolidPaint solidPaint && solidPaint.Color != null)
 		{
-			handler.ApplyCss(handler.PlatformView, $"background-color: {ToGtkColor(solidPaint.Color)};");
+			// Clear background-image too — GTK4 themes (e.g. Yaru) use
+			// background-image: image(white) on buttons, which overrides background-color.
+			handler.ApplyCss(handler.PlatformView,
+				$"background-color: {ToGtkColor(solidPaint.Color)}; background-image: none;");
 		}
 	}
 

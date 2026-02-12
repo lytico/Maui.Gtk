@@ -8,6 +8,7 @@ public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.Bo
 {
 	Gtk.Box? _navBar;
 	Gtk.Button? _backButton;
+	Gtk.Button? _flyoutToggle;
 	Gtk.Label? _titleLabel;
 	Gtk.Stack? _stack;
 	IReadOnlyList<IView>? _currentStack;
@@ -35,6 +36,15 @@ public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.Bo
 		// Navigation bar
 		_navBar = Gtk.Box.New(Gtk.Orientation.Horizontal, 8);
 		_navBar.SetName("maui-nav-bar");
+
+		// Flyout toggle — hidden by default, shown when inside a FlyoutPage
+		_flyoutToggle = Gtk.Button.New();
+		_flyoutToggle.SetLabel("☰");
+		_flyoutToggle.AddCssClass("flat");
+		_flyoutToggle.SetTooltipText("Toggle sidebar");
+		_flyoutToggle.SetVisible(false);
+		_flyoutToggle.OnClicked += OnFlyoutToggleClicked;
+		_navBar.Append(_flyoutToggle);
 
 		_backButton = Gtk.Button.New();
 		_backButton.SetLabel("◀ Back");
@@ -103,10 +113,50 @@ public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.Bo
 		}
 	}
 
+	void OnFlyoutToggleClicked(Gtk.Button sender, EventArgs args)
+	{
+		// Walk up the MAUI visual tree to find the FlyoutPage and toggle IsPresented
+		if (VirtualView is NavigationPage navPage)
+		{
+			var parent = (navPage as Element)?.Parent;
+			while (parent != null)
+			{
+				if (parent is FlyoutPage flyoutPage)
+				{
+					flyoutPage.IsPresented = !flyoutPage.IsPresented;
+					return;
+				}
+				parent = parent.Parent;
+			}
+		}
+	}
+
+	protected override void ConnectHandler(Gtk.Box platformView)
+	{
+		base.ConnectHandler(platformView);
+
+		// Detect if inside a FlyoutPage and show the hamburger toggle
+		if (VirtualView is NavigationPage navPage)
+		{
+			var parent = (navPage as Element)?.Parent;
+			while (parent != null)
+			{
+				if (parent is FlyoutPage)
+				{
+					_flyoutToggle?.SetVisible(true);
+					break;
+				}
+				parent = parent.Parent;
+			}
+		}
+	}
+
 	protected override void DisconnectHandler(Gtk.Box platformView)
 	{
 		if (_backButton != null)
 			_backButton.OnClicked -= OnBackClicked;
+		if (_flyoutToggle != null)
+			_flyoutToggle.OnClicked -= OnFlyoutToggleClicked;
 
 		base.DisconnectHandler(platformView);
 	}

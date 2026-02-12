@@ -67,7 +67,13 @@ class MainShell : FlyoutPage
 			var capturedFactory = factory;
 			btn.Clicked += (s, e) =>
 			{
-				Detail = capturedFactory();
+				var page = capturedFactory();
+				// Wrap non-NavigationPage detail pages in a NavigationPage
+				// so they get a nav bar with the hamburger toggle
+				if (page is ContentPage cp)
+					Detail = new NavigationPage(cp);
+				else
+					Detail = page;
 			};
 			menuStack.Children.Add(btn);
 		}
@@ -78,7 +84,7 @@ class MainShell : FlyoutPage
 			Content = new ScrollView { Content = menuStack },
 		};
 
-		Detail = new HomePage();
+		Detail = new NavigationPage(new HomePage());
 		IsPresented = true;
 	}
 }

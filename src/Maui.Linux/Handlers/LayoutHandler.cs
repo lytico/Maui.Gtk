@@ -55,11 +55,21 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		// Trigger initial layout after GTK has allocated sizes
 		GLib.Functions.IdleAdd(0, () =>
 		{
-			if (VirtualView != null && PlatformView != null)
+			if (VirtualView == null || PlatformView == null) return false;
+
+			// Find window for size
+			Gtk.Widget? cur = PlatformView;
+			while (cur != null && cur is not Gtk.Window) cur = cur.GetParent();
+			if (cur is Gtk.Window window)
 			{
-				var (width, height) = GetAvailableSize(PlatformView);
-				PlatformView.CrossPlatformMeasure(width, height);
-				PlatformView.CrossPlatformArrange(new Rect(0, 0, width, height));
+				window.GetDefaultSize(out var w, out var h);
+				if (w < 1) w = window.GetAllocatedWidth();
+				if (h < 1) h = window.GetAllocatedHeight();
+				if (w > 1 && h > 1)
+				{
+					PlatformView.CrossPlatformMeasure(w, h);
+					PlatformView.CrossPlatformArrange(new Rect(0, 0, w, h));
+				}
 			}
 			return false;
 		});
@@ -72,32 +82,56 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		if (VirtualView is ICrossPlatformLayout layout)
 			platformView.CrossPlatformLayout = layout;
 
-		// Only the outermost layout installs a tick callback to drive
-		// measure/arrange. Any layout that has a GtkLayoutPanel ancestor
-		// (even through Viewports, ScrolledWindows, etc.) is nested and
-		// will be measured/arranged by its parent's layout pass.
+		// Only the outermost layout installs a resize handler.
+		// Nested layouts are driven by their parent's arrange pass.
 		GLib.Functions.IdleAdd(0, () =>
 		{
 			if (HasAncestorLayoutPanel(platformView))
 				return false; // nested — parent drives layout
 
-			int lastW = 0, lastH = 0;
+			// Find the window and listen for size changes
+			Gtk.Widget? cur = platformView;
+			while (cur != null && cur is not Gtk.Window) cur = cur.GetParent();
+			if (cur is not Gtk.Window window) return false;
+
+			void DoLayout()
+			{
+				if (VirtualView == null) return;
+				window.GetDefaultSize(out var dw, out var dh);
+
+				// GetDefaultSize returns -1 if not explicitly set; use allocated
+				if (dw < 1) dw = window.GetAllocatedWidth();
+				if (dh < 1) dh = window.GetAllocatedHeight();
+				if (dw < 1 || dh < 1) return;
+
+				platformView.CrossPlatformMeasure(dw, dh);
+				platformView.CrossPlatformArrange(new Rect(0, 0, dw, dh));
+			}
+
+			// Initial layout
+			DoLayout();
+
+			// Re-layout on window resize via property notification
+			window.OnNotify += (sender, args) =>
+			{
+				if (args.Pspec.GetName() is "default-width" or "default-height")
+				{
+					DoLayout();
+				}
+			};
+
+			// Also re-layout when content changes
 			platformView.AddTickCallback((widget, clock) =>
 			{
 				if (VirtualView == null) return false;
-
-				var (w, h) = GetAvailableSize(widget);
-
-				if (w > 1 && h > 1 && (w != lastW || h != lastH || platformView.LayoutDirty))
+				if (platformView.LayoutDirty)
 				{
-					lastW = w;
-					lastH = h;
 					platformView.LayoutDirty = false;
-					platformView.CrossPlatformMeasure(w, h);
-					platformView.CrossPlatformArrange(new Rect(0, 0, w, h));
+					DoLayout();
 				}
 				return true;
 			});
+
 			return false;
 		});
 	}
@@ -136,10 +170,15 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 	/// Returns the available size for this layout panel by walking up to
 	/// the nearest constraining ancestor. Gtk.Fixed and Gtk.Viewport grow
 	/// to fit their children, so we skip them to avoid a feedback loop.
+	/// For the outermost layout, we use the window size directly since
+	/// intermediate containers may have stale SetSizeRequest values.
 	/// </summary>
 	private static (int width, int height) GetAvailableSize(Gtk.Widget widget)
 	{
-		Gtk.Widget? current = widget.GetParent();
+		// For the root layout, always use the window's content area size.
+		// Intermediate containers (PageHandler Box, ScrolledWindow) have
+		// SetSizeRequest from the initial arrange and don't auto-resize.
+		Gtk.Widget? current = widget;
 		while (current != null)
 		{
 			if (current is Gtk.Window window)
@@ -149,16 +188,6 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 				if (ww > 1 && wh > 1) return (ww, wh);
 				break;
 			}
-
-			// Skip containers that expand to fit children (Fixed, Viewport)
-			// and look for ones that impose a size constraint.
-			if (current is not Gtk.Fixed && current is not Gtk.Viewport)
-			{
-				var cw = current.GetAllocatedWidth();
-				var ch = current.GetAllocatedHeight();
-				if (cw > 1 && ch > 1) return (cw, ch);
-			}
-
 			current = current.GetParent();
 		}
 		return (800, 600);

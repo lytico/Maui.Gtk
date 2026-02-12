@@ -21,6 +21,9 @@ public class GtkLayoutPanel : Gtk.Fixed
 	{
 		SetHexpand(true);
 		SetVexpand(true);
+		// Override GTK size negotiation: report 0 minimum so the window
+		// can shrink freely. MAUI's layout engine controls actual sizing.
+		SetSizeRequest(0, 0);
 	}
 
 	public ICrossPlatformLayout? CrossPlatformLayout

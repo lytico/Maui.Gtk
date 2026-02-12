@@ -41,7 +41,7 @@ public class ControlsPage : ContentPage
 		var stepper = new Stepper { Minimum = 0, Maximum = 50, Increment = 5 };
 		stepper.ValueChanged += (s, e) => stepperLabel.Text = $"Stepper: {e.NewValue}";
 
-		var radioLabel = new Label { Text = "Selected: None", FontSize = 14, TextColor = Colors.DodgerBlue };
+		var radioLabel = new Label { Text = "Selected: Option A", FontSize = 14, TextColor = Colors.DodgerBlue };
 		var radio1 = new RadioButton { Content = "Option A", GroupName = "demo", IsChecked = true };
 		var radio2 = new RadioButton { Content = "Option B", GroupName = "demo" };
 		var radio3 = new RadioButton { Content = "Option C", GroupName = "demo" };

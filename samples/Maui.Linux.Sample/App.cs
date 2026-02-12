@@ -29,6 +29,10 @@ class MainShell : ContentPage
 			("📐 Layouts", () => new LayoutsPage()),
 			("📋 Collection View", () => new CollectionViewPage()),
 			("🎨 Graphics (Cairo)", () => new GraphicsPage()),
+			("📱 Device & App Info", () => new DeviceInfoPage()),
+			("🔋 Battery & Network", () => new BatteryNetworkPage()),
+			("📋 Clipboard & Storage", () => new ClipboardPrefsPage()),
+			("🚀 Launch & Share", () => new LaunchSharePage()),
 		};
 
 		var picker = new Picker { Title = "Select a demo page" };

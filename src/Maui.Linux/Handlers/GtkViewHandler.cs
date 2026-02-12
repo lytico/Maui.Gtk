@@ -153,10 +153,7 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 
 		var provider = Gtk.CssProvider.New();
 		provider.LoadFromString($"* {{ {css} }}");
-		Gtk.StyleContext.AddProviderForDisplay(
-			Gdk.Display.GetDefault()!,
-			provider,
-			Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
+		widget.GetStyleContext().AddProvider(provider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
 	}
 
 	protected static string ToGtkColor(Color color)

@@ -2,44 +2,34 @@ using Microsoft.AspNetCore.Components.WebView.Maui;
 using Microsoft.Maui.Controls;
 using MauiBlazorWebView = Microsoft.AspNetCore.Components.WebView.Maui.BlazorWebView;
 
-namespace Maui.Linux.BlazorSample;
+namespace Maui.Linux.Sample.Pages;
 
-public class App : Application
+public class BlazorPage : ContentPage
 {
-	protected override Window CreateWindow(IActivationState? activationState)
+	public BlazorPage()
 	{
-		return new Window(new MainPage());
-	}
-}
-
-public class MainPage : ContentPage
-{
-	public MainPage()
-	{
-		Title = "Maui.Linux Blazor Hybrid";
-
 		var blazorWebView = new MauiBlazorWebView
 		{
 			HostPage = "wwwroot/index.html",
-			HeightRequest = 400,
+			HeightRequest = 500,
 		};
 		blazorWebView.RootComponents.Add(
 			new RootComponent
 			{
 				Selector = "#app",
-				ComponentType = typeof(Pages.Index),
+				ComponentType = typeof(BlazorComponents.Index),
 			});
 
 		Content = new VerticalStackLayout
 		{
 			Spacing = 8,
-			Padding = new Thickness(16),
 			Children =
 			{
 				new Label
 				{
 					Text = "Blazor Hybrid on Linux (WebKitGTK)",
-					FontSize = 20,
+					FontSize = 18,
+					FontAttributes = FontAttributes.Bold,
 					HorizontalTextAlignment = TextAlignment.Center,
 				},
 				blazorWebView,

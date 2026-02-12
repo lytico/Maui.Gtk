@@ -34,6 +34,7 @@ class MainShell : ContentPage
 			("🔋 Battery & Network", () => new BatteryNetworkPage()),
 			("📋 Clipboard & Storage", () => new ClipboardPrefsPage()),
 			("🚀 Launch & Share", () => new LaunchSharePage()),
+			("🌐 Blazor Hybrid", () => new BlazorPage()),
 		};
 
 		var picker = new Picker { Title = "Select a demo page" };

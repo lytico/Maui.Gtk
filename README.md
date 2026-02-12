@@ -160,14 +160,11 @@ dotnet restore
 dotnet build
 ```
 
-### Run the sample apps
+### Run the sample app
 
 ```bash
-# Standard MAUI sample
+# Sample app (includes native controls, Blazor Hybrid, essentials, and more)
 dotnet run --project samples/Maui.Linux.Sample
-
-# Blazor Hybrid sample
-dotnet run --project samples/Maui.Linux.BlazorSample
 ```
 
 ## Project Structure
@@ -182,8 +179,7 @@ Maui.Linux.slnx                          # Solution file
 │   ├── Maui.Linux.Essentials/            # MAUI Essentials for Linux (clipboard, etc.)
 │   └── Maui.Linux.BlazorWebView/         # BlazorWebView support via WebKitGTK
 ├── samples/
-│   ├── Maui.Linux.Sample/                # Standard MAUI sample app
-│   └── Maui.Linux.BlazorSample/          # Blazor Hybrid sample app
+│   └── Maui.Linux.Sample/                # Sample app (controls, Blazor, essentials)
 ├── templates/                            # dotnet new templates
 └── docs/                                 # Documentation
 ```

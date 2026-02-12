@@ -1,4 +1,5 @@
 using Maui.Linux.Platform;
+using Maui.Linux.BlazorWebView;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Hosting;
 using MauiDevFlow.Agent.Gtk;
@@ -18,6 +19,8 @@ public class Program : GtkMauiApplication
 
 	public static void Main(string[] args)
 	{
+		GtkBlazorWebView.InitializeWebKit();
+
 		var app = new Program();
 		app.Run(args);
 	}

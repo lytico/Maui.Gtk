@@ -69,4 +69,13 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 		// Trigger content mapping
 		Mapper.UpdateProperties(this, VirtualView);
 	}
+
+	public override void PlatformArrange(Rect rect)
+	{
+		base.PlatformArrange(rect);
+
+		// Propagate arrange to page content so nested layouts resize
+		if (VirtualView is ICrossPlatformLayout crossPlatform)
+			crossPlatform.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));
+	}
 }

@@ -59,6 +59,19 @@ public class ScrollViewHandler : GtkViewHandler<IScrollView, Gtk.ScrolledWindow>
 	{
 	}
 
+	public override void PlatformArrange(Rect rect)
+	{
+		base.PlatformArrange(rect);
+
+		// When the ScrollView is resized, re-measure and re-arrange its content
+		// so nested layouts adapt to the new available width.
+		if (VirtualView is ICrossPlatformLayout crossPlatform)
+		{
+			crossPlatform.CrossPlatformMeasure(rect.Width, rect.Height);
+			crossPlatform.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));
+		}
+	}
+
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
 	{
 		if (VirtualView is ICrossPlatformLayout crossPlatform)

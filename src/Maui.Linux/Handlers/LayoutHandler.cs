@@ -104,6 +104,10 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 				if (dh < 1) dh = window.GetAllocatedHeight();
 				if (dw < 1 || dh < 1) return;
 
+				// Invalidate cached measurements so MAUI re-measures the
+				// entire tree with the new constraints, not just the root.
+				(VirtualView as Microsoft.Maui.Controls.VisualElement)?.InvalidateMeasure();
+
 				platformView.CrossPlatformMeasure(dw, dh);
 				platformView.CrossPlatformArrange(new Rect(0, 0, dw, dh));
 			}

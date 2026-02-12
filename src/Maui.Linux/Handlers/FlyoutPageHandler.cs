@@ -124,7 +124,9 @@ public class FlyoutPageHandler : GtkViewHandler<IFlyoutView, Gtk.Box>
 		}
 		else
 		{
-			handler._lastPosition = handler._paned.GetPosition();
+			var currentPos = handler._paned.GetPosition();
+			if (currentPos > 0)
+				handler._lastPosition = currentPos;
 			startChild.SetVisible(false);
 			handler._paned.SetPosition(0);
 		}

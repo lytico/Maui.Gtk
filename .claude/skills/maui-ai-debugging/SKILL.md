@@ -361,12 +361,15 @@ Global options: `--agent-host` (default localhost), `--agent-port` (default 9223
 | Command | Description |
 |---------|-------------|
 | `MAUI status` | Agent connection status, platform, app name |
-| `MAUI tree [--depth N]` | Visual tree (IDs, types, text, bounds). Depth 0=unlimited |
+| `MAUI tree [--depth N]` | Visual tree (IDs, types, text, value, bounds). Depth 0=unlimited. `value` field shows state for Switch, CheckBox, Slider, ProgressBar, etc. |
 | `MAUI query --type T --automationId A --text T` | Find elements (any/all filters) |
 | `MAUI tap <elementId>` | Tap an element |
 | `MAUI fill <elementId> <text>` | Fill text into Entry/Editor |
 | `MAUI clear <elementId>` | Clear text from element |
 | `MAUI screenshot [--output path.png]` | PNG screenshot |
+| `MAUI screenshot --fullscreen [--output path.png]` | Full-screen screenshot including dialogs (Linux/GTK) |
+| `MAUI scroll <elementId>` | Scroll to make element visible |
+| `MAUI scroll --delta-y 300` | Scroll down by 300px on page ScrollView |
 | `MAUI property <elementId> <prop>` | Read property (Text, IsVisible, FontSize, etc.) |
 | `MAUI set-property <elementId> <prop> <value>` | Set property (live editing — colors, text, sizes, etc.) |
 | `MAUI element <elementId>` | Full element JSON (type, bounds, children, etc.) |
@@ -406,19 +409,52 @@ The agent exposes JSON endpoints on port 9223 (configurable via `-p:MauiDevFlowP
 | Endpoint | Method | Body |
 |----------|--------|------|
 | `/api/status` | GET | — |
-| `/api/tree?depth=N` | GET | — |
+| `/api/tree?depth=N` | GET | — (tree elements include `value` field for stateful controls: Switch, CheckBox, Slider, etc.) |
 | `/api/element/{id}` | GET | — |
 | `/api/query?type=&text=&automationId=` | GET | — |
 | `/api/action/tap` | POST | `{"elementId":"..."}` |
 | `/api/action/fill` | POST | `{"elementId":"...","text":"..."}` |
 | `/api/action/clear` | POST | `{"elementId":"..."}` |
 | `/api/action/focus` | POST | `{"elementId":"..."}` |
+| `/api/action/scroll` | POST | `{"elementId":"...","deltaX":0,"deltaY":200,"animated":true}` (scroll to element or by delta) |
 | `/api/action/resize` | POST | `{"width":800,"height":600}` (resize window) |
-| `/api/screenshot` | GET | — (returns PNG) |
+| `/api/screenshot` | GET | — (returns PNG of main window) |
+| `/api/screenshot?fullscreen=true` | GET | — (returns PNG of full screen including dialogs — Linux/GTK only, uses XDG portal) |
 | `/api/property/{id}/{name}` | GET | — |
 | `/api/property/{id}/{name}` | POST | `{"value":"..."}` (set property — live editing) |
 | `/api/logs?limit=N&skip=N&source=S` | GET | — (returns JSON array of log entries. source: native, webview, or omit for all) |
 | `/api/cdp` | POST | CDP command JSON (e.g. `{"id":1,"method":"Runtime.evaluate","params":{...}}`) |
+
+#### Scroll Action Details
+
+The scroll endpoint supports two modes:
+1. **Scroll to element**: Pass `elementId` — finds the nearest `ScrollView` ancestor and scrolls to make the element visible.
+2. **Scroll by delta**: Omit `elementId`, pass `deltaX`/`deltaY` — scrolls the first `ScrollView` on the page by the given offset.
+
+```bash
+# Scroll to make an element visible
+curl -X POST http://localhost:9223/api/action/scroll -d '{"elementId":"myButton"}'
+
+# Scroll down by 300 pixels
+curl -X POST http://localhost:9223/api/action/scroll -d '{"deltaY":300}'
+
+# Scroll up by 200 pixels (negative delta)
+curl -X POST http://localhost:9223/api/action/scroll -d '{"deltaY":-200}'
+```
+
+#### Full-Screen Screenshot (Linux/GTK)
+
+On Linux with GTK4, `/api/screenshot` captures only the main window widget (excluding modal dialogs,
+popups, etc.). Use `?fullscreen=true` to capture the entire screen via the XDG Desktop Portal,
+which includes all windows and dialog overlays.
+
+```bash
+# Main window only
+curl http://localhost:9223/api/screenshot -o screenshot.png
+
+# Full screen including dialogs (Linux only)
+curl http://localhost:9223/api/screenshot?fullscreen=true -o fullscreen.png
+```
 
 ## Platform Details
 

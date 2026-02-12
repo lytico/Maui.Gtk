@@ -60,7 +60,6 @@ class MainShell : FlyoutPage
 			var btn = new Button
 			{
 				Text = name,
-				BackgroundColor = Colors.Transparent,
 				FontSize = 14,
 				HorizontalOptions = LayoutOptions.Fill,
 			};

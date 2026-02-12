@@ -57,19 +57,11 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		{
 			if (VirtualView == null || PlatformView == null) return false;
 
-			// Find window for size
-			Gtk.Widget? cur = PlatformView;
-			while (cur != null && cur is not Gtk.Window) cur = cur.GetParent();
-			if (cur is Gtk.Window window)
+			var (w, h) = GetConstrainedSize(PlatformView);
+			if (w > 1 && h > 1)
 			{
-				window.GetDefaultSize(out var w, out var h);
-				if (w < 1) w = window.GetAllocatedWidth();
-				if (h < 1) h = window.GetAllocatedHeight();
-				if (w > 1 && h > 1)
-				{
-					PlatformView.CrossPlatformMeasure(w, h);
-					PlatformView.CrossPlatformArrange(new Rect(0, 0, w, h));
-				}
+				PlatformView.CrossPlatformMeasure(w, h);
+				PlatformView.CrossPlatformArrange(new Rect(0, 0, w, h));
 			}
 			return false;
 		});
@@ -97,11 +89,7 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 			void DoLayout()
 			{
 				if (VirtualView == null) return;
-				window.GetDefaultSize(out var dw, out var dh);
-
-				// GetDefaultSize returns -1 if not explicitly set; use allocated
-				if (dw < 1) dw = window.GetAllocatedWidth();
-				if (dh < 1) dh = window.GetAllocatedHeight();
+				var (dw, dh) = GetConstrainedSize(platformView);
 				if (dw < 1 || dh < 1) return;
 
 				// Invalidate cached measurements so MAUI re-measures the
@@ -156,6 +144,67 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		return false;
 	}
 
+	/// <summary>
+	/// Gets the available layout size for a widget by walking up the tree.
+	/// If the widget is inside a Gtk.Paned, returns the constrained size
+	/// for that pane (start or end child) instead of the full window size.
+	/// </summary>
+	private static (int width, int height) GetConstrainedSize(Gtk.Widget widget)
+	{
+		Gtk.Window? window = null;
+		Gtk.Paned? paned = null;
+		bool isStartChild = false;
+
+		var current = widget.GetParent();
+		while (current != null)
+		{
+			if (current is Gtk.Paned p && paned == null)
+			{
+				paned = p;
+				// Determine which side of the Paned we're in
+				var startChild = p.GetStartChild();
+				var check = widget.GetParent();
+				// Walk from widget up to the Paned to find if we're in start or end
+				var w = widget;
+				while (w != null && w != p)
+				{
+					if (w == startChild)
+					{
+						isStartChild = true;
+						break;
+					}
+					w = w.GetParent();
+				}
+			}
+			if (current is Gtk.Window win)
+			{
+				window = win;
+				break;
+			}
+			current = current.GetParent();
+		}
+
+		if (window == null)
+			return (800, 600);
+
+		window.GetDefaultSize(out var ww, out var wh);
+		if (ww < 1) ww = window.GetAllocatedWidth();
+		if (wh < 1) wh = window.GetAllocatedHeight();
+		if (ww < 1 || wh < 1)
+			return (800, 600);
+
+		if (paned != null)
+		{
+			var pos = paned.GetPosition();
+			if (isStartChild)
+				return (pos, wh);
+			else
+				return (ww - pos, wh);
+		}
+
+		return (ww, wh);
+	}
+
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
 	{
 		return PlatformView.CrossPlatformMeasure(widthConstraint, heightConstraint);
@@ -168,33 +217,6 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 
 		// Arrange children relative to the panel (origin at 0,0)
 		PlatformView.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));
-	}
-
-	/// <summary>
-	/// Returns the available size for this layout panel by walking up to
-	/// the nearest constraining ancestor. Gtk.Fixed and Gtk.Viewport grow
-	/// to fit their children, so we skip them to avoid a feedback loop.
-	/// For the outermost layout, we use the window size directly since
-	/// intermediate containers may have stale SetSizeRequest values.
-	/// </summary>
-	private static (int width, int height) GetAvailableSize(Gtk.Widget widget)
-	{
-		// For the root layout, always use the window's content area size.
-		// Intermediate containers (PageHandler Box, ScrolledWindow) have
-		// SetSizeRequest from the initial arrange and don't auto-resize.
-		Gtk.Widget? current = widget;
-		while (current != null)
-		{
-			if (current is Gtk.Window window)
-			{
-				var ww = window.GetAllocatedWidth();
-				var wh = window.GetAllocatedHeight();
-				if (ww > 1 && wh > 1) return (ww, wh);
-				break;
-			}
-			current = current.GetParent();
-		}
-		return (800, 600);
 	}
 
 	public void Add(IView child)

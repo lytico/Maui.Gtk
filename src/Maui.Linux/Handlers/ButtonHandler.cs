@@ -18,7 +18,8 @@ public class ButtonHandler : GtkViewHandler<IButton, Gtk.Button>
 
 	protected override Gtk.Button CreatePlatformView()
 	{
-		return Gtk.Button.New();
+		var button = Gtk.Button.New();
+		return button;
 	}
 
 	protected override void ConnectHandler(Gtk.Button platformView)
@@ -46,13 +47,17 @@ public class ButtonHandler : GtkViewHandler<IButton, Gtk.Button>
 	public static void MapText(ButtonHandler handler, IButton button)
 	{
 		if (button is ITextButton textButton)
+		{
 			handler.PlatformView?.SetLabel(textButton.Text ?? string.Empty);
+		}
 	}
 
 	public static void MapTextColor(ButtonHandler handler, IButton button)
 	{
 		if (button is ITextStyle textStyle && textStyle.TextColor != null)
+		{
 			handler.ApplyCss(handler.PlatformView, $"color: {ToGtkColor(textStyle.TextColor)};");
+		}
 	}
 
 	public static void MapPadding(ButtonHandler handler, IButton button)

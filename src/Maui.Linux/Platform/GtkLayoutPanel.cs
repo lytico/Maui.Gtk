@@ -11,6 +11,12 @@ public class GtkLayoutPanel : Gtk.Fixed
 {
 	ICrossPlatformLayout? _crossPlatformLayout;
 
+	/// <summary>
+	/// Set to true when children are added/removed so the root tick callback
+	/// knows to re-measure and re-arrange even if the window size hasn't changed.
+	/// </summary>
+	public bool LayoutDirty { get; set; }
+
 	public GtkLayoutPanel() : base()
 	{
 		SetHexpand(true);

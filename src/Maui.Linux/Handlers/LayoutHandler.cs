@@ -78,19 +78,18 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 			if (platformView.GetParent() is Platform.GtkLayoutPanel)
 				return false; // nested layout — parent drives layout
 
-			int lastW = 0, lastH = 0, lastChildCount = -1;
+			int lastW = 0, lastH = 0;
 			platformView.AddTickCallback((widget, clock) =>
 			{
 				if (VirtualView == null) return false;
 
 				var (w, h) = GetWindowSize(widget);
-				int childCount = (VirtualView as ILayout)?.Count ?? 0;
 
-				if (w > 1 && h > 1 && (w != lastW || h != lastH || childCount != lastChildCount))
+				if (w > 1 && h > 1 && (w != lastW || h != lastH || platformView.LayoutDirty))
 				{
 					lastW = w;
 					lastH = h;
-					lastChildCount = childCount;
+					platformView.LayoutDirty = false;
 					platformView.CrossPlatformMeasure(w, h);
 					platformView.CrossPlatformArrange(new Rect(0, 0, w, h));
 				}
@@ -107,7 +106,11 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 
 	public override void PlatformArrange(Rect rect)
 	{
-		PlatformView.CrossPlatformArrange(rect);
+		// Size and position the GtkLayoutPanel itself within its parent
+		base.PlatformArrange(rect);
+
+		// Arrange children relative to the panel (origin at 0,0)
+		PlatformView.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));
 	}
 
 	private static (int width, int height) GetWindowSize(Gtk.Widget widget)
@@ -132,6 +135,7 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		{
 			var platformChild = (Gtk.Widget)child.ToPlatform(MauiContext);
 			PlatformView.Put(platformChild, 0, 0);
+			MarkLayoutDirty();
 		}
 		catch (Exception ex)
 		{
@@ -142,7 +146,10 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 	public void Remove(IView child)
 	{
 		if (child.Handler?.PlatformView is Gtk.Widget widget)
+		{
 			PlatformView.Remove(widget);
+			MarkLayoutDirty();
+		}
 	}
 
 	public void Insert(int index, IView child)
@@ -154,12 +161,33 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 	{
 		while (PlatformView.GetFirstChild() is Gtk.Widget child)
 			PlatformView.Remove(child);
+		MarkLayoutDirty();
 	}
 
 	public void Update(int index, IView child)
 	{
 		Remove(child);
 		Add(child);
+	}
+
+	/// <summary>
+	/// Walk up the widget tree to the root GtkLayoutPanel and set its LayoutDirty flag
+	/// so the tick callback re-measures and re-arranges on the next frame.
+	/// </summary>
+	void MarkLayoutDirty()
+	{
+		PlatformView.LayoutDirty = true;
+
+		// Propagate to ancestor layout panels (root tick callback drives layout)
+		Gtk.Widget? current = PlatformView.GetParent();
+		while (current != null)
+		{
+			if (current is GtkLayoutPanel panel)
+			{
+				panel.LayoutDirty = true;
+			}
+			current = current.GetParent();
+		}
 	}
 
 	public void UpdateZIndex(IView child)

@@ -36,7 +36,7 @@ public class ContentViewHandler : GtkViewHandler<IContentView, Gtk.Box>
 	{
 		base.PlatformArrange(rect);
 		if (VirtualView is ICrossPlatformLayout crossPlatform)
-			crossPlatform.CrossPlatformArrange(rect);
+			crossPlatform.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));
 	}
 
 	public static void MapContent(ContentViewHandler handler, IContentView contentView)
@@ -53,6 +53,17 @@ public class ContentViewHandler : GtkViewHandler<IContentView, Gtk.Box>
 			platformContent.SetVexpand(true);
 			platformContent.SetHexpand(true);
 			box.Append(platformContent);
+		}
+
+		// Propagate layout dirty to ancestor layout panels
+		Gtk.Widget? current = box.GetParent();
+		while (current != null)
+		{
+			if (current is Platform.GtkLayoutPanel panel)
+			{
+				panel.LayoutDirty = true;
+			}
+			current = current.GetParent();
 		}
 	}
 }

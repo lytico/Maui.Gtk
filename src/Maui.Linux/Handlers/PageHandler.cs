@@ -49,6 +49,17 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 			platformContent.SetHexpand(true);
 			scrolled.SetChild(platformContent);
 		}
+
+		// Propagate layout dirty to ancestor layout panels
+		Gtk.Widget? current = box.GetParent();
+		while (current != null)
+		{
+			if (current is Platform.GtkLayoutPanel panel)
+			{
+				panel.LayoutDirty = true;
+			}
+			current = current.GetParent();
+		}
 	}
 
 	public override void SetVirtualView(IView view)

@@ -53,19 +53,29 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		// not the previously-arranged minimum.
 		platformView.SetSizeRequest(-1, -1);
 
-		// Measure the GTK widget's natural size
-		platformView.Measure(out var minWidth, out var natWidth, out var minHeight, out var natHeight);
+		// Measure horizontal natural size
+		platformView.MeasureNative(Gtk.Orientation.Horizontal, -1, out var minWidth, out var natWidth, out _, out _);
 
 		var width = Math.Min(natWidth, widthConstraint);
-		var height = Math.Min(natHeight, heightConstraint);
 
 		// If MAUI set an explicit request, use it
 		if (VirtualView is Microsoft.Maui.Controls.VisualElement ve)
 		{
-			if (ve.HeightRequest >= 0)
-				height = Math.Min(ve.HeightRequest, heightConstraint);
 			if (ve.WidthRequest >= 0)
 				width = Math.Min(ve.WidthRequest, widthConstraint);
+		}
+
+		// Measure vertical size with the actual width constraint so wrapping
+		// widgets (e.g. labels with SetWrap) report the correct wrapped height.
+		int forWidth = (int)width;
+		platformView.MeasureNative(Gtk.Orientation.Vertical, forWidth, out var minHeight, out var natHeight, out _, out _);
+
+		var height = Math.Min(natHeight, heightConstraint);
+
+		if (VirtualView is Microsoft.Maui.Controls.VisualElement ve2)
+		{
+			if (ve2.HeightRequest >= 0)
+				height = Math.Min(ve2.HeightRequest, heightConstraint);
 		}
 
 		return new Size(Math.Max(1, width), Math.Max(1, height));

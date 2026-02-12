@@ -38,8 +38,8 @@ public class CollectionViewPage : ContentPage
 					activeTab.TextColor = Colors.Gray;
 					activeTab.BackgroundColor = Colors.Transparent;
 				}
-				btn.TextColor = Colors.White;
-				btn.BackgroundColor = Colors.DodgerBlue;
+				btn.TextColor = Colors.Black;
+				btn.BackgroundColor = Colors.LightSkyBlue;
 				activeTab = btn;
 
 				contentArea.Children.Clear();
@@ -50,8 +50,8 @@ public class CollectionViewPage : ContentPage
 
 		// Activate first tab
 		var firstBtn = (Button)tabs.Children[0];
-		firstBtn.TextColor = Colors.White;
-		firstBtn.BackgroundColor = Colors.DodgerBlue;
+		firstBtn.TextColor = Colors.Black;
+		firstBtn.BackgroundColor = Colors.LightSkyBlue;
 		activeTab = firstBtn;
 		contentArea.Children.Add(pages[0].builder());
 

@@ -4,6 +4,8 @@ A community-driven .NET MAUI backend for Linux, powered by **GTK4**. Run your .N
 
 > **Status:** Early / experimental — contributions and feedback are welcome!
 
+https://github.com/user-attachments/assets/039f1695-3cd0-4b0b-ad11-dce304d0cdce
+
 ## Features
 
 - **Native GTK4 rendering** — MAUI controls map to real GTK4 widgets.

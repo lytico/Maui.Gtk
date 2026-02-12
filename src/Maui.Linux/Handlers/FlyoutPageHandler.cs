@@ -23,6 +23,10 @@ public class FlyoutPageHandler : GtkViewHandler<IFlyoutView, Gtk.Paned>
 		paned.SetPosition(250); // default flyout width
 		paned.SetVexpand(true);
 		paned.SetHexpand(true);
+		paned.SetResizeStartChild(false);
+		paned.SetShrinkStartChild(false);
+		paned.SetResizeEndChild(true);
+		paned.SetShrinkEndChild(false);
 		return paned;
 	}
 

@@ -49,8 +49,10 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		if (platformView == null)
 			return Size.Zero;
 
-		// Clear any previous SetSizeRequest so Measure returns the natural size,
-		// not the previously-arranged minimum.
+		// Save current size request so we can restore it after measurement.
+		// SetSizeRequest(-1,-1) is needed to get the natural size, but leaving
+		// it cleared causes GTK to re-allocate at natural width, breaking layout.
+		platformView.GetSizeRequest(out var prevW, out var prevH);
 		platformView.SetSizeRequest(-1, -1);
 
 		// Measure horizontal natural size
@@ -77,6 +79,9 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			if (ve2.HeightRequest >= 0)
 				height = Math.Min(ve2.HeightRequest, heightConstraint);
 		}
+
+		// Restore previous size request
+		platformView.SetSizeRequest(prevW, prevH);
 
 		return new Size(Math.Max(1, width), Math.Max(1, height));
 	}

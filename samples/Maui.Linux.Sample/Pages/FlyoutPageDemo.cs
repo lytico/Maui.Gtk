@@ -3,7 +3,7 @@ using Microsoft.Maui.Graphics;
 
 namespace Maui.Linux.Sample.Pages;
 
-public class FlyoutPageDemo : FlyoutPage
+public class FlyoutPageDemo : ContentPage
 {
 	private readonly Label _detailTitle;
 	private readonly VerticalStackLayout _detailContent;
@@ -22,7 +22,6 @@ public class FlyoutPageDemo : FlyoutPage
 			}
 		};
 
-		// --- Flyout (sidebar menu) ---
 		var menuItems = new (string icon, string title, Color color)[]
 		{
 			("📥", "Inbox", Colors.DodgerBlue),
@@ -35,18 +34,6 @@ public class FlyoutPageDemo : FlyoutPage
 
 		var menuStack = new VerticalStackLayout { Spacing = 0 };
 
-		var backBtn = new Button
-		{
-			Text = "← Back to Demo Menu",
-			BackgroundColor = Colors.DodgerBlue,
-			TextColor = Colors.White,
-			FontSize = 13,
-			HorizontalOptions = LayoutOptions.Start,
-		};
-		backBtn.Clicked += (s, e) => App.Instance?.NavigateHome();
-
-		menuStack.Children.Add(backBtn);
-		menuStack.Children.Add(new BoxView { HeightRequest = 1, Color = Colors.LightGray });
 		menuStack.Children.Add(new Label
 		{
 			Text = "📬 Mail",
@@ -73,30 +60,59 @@ public class FlyoutPageDemo : FlyoutPage
 			menuStack.Children.Add(btn);
 		}
 
-		Flyout = new ContentPage
+		var detailPanel = new VerticalStackLayout
 		{
-			Title = "Menu",
-			Content = new ScrollView { Content = menuStack },
-		};
-
-		// --- Detail (main content) ---
-		Detail = new ContentPage
-		{
-			Title = "Detail",
-			Content = new VerticalStackLayout
+			Spacing = 12,
+			Padding = new Thickness(24),
+			Children =
 			{
-				Spacing = 12,
-				Padding = new Thickness(24),
-				Children =
-				{
-					_detailTitle,
-					new BoxView { HeightRequest = 2, Color = Colors.DodgerBlue },
-					_detailContent,
-				}
+				_detailTitle,
+				new BoxView { HeightRequest = 2, Color = Colors.DodgerBlue },
+				_detailContent,
 			}
 		};
 
-		IsPresented = true;
+		Content = new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label
+				{
+					Text = "FlyoutPage Demo",
+					FontSize = 24,
+					FontAttributes = FontAttributes.Bold,
+					Padding = new Thickness(24, 24, 24, 0),
+				},
+				new Label
+				{
+					Text = "Simulates a FlyoutPage with sidebar + detail. The real FlyoutPageHandler uses GTK4's Paned widget.",
+					FontSize = 13,
+					TextColor = Colors.Gray,
+					Padding = new Thickness(24, 0),
+				},
+				new BoxView { HeightRequest = 2, Color = Colors.DodgerBlue, Margin = new Thickness(24, 0) },
+				new HorizontalStackLayout
+				{
+					Spacing = 0,
+					Children =
+					{
+						new ScrollView
+						{
+							WidthRequest = 200,
+							HeightRequest = 400,
+							Content = menuStack,
+						},
+						new BoxView { WidthRequest = 2, Color = Colors.LightGray, HeightRequest = 400 },
+						new ScrollView
+						{
+							HeightRequest = 400,
+							Content = detailPanel,
+						},
+					}
+				},
+			}
+		};
 	}
 
 	void ShowDetail(string icon, string title, Color color)
@@ -106,7 +122,6 @@ public class FlyoutPageDemo : FlyoutPage
 
 		_detailContent.Children.Clear();
 
-		// Generate some mock content for each section
 		var messageCount = new Random().Next(3, 12);
 		_detailContent.Children.Add(new Label
 		{

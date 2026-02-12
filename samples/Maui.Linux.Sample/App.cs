@@ -6,26 +6,9 @@ namespace Maui.Linux.Sample;
 
 class App : Application
 {
-	public static App? Instance { get; private set; }
-	private Window? _window;
-
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		Instance = this;
-		_window = new Window(new MainShell());
-		return _window;
-	}
-
-	public void NavigateTo(Page page)
-	{
-		if (_window != null)
-			_window.Page = page;
-	}
-
-	public void NavigateHome()
-	{
-		if (_window != null)
-			_window.Page = new MainShell();
+		return new Window(new MainShell());
 	}
 }
 
@@ -38,7 +21,7 @@ class MainShell : ContentPage
 	{
 		Title = "Maui.Linux GTK4 Demo";
 
-		var pageFactories = new (string name, Func<Page> factory)[]
+		var pageFactories = new (string name, Func<ContentPage> factory)[]
 		{
 			("🏠 Home", () => new HomePage()),
 			("🎛️ Controls", () => new ControlsPage()),
@@ -97,22 +80,14 @@ class MainShell : ContentPage
 		Content = _root;
 	}
 
-	void ShowPage(Page page)
+	void ShowPage(ContentPage page)
 	{
-		if (page is ContentPage contentPage)
-		{
-			// Embed content inline
-			if (_pageContent != null)
-				_root.Children.Remove(_pageContent);
+		if (_pageContent != null)
+			_root.Children.Remove(_pageContent);
 
-			_pageContent = contentPage.Content;
-			if (_pageContent != null)
-				_root.Children.Add(_pageContent);
-		}
-		else
-		{
-			// TabbedPage, FlyoutPage — must be window root
-			App.Instance?.NavigateTo(page);
-		}
+		_pageContent = page.Content;
+
+		if (_pageContent != null)
+			_root.Children.Add(_pageContent);
 	}
 }

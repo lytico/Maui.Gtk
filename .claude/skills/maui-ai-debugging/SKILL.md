@@ -413,6 +413,7 @@ The agent exposes JSON endpoints on port 9223 (configurable via `-p:MauiDevFlowP
 | `/api/action/fill` | POST | `{"elementId":"...","text":"..."}` |
 | `/api/action/clear` | POST | `{"elementId":"..."}` |
 | `/api/action/focus` | POST | `{"elementId":"..."}` |
+| `/api/action/resize` | POST | `{"width":800,"height":600}` (resize window) |
 | `/api/screenshot` | GET | — (returns PNG) |
 | `/api/property/{id}/{name}` | GET | — |
 | `/api/property/{id}/{name}` | POST | `{"value":"..."}` (set property — live editing) |

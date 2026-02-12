@@ -1,0 +1,13 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    Maui.Linux build targets — auto-imported when the NuGet package is referenced.
+    Suppresses MAUI workload warnings since there's no official Linux TFM.
+  -->
+  <PropertyGroup>
+    <_MauiLinuxIsLinux Condition="$([MSBuild]::IsOSPlatform('Linux'))">true</_MauiLinuxIsLinux>
+    <!-- Suppress "MAUI workload not installed" warnings for plain net10.0 projects -->
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+
+</Project>

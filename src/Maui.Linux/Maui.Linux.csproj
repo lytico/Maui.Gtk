@@ -4,15 +4,29 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Maui.Linux</RootNamespace>
     <AssemblyName>Maui.Linux</AssemblyName>
+
+    <!-- NuGet Package -->
     <PackageId>Maui.Linux</PackageId>
-    <Description>A .NET MAUI backend for Linux using GTK4</Description>
+    <Version>0.1.0-preview.1</Version>
     <Authors>Maui.Linux Contributors</Authors>
+    <Description>A .NET MAUI backend for Linux using GTK4. Run your MAUI apps natively on Linux desktops with real GTK4 widgets via GirCore bindings.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/nicolestandifer3/Maui.Gtk</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nicolestandifer3/Maui.Gtk.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>maui;linux;gtk;gtk4;desktop;dotnet;cross-platform;gircore</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="GirCore.Gtk-4.0" Version="0.7.0" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="" />
+    <None Include="buildTransitive/**" Pack="true" PackagePath="buildTransitive/" />
   </ItemGroup>
 
 </Project>

@@ -4,10 +4,19 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Maui.Linux.BlazorWebView</RootNamespace>
     <AssemblyName>Maui.Linux.BlazorWebView</AssemblyName>
+
+    <!-- NuGet Package -->
     <PackageId>Maui.Linux.BlazorWebView</PackageId>
-    <Description>BlazorWebView support for Maui.Linux using WebKitGTK</Description>
+    <Version>0.1.0-preview.1</Version>
     <Authors>Maui.Linux Contributors</Authors>
+    <Description>Blazor Hybrid support for Maui.Linux — host Blazor components in a native GTK4 window using WebKitGTK.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/nicolestandifer3/Maui.Gtk</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nicolestandifer3/Maui.Gtk.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>maui;linux;blazor;webview;gtk;gtk4;webkit;webkitgtk;hybrid</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +28,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Maui.Linux\Maui.Linux.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>

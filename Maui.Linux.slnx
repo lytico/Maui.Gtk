@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Maui.Linux.BlazorWebView/Maui.Linux.BlazorWebView.csproj" />
+    <Project Path="src/Maui.Linux.Essentials/Maui.Linux.Essentials.csproj" />
     <Project Path="src/Maui.Linux/Maui.Linux.csproj" />
   </Folder>
 </Solution>

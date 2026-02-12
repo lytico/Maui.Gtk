@@ -6,133 +6,365 @@ namespace Maui.Linux.Platform;
 
 /// <summary>
 /// Handles MAUI DisplayAlert, DisplayActionSheet, and DisplayPromptAsync
-/// using GTK dialogs. Uses reflection/DispatchProxy to register with
-/// MAUI's internal AlertManager.Subscribe() via DI, since
-/// IAlertManagerSubscription is an internal interface.
+/// using custom GTK4 dialog windows. Registers a DispatchProxy implementation
+/// of MAUI's internal IAlertManagerSubscription via DI so AlertManager.Subscribe()
+/// discovers it automatically.
 /// See: https://gist.github.com/Redth/fc07a982bcff79cf925168f241a12c95
 /// </summary>
 public static class GtkAlertManager
 {
-	/// <summary>
-	/// Registers the alert handler proxy into MAUI's DI so that
-	/// AlertManager.Subscribe() discovers it.
-	/// </summary>
-	public static void Register(IServiceCollection services)
-	{
-		try
-		{
-			// Find the internal interface type
-			var amType = typeof(Window).Assembly
-				.GetType("Microsoft.Maui.Controls.Platform.AlertManager");
+/// <summary>
+/// Creates and registers a DispatchProxy for IAlertManagerSubscription via DI.
+/// MAUI's AlertManager.Subscribe() resolves this from DI before falling back
+/// to the platform-specific AlertRequestHelper.
+/// </summary>
+public static void Register(IServiceCollection services)
+{
+try
+{
+var amType = typeof(Window).Assembly
+.GetType("Microsoft.Maui.Controls.Platform.AlertManager");
+if (amType == null) return;
 
-			if (amType == null)
-				return;
+var iamsType = amType.GetNestedType("IAlertManagerSubscription",
+BindingFlags.Public | BindingFlags.NonPublic);
+if (iamsType == null) return;
 
-			var iamsType = amType.GetNestedType("IAlertManagerSubscription",
-				BindingFlags.Public | BindingFlags.NonPublic);
+var proxyType = typeof(AlertSubscriptionProxy<>).MakeGenericType(iamsType);
+var createMethod = typeof(DispatchProxy)
+.GetMethods(BindingFlags.Public | BindingFlags.Static)
+.First(m => m.Name == "Create" && m.GetGenericArguments().Length == 2)
+.MakeGenericMethod(iamsType, proxyType);
 
-			if (iamsType == null)
-				return;
+var proxy = createMethod.Invoke(null, null);
+if (proxy == null) return;
 
-			// Create a DispatchProxy to implement the internal interface at runtime
-			var proxyType = typeof(AlertSubscriptionProxy<>).MakeGenericType(iamsType);
-			var createMethod = typeof(DispatchProxy)
-				.GetMethods(BindingFlags.Public | BindingFlags.Static)
-				.First(m => m.Name == "Create" && m.GetGenericArguments().Length == 2)
-				.MakeGenericMethod(iamsType, proxyType);
+services.AddSingleton(iamsType, proxy);
+}
+catch { }
+}
 
-			var proxy = createMethod.Invoke(null, null);
-			if (proxy != null)
-			{
-				services.AddSingleton(iamsType, proxy);
-			}
-		}
-		catch (Exception ex)
-		{
-			Console.Error.WriteLine($"GtkAlertManager: Failed to register alert handler: {ex.Message}");
-		}
-	}
+static Gtk.Window? GetGtkWindow(object? page)
+{
+if (page is Page mauiPage)
+{
+var window = mauiPage.GetParentWindow();
+if (window?.Handler?.PlatformView is Gtk.Window gtkWin)
+return gtkWin;
+}
 
-	/// <summary>
-	/// DispatchProxy implementation that intercepts IAlertManagerSubscription
-	/// method calls and shows GTK dialogs.
-	/// </summary>
-	public class AlertSubscriptionProxy<T> : DispatchProxy
-	{
-		protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-		{
-			if (targetMethod == null || args == null)
-				return null;
+var app = Gtk.Application.GetDefault();
+if (app is Gtk.Application gtkApp)
+return gtkApp.GetActiveWindow();
 
-			switch (targetMethod.Name)
-			{
-				case "OnAlertRequested":
-					HandleAlert(args);
-					break;
-				case "OnActionSheetRequested":
-					HandleActionSheet(args);
-					break;
-				case "OnPromptRequested":
-					HandlePrompt(args);
-					break;
-			}
+return null;
+}
 
-			return null;
-		}
+static (Gtk.Window dialog, Gtk.Box content) CreateDialogWindow(
+Gtk.Window parent, string title, string? message, int width = 400)
+{
+var dialog = new Gtk.Window();
+dialog.SetTitle(title);
+dialog.SetModal(true);
+dialog.SetTransientFor(parent);
+dialog.SetDefaultSize(width, -1);
+dialog.SetResizable(false);
 
-		static void HandleAlert(object?[] args)
-		{
-			if (args.Length < 2 || args[1] == null)
-				return;
+var app = parent.GetApplication();
+if (app != null)
+dialog.SetApplication(app);
 
-			var alertArgs = args[1]!;
-			var title = GetProp<string>(alertArgs, "Title") ?? "Alert";
-			var message = GetProp<string>(alertArgs, "Message") ?? "";
-			var accept = GetProp<string>(alertArgs, "Accept") ?? "OK";
-			var cancel = GetProp<string>(alertArgs, "Cancel");
+var box = Gtk.Box.New(Gtk.Orientation.Vertical, 12);
+box.SetMarginTop(20);
+box.SetMarginBottom(20);
+box.SetMarginStart(20);
+box.SetMarginEnd(20);
 
-			GLib.Functions.IdleAdd(0, () =>
-			{
-				// Set the result - GTK AlertDialog API varies by version
-				var result = GetProp<object>(alertArgs, "Result");
-				var trySetResult = result?.GetType().GetMethod("TrySetResult");
-				trySetResult?.Invoke(result, [!string.IsNullOrEmpty(accept)]);
+if (!string.IsNullOrEmpty(message))
+{
+var msgLabel = Gtk.Label.New(message);
+msgLabel.SetWrap(true);
+msgLabel.SetXalign(0);
+box.Append(msgLabel);
+}
 
-				return false;
-			});
-		}
+dialog.SetChild(box);
+return (dialog, box);
+}
 
-		static void HandleActionSheet(object?[] args)
-		{
-			if (args.Length < 2 || args[1] == null)
-				return;
+public class AlertSubscriptionProxy<T> : DispatchProxy
+{
+protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+{
+if (targetMethod == null || args == null)
+return null;
 
-			var sheetArgs = args[1]!;
-			var result = GetProp<object>(sheetArgs, "Result");
-			var trySetResult = result?.GetType().GetMethod("TrySetResult");
+switch (targetMethod.Name)
+{
+case "OnAlertRequested":
+HandleAlert(args);
+break;
+case "OnActionSheetRequested":
+HandleActionSheet(args);
+break;
+case "OnPromptRequested":
+HandlePrompt(args);
+break;
+}
 
-			// For now, auto-dismiss with cancel
-			var cancel = GetProp<string>(sheetArgs, "Cancel") ?? "Cancel";
-			trySetResult?.Invoke(result, [cancel]);
-		}
+return null;
+}
 
-		static void HandlePrompt(object?[] args)
-		{
-			if (args.Length < 2 || args[1] == null)
-				return;
+static void HandleAlert(object?[] args)
+{
+if (args.Length < 2 || args[1] == null) return;
 
-			var promptArgs = args[1]!;
-			var result = GetProp<object>(promptArgs, "Result");
-			var trySetResult = result?.GetType().GetMethod("TrySetResult");
+var alertArgs = args[1]!;
+var title = GetProp<string>(alertArgs, "Title") ?? "Alert";
+var message = GetProp<string>(alertArgs, "Message") ?? "";
+var accept = GetProp<string>(alertArgs, "Accept");
+var cancel = GetProp<string>(alertArgs, "Cancel");
+var result = GetProp<object>(alertArgs, "Result");
+var trySetResult = result?.GetType().GetMethod("TrySetResult");
 
-			// For now, return null (cancelled)
-			trySetResult?.Invoke(result, [null]);
-		}
+GLib.Functions.IdleAdd(0, () =>
+{
+var gtkWindow = GetGtkWindow(args[0]);
+if (gtkWindow == null)
+{
+trySetResult?.Invoke(result, [false]);
+return false;
+}
 
-		static TResult? GetProp<TResult>(object obj, string name)
-		{
-			var prop = obj.GetType().GetProperty(name);
-			return prop != null ? (TResult?)prop.GetValue(obj) : default;
-		}
-	}
+var (dialog, box) = CreateDialogWindow(gtkWindow, title, message);
+bool responded = false;
+
+var buttonBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 8);
+buttonBox.SetHalign(Gtk.Align.End);
+
+if (!string.IsNullOrEmpty(accept))
+{
+var acceptBtn = Gtk.Button.NewWithLabel(accept);
+acceptBtn.OnClicked += (_, _) =>
+{
+if (responded) return;
+responded = true;
+trySetResult?.Invoke(result, [true]);
+dialog.Close();
+};
+buttonBox.Append(acceptBtn);
+}
+
+if (!string.IsNullOrEmpty(cancel))
+{
+var cancelBtn = Gtk.Button.NewWithLabel(cancel);
+cancelBtn.OnClicked += (_, _) =>
+{
+if (responded) return;
+responded = true;
+trySetResult?.Invoke(result, [false]);
+dialog.Close();
+};
+buttonBox.Append(cancelBtn);
+}
+
+if (string.IsNullOrEmpty(accept) && string.IsNullOrEmpty(cancel))
+{
+var okBtn = Gtk.Button.NewWithLabel("OK");
+okBtn.OnClicked += (_, _) =>
+{
+if (responded) return;
+responded = true;
+trySetResult?.Invoke(result, [false]);
+dialog.Close();
+};
+buttonBox.Append(okBtn);
+}
+
+dialog.OnCloseRequest += (_, _) =>
+{
+if (!responded)
+{
+responded = true;
+trySetResult?.Invoke(result, [false]);
+}
+return false;
+};
+
+box.Append(buttonBox);
+dialog.Present();
+
+return false;
+});
+}
+
+static void HandleActionSheet(object?[] args)
+{
+if (args.Length < 2 || args[1] == null) return;
+
+var sheetArgs = args[1]!;
+var title = GetProp<string>(sheetArgs, "Title") ?? "";
+var cancel = GetProp<string>(sheetArgs, "Cancel") ?? "Cancel";
+var destruction = GetProp<string>(sheetArgs, "Destruction");
+var buttons = GetProp<string[]>(sheetArgs, "Buttons");
+var result = GetProp<object>(sheetArgs, "Result");
+var trySetResult = result?.GetType().GetMethod("TrySetResult");
+
+GLib.Functions.IdleAdd(0, () =>
+{
+var gtkWindow = GetGtkWindow(args[0]);
+if (gtkWindow == null)
+{
+trySetResult?.Invoke(result, [cancel]);
+return false;
+}
+
+var (dialog, box) = CreateDialogWindow(gtkWindow, title, null);
+bool responded = false;
+
+if (buttons != null)
+{
+foreach (var btnText in buttons)
+{
+var btn = Gtk.Button.NewWithLabel(btnText);
+btn.OnClicked += (_, _) =>
+{
+if (responded) return;
+responded = true;
+trySetResult?.Invoke(result, [btnText]);
+dialog.Close();
+};
+box.Append(btn);
+}
+}
+
+if (!string.IsNullOrEmpty(destruction))
+{
+var destroyBtn = Gtk.Button.NewWithLabel(destruction);
+destroyBtn.AddCssClass("destructive-action");
+destroyBtn.OnClicked += (_, _) =>
+{
+if (responded) return;
+responded = true;
+trySetResult?.Invoke(result, [destruction]);
+dialog.Close();
+};
+box.Append(destroyBtn);
+}
+
+var cancelBtn = Gtk.Button.NewWithLabel(cancel);
+cancelBtn.OnClicked += (_, _) =>
+{
+if (responded) return;
+responded = true;
+trySetResult?.Invoke(result, [cancel]);
+dialog.Close();
+};
+box.Append(cancelBtn);
+
+dialog.OnCloseRequest += (_, _) =>
+{
+if (!responded)
+{
+responded = true;
+trySetResult?.Invoke(result, [cancel]);
+}
+return false;
+};
+
+dialog.Present();
+
+return false;
+});
+}
+
+static void HandlePrompt(object?[] args)
+{
+if (args.Length < 2 || args[1] == null) return;
+
+var promptArgs = args[1]!;
+var title = GetProp<string>(promptArgs, "Title") ?? "Prompt";
+var message = GetProp<string>(promptArgs, "Message") ?? "";
+var accept = GetProp<string>(promptArgs, "Accept") ?? "OK";
+var cancel = GetProp<string>(promptArgs, "Cancel") ?? "Cancel";
+var placeholder = GetProp<string>(promptArgs, "Placeholder") ?? "";
+var initialValue = GetProp<string>(promptArgs, "InitialValue") ?? "";
+var result = GetProp<object>(promptArgs, "Result");
+var trySetResult = result?.GetType().GetMethod("TrySetResult");
+
+GLib.Functions.IdleAdd(0, () =>
+{
+var gtkWindow = GetGtkWindow(args[0]);
+if (gtkWindow == null)
+{
+trySetResult?.Invoke(result, [null]);
+return false;
+}
+
+var (dialog, box) = CreateDialogWindow(gtkWindow, title, message);
+bool responded = false;
+
+var entry = Gtk.Entry.New();
+if (!string.IsNullOrEmpty(placeholder))
+entry.SetPlaceholderText(placeholder);
+if (!string.IsNullOrEmpty(initialValue))
+entry.GetBuffer().SetText(initialValue, initialValue.Length);
+box.Append(entry);
+
+var buttonBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 8);
+buttonBox.SetHalign(Gtk.Align.End);
+
+var cancelBtn = Gtk.Button.NewWithLabel(cancel);
+var acceptBtn = Gtk.Button.NewWithLabel(accept);
+
+cancelBtn.OnClicked += (_, _) =>
+{
+if (responded) return;
+responded = true;
+trySetResult?.Invoke(result, [null]);
+dialog.Close();
+};
+
+acceptBtn.OnClicked += (_, _) =>
+{
+if (responded) return;
+responded = true;
+trySetResult?.Invoke(result, [entry.GetBuffer().GetText()]);
+dialog.Close();
+};
+
+entry.OnActivate += (_, _) =>
+{
+if (responded) return;
+responded = true;
+trySetResult?.Invoke(result, [entry.GetBuffer().GetText()]);
+dialog.Close();
+};
+
+dialog.OnCloseRequest += (_, _) =>
+{
+if (!responded)
+{
+responded = true;
+trySetResult?.Invoke(result, [null]);
+}
+return false;
+};
+
+buttonBox.Append(cancelBtn);
+buttonBox.Append(acceptBtn);
+box.Append(buttonBox);
+dialog.Present();
+entry.GrabFocus();
+
+return false;
+});
+}
+
+static TResult? GetProp<TResult>(object obj, string name)
+{
+var prop = obj.GetType().GetProperty(name);
+return prop != null ? (TResult?)prop.GetValue(obj) : default;
+}
+}
 }

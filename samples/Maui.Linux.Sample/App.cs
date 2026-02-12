@@ -27,6 +27,7 @@ class MainShell : ContentPage
 			("🎛️ Controls", () => new ControlsPage()),
 			("📅 Pickers & Search", () => new PickersPage()),
 			("📐 Layouts", () => new LayoutsPage()),
+			("💬 Alerts & Dialogs", () => new AlertsPage()),
 			("📋 Collection View", () => new CollectionViewPage()),
 			("🎨 Graphics (Cairo)", () => new GraphicsPage()),
 			("📱 Device & App Info", () => new DeviceInfoPage()),

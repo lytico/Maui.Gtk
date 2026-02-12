@@ -79,7 +79,7 @@ public static partial class AppHostBuilderExtensions
 	{
 		builder.Services.AddSingleton<IDispatcherProvider>(svc => new GtkDispatcherProvider());
 
-		// Register alert/dialog handler via DispatchProxy workaround
+		// Register GTK alert/dialog handler for DisplayAlert/ActionSheet/Prompt
 		GtkAlertManager.Register(builder.Services);
 
 		builder.Services.AddScoped(svc =>

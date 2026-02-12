@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Maui;
 using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Platform;
@@ -56,6 +57,22 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 		{
 			var platformContent = (Gtk.Widget)window.Content.ToPlatform(handler.MauiContext);
 			container.AddPage(platformContent);
+		}
+
+		// Ensure AlertManager.Subscribe() is called so DI-registered
+		// IAlertManagerSubscription gets picked up for DisplayAlert etc.
+		if (window is Microsoft.Maui.Controls.Window mauiWindow)
+		{
+			try
+			{
+				var amProp = typeof(Microsoft.Maui.Controls.Window).GetProperty("AlertManager",
+					BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+				var alertManager = amProp?.GetValue(mauiWindow);
+				var subscribe = alertManager?.GetType().GetMethod("Subscribe",
+					BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+				subscribe?.Invoke(alertManager, null);
+			}
+			catch { }
 		}
 	}
 }

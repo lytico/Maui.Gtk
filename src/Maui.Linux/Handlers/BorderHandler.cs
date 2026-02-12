@@ -13,6 +13,7 @@ public class BorderHandler : GtkViewHandler<IBorderView, Platform.GtkLayoutPanel
 			[nameof(IBorderView.Background)] = MapBorderBackground,
 			[nameof(IBorderView.Stroke)] = MapStroke,
 			[nameof(IBorderView.StrokeThickness)] = MapStroke,
+			[nameof(IBorderView.Shape)] = MapShape,
 		};
 
 	public BorderHandler() : base(Mapper)
@@ -64,6 +65,11 @@ public class BorderHandler : GtkViewHandler<IBorderView, Platform.GtkLayoutPanel
 		ApplyBorderCss(handler);
 	}
 
+	static void MapShape(BorderHandler handler, IBorderView border)
+	{
+		ApplyBorderCss(handler);
+	}
+
 	static void ApplyBorderCss(BorderHandler handler)
 	{
 		var border = handler.VirtualView;
@@ -82,7 +88,17 @@ public class BorderHandler : GtkViewHandler<IBorderView, Platform.GtkLayoutPanel
 			css += "border: none; ";
 		}
 
+		// Round corners from StrokeShape
+		if (border.Shape is Microsoft.Maui.Controls.Shapes.RoundRectangle rr)
+		{
+			var cr = rr.CornerRadius;
+			css += $"border-radius: {(int)cr.TopLeft}px {(int)cr.TopRight}px {(int)cr.BottomRight}px {(int)cr.BottomLeft}px; ";
+		}
+
 		if (!string.IsNullOrEmpty(css))
+		{
+			handler.PlatformView.SetOverflow(Gtk.Overflow.Hidden);
 			handler.ApplyCss(handler.PlatformView, css);
+		}
 	}
 }

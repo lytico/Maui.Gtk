@@ -1,4 +1,5 @@
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 
 namespace Maui.Linux.Sample.Pages;
@@ -136,7 +137,36 @@ public class LayoutsPage : ContentPage
 						}
 					},
 
-					// Multiple nested borders
+					// Rounded borders
+				SectionHeader("Rounded Borders"),
+				new Border
+				{
+					Stroke = Colors.DodgerBlue,
+					StrokeThickness = 2,
+					StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(12) },
+					Padding = new Thickness(16),
+					Content = new Label { Text = "Uniform 12px corners", FontSize = 14 }
+				},
+				new Border
+				{
+					Stroke = Colors.MediumPurple,
+					StrokeThickness = 2,
+					BackgroundColor = Colors.MediumPurple.WithAlpha(0.1f),
+					StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(20, 4, 20, 4) },
+					Padding = new Thickness(16),
+					Content = new Label { Text = "Asymmetric corners (20/4/20/4)", FontSize = 14 }
+				},
+				new Border
+				{
+					Stroke = Colors.Transparent,
+					StrokeThickness = 0,
+					BackgroundColor = Colors.Teal,
+					StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(24) },
+					Padding = new Thickness(20),
+					Content = new Label { Text = "Pill-style rounded", FontSize = 14, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center }
+				},
+
+				// Multiple nested borders
 					SectionHeader("Deeply Nested"),
 					new Border
 					{
@@ -189,6 +219,7 @@ public class LayoutsPage : ContentPage
 			Padding = new Thickness(12, 8),
 			Stroke = bg,
 			StrokeThickness = 0,
+			StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(6) },
 			Content = new Label
 			{
 				Text = text,

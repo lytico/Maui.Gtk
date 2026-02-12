@@ -4,18 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Maui.Linux.Essentials</RootNamespace>
     <AssemblyName>Maui.Linux.Essentials</AssemblyName>
-
-    <!-- NuGet Package -->
     <PackageId>Maui.Linux.Essentials</PackageId>
-    <Version>0.1.0-preview.1</Version>
-    <Authors>Maui.Linux Contributors</Authors>
     <Description>MAUI Essentials implementations for Linux — clipboard, preferences, device info, connectivity, and more using GTK4, DBus, and freedesktop.org APIs.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/nicolestandifer3/Maui.Gtk</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nicolestandifer3/Maui.Gtk.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <PackageTags>maui;linux;essentials;gtk;gtk4;dbus;freedesktop;clipboard;preferences</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
 

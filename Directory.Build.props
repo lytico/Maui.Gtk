@@ -5,4 +5,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <MauiVersion>10.0.31</MauiVersion>
   </PropertyGroup>
+
+  <!-- Common NuGet package properties for all src/ projects -->
+  <PropertyGroup>
+    <Version>0.1.0-preview.1</Version>
+    <Authors>Maui.Linux Contributors</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Redth/Maui.Gtk</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Redth/Maui.Gtk.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
 </Project>

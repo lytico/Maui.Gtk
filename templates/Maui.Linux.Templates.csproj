@@ -8,8 +8,8 @@
     <Description>Project templates for .NET MAUI apps running on Linux with GTK4.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>dotnet-new;templates;maui;linux;gtk;gtk4</PackageTags>
-    <PackageProjectUrl>https://github.com/nicolestandifer3/Maui.Gtk</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nicolestandifer3/Maui.Gtk.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Redth/Maui.Gtk</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Redth/Maui.Gtk.git</RepositoryUrl>
 
     <TargetFramework>net10.0</TargetFramework>
     <IncludeContentInPack>true</IncludeContentInPack>

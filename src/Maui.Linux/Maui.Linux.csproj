@@ -4,18 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Maui.Linux</RootNamespace>
     <AssemblyName>Maui.Linux</AssemblyName>
-
-    <!-- NuGet Package -->
     <PackageId>Maui.Linux</PackageId>
-    <Version>0.1.0-preview.1</Version>
-    <Authors>Maui.Linux Contributors</Authors>
     <Description>A .NET MAUI backend for Linux using GTK4. Run your MAUI apps natively on Linux desktops with real GTK4 widgets via GirCore bindings.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/nicolestandifer3/Maui.Gtk</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nicolestandifer3/Maui.Gtk.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <PackageTags>maui;linux;gtk;gtk4;desktop;dotnet;cross-platform;gircore</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
 

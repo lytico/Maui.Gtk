@@ -152,7 +152,7 @@ The separate project approach is the same pattern used by [OpenMaui](https://git
 ## Building from Source
 
 ```bash
-git clone https://github.com/nicolestandifer3/Maui.Gtk.git
+git clone https://github.com/Redth/Maui.Gtk.git
 cd Maui.Gtk
 dotnet restore
 dotnet build

@@ -1,0 +1,112 @@
+using Microsoft.Maui;
+using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Handlers;
+using Microsoft.AspNetCore.Components.WebView.Maui;
+
+namespace Maui.Linux.BlazorWebView;
+
+public class BlazorWebViewHandler : ViewHandler<IBlazorWebView, Gtk.Box>
+{
+	private GtkBlazorWebView? _blazorWebView;
+
+	public static IPropertyMapper<IBlazorWebView, BlazorWebViewHandler> BlazorWebViewMapper =
+		new PropertyMapper<IBlazorWebView, BlazorWebViewHandler>(ViewHandler.ViewMapper)
+		{
+			[nameof(IBlazorWebView.HostPage)] = MapHostPage,
+			[nameof(IBlazorWebView.RootComponents)] = MapRootComponents,
+		};
+
+	public BlazorWebViewHandler() : base(BlazorWebViewMapper)
+	{
+	}
+
+	protected override Gtk.Box CreatePlatformView()
+	{
+		var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+		box.SetVexpand(true);
+		box.SetHexpand(true);
+
+		_blazorWebView = new GtkBlazorWebView(MauiContext!.Services);
+		_blazorWebView.Widget.SetVexpand(true);
+		_blazorWebView.Widget.SetHexpand(true);
+		_blazorWebView.Widget.SetSizeRequest(400, 300); // Minimum size
+		box.Append(_blazorWebView.Widget);
+
+		return box;
+	}
+
+	protected override void ConnectHandler(Gtk.Box platformView)
+	{
+		base.ConnectHandler(platformView);
+
+		// Properties may already be set before handler connected — trigger them now
+		// DevToys pattern: add root components BEFORE setting HostPage
+		if (VirtualView?.RootComponents?.Count > 0)
+			MapRootComponents(this, VirtualView);
+		if (VirtualView?.HostPage != null)
+			MapHostPage(this, VirtualView);
+	}
+
+	protected override void DisconnectHandler(Gtk.Box platformView)
+	{
+		_blazorWebView?.Dispose();
+		_blazorWebView = null;
+		base.DisconnectHandler(platformView);
+	}
+
+	public override void PlatformArrange(Rect rect)
+	{
+		try
+		{
+			var view = PlatformView;
+			view.SetSizeRequest((int)rect.Width, (int)rect.Height);
+
+			if (view.GetParent() is Maui.Linux.Platform.GtkLayoutPanel layoutPanel)
+			{
+				layoutPanel.Move(view, rect.X, rect.Y);
+			}
+		}
+		catch (InvalidOperationException)
+		{
+			// PlatformView not ready yet
+		}
+	}
+
+	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
+	{
+		try { _ = PlatformView; } catch { return new Size(widthConstraint, 400); }
+		// BlazorWebView should fill available space
+		if (VirtualView is Microsoft.Maui.Controls.VisualElement ve)
+		{
+			var h = ve.HeightRequest >= 0 ? ve.HeightRequest : heightConstraint;
+			var w = ve.WidthRequest >= 0 ? ve.WidthRequest : widthConstraint;
+			return new Size(Math.Min(w, widthConstraint), Math.Min(h, heightConstraint));
+		}
+		return new Size(widthConstraint, Math.Min(400, heightConstraint));
+	}
+
+	public static void MapHostPage(BlazorWebViewHandler handler, IBlazorWebView webView)
+	{
+		if (handler._blazorWebView != null && webView.HostPage != null)
+		{
+			handler._blazorWebView.HostPage = webView.HostPage;
+		}
+	}
+
+	public static void MapRootComponents(BlazorWebViewHandler handler, IBlazorWebView webView)
+	{
+		if (handler._blazorWebView == null)
+			return;
+
+		handler._blazorWebView.RootComponents.Clear();
+		foreach (var rc in webView.RootComponents)
+		{
+			handler._blazorWebView.RootComponents.Add(new Maui.Linux.BlazorWebView.RootComponent
+			{
+				Selector = rc.Selector,
+				ComponentType = rc.ComponentType,
+				Parameters = rc.Parameters,
+			});
+		}
+	}
+}

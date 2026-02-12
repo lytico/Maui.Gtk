@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Maui.Linux.BlazorSample</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Maui.Linux\Maui.Linux.csproj" />
+    <ProjectReference Include="..\..\src\Maui.Linux.BlazorWebView\Maui.Linux.BlazorWebView.csproj" />
+  </ItemGroup>
+
+</Project>

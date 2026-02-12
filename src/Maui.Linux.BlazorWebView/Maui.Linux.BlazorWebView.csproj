@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Maui.Linux.BlazorWebView</RootNamespace>
+    <AssemblyName>Maui.Linux.BlazorWebView</AssemblyName>
+    <PackageId>Maui.Linux.BlazorWebView</PackageId>
+    <Description>BlazorWebView support for Maui.Linux using WebKitGTK</Description>
+    <Authors>Maui.Linux Contributors</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GirCore.Gtk-4.0" Version="0.7.0" />
+    <PackageReference Include="GirCore.WebKit-6.0" Version="0.7.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Maui.Linux\Maui.Linux.csproj" />
+  </ItemGroup>
+
+</Project>

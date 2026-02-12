@@ -4,7 +4,7 @@ using Microsoft.Maui.Platform;
 
 namespace Maui.Linux.Handlers;
 
-public class BorderHandler : GtkViewHandler<IBorderView, Gtk.Box>
+public class BorderHandler : GtkViewHandler<IBorderView, Platform.GtkLayoutPanel>
 {
 	public static new IPropertyMapper<IBorderView, BorderHandler> Mapper =
 		new PropertyMapper<IBorderView, BorderHandler>(ViewMapper)
@@ -19,10 +19,9 @@ public class BorderHandler : GtkViewHandler<IBorderView, Gtk.Box>
 	{
 	}
 
-	protected override Gtk.Box CreatePlatformView()
+	protected override Platform.GtkLayoutPanel CreatePlatformView()
 	{
-		var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
-		return box;
+		return new Platform.GtkLayoutPanel();
 	}
 
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
@@ -37,7 +36,7 @@ public class BorderHandler : GtkViewHandler<IBorderView, Gtk.Box>
 	{
 		base.PlatformArrange(rect);
 		if (VirtualView is ICrossPlatformLayout crossPlatform)
-			crossPlatform.CrossPlatformArrange(rect);
+			crossPlatform.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));
 	}
 
 	public static void MapContent(BorderHandler handler, IBorderView border)
@@ -50,7 +49,8 @@ public class BorderHandler : GtkViewHandler<IBorderView, Gtk.Box>
 			// Remove existing children
 			while (handler.PlatformView.GetFirstChild() is Gtk.Widget child)
 				handler.PlatformView.Remove(child);
-			handler.PlatformView.Append(platformContent);
+			handler.PlatformView.Put(platformContent, 0, 0);
+			handler.PlatformView.LayoutDirty = true;
 		}
 	}
 

@@ -1,4 +1,5 @@
 using Microsoft.Maui;
+using Microsoft.Maui.Graphics;
 
 namespace Maui.Linux.Handlers;
 
@@ -8,6 +9,7 @@ public class ProgressBarHandler : GtkViewHandler<IProgress, Gtk.ProgressBar>
 		new PropertyMapper<IProgress, ProgressBarHandler>(ViewMapper)
 		{
 			[nameof(IProgress.Progress)] = MapProgress,
+			[nameof(IView.Background)] = MapProgressColor,
 		};
 
 	public ProgressBarHandler() : base(Mapper)
@@ -16,11 +18,28 @@ public class ProgressBarHandler : GtkViewHandler<IProgress, Gtk.ProgressBar>
 
 	protected override Gtk.ProgressBar CreatePlatformView()
 	{
-		return Gtk.ProgressBar.New();
+		var bar = Gtk.ProgressBar.New();
+		bar.SetShowText(false);
+		return bar;
+	}
+
+	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
+	{
+		var size = base.GetDesiredSize(widthConstraint, heightConstraint);
+		// GTK ProgressBar has a very small natural height; ensure minimum visibility
+		return new Size(size.Width, Math.Max(size.Height, 8));
 	}
 
 	public static void MapProgress(ProgressBarHandler handler, IProgress progress)
 	{
 		handler.PlatformView?.SetFraction(progress.Progress);
+	}
+
+	static void MapProgressColor(ProgressBarHandler handler, IProgress progress)
+	{
+		if (progress is IView view && view.Background is SolidPaint solidPaint && solidPaint.Color != null)
+		{
+			handler.ApplyCss(handler.PlatformView, $"background-color: {ToGtkColor(solidPaint.Color)};");
+		}
 	}
 }

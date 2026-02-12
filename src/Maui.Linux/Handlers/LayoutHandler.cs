@@ -112,6 +112,24 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 				}
 			};
 
+			// Re-layout when ancestor Paned divider is moved
+			Gtk.Widget? ancestor = platformView.GetParent();
+			while (ancestor != null && ancestor is not Gtk.Window)
+			{
+				if (ancestor is Gtk.Paned paned)
+				{
+					paned.OnNotify += (sender, args) =>
+					{
+						if (args.Pspec.GetName() == "position")
+						{
+							DoLayout();
+						}
+					};
+					break;
+				}
+				ancestor = ancestor.GetParent();
+			}
+
 			// Also re-layout when content changes
 			platformView.AddTickCallback((widget, clock) =>
 			{

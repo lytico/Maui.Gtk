@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Maui.Linux\Maui.Linux.csproj" />
     <ProjectReference Include="..\..\src\Maui.Linux.Essentials\Maui.Linux.Essentials.csproj" />
+    <ProjectReference Include="..\..\..\MauiDevFlow\src\MauiDevFlow.Agent.Gtk\MauiDevFlow.Agent.Gtk.csproj" />
   </ItemGroup>
 
 </Project>

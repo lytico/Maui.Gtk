@@ -46,7 +46,16 @@ public abstract class GtkMauiApplication : IPlatformApplication
 
 		// Create the window
 		CreatePlatformWindow(applicationContext);
+
+		// Notify subclasses the app is fully started
+		OnStarted();
 	}
+
+	/// <summary>
+	/// Called after the MAUI application and window have been fully initialized.
+	/// Override to perform post-startup actions like starting debug agents.
+	/// </summary>
+	protected virtual void OnStarted() { }
 
 	private void CreatePlatformWindow(GtkMauiContext applicationContext)
 	{

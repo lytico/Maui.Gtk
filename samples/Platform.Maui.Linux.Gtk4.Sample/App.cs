@@ -17,6 +17,7 @@ class MainShell : FlyoutPage
 	private readonly (string name, Func<Page> factory)[] _pages =
 	[
 		("🏠 Home", () => new HomePage()),
+		("🧩 XAML Runtime", () => new XamlRuntimePage()),
 		("🎛️ Controls", () => new ControlsPage()),
 		("📅 Pickers & Search", () => new PickersPage()),
 		("📐 Layouts", () => new LayoutsPage()),

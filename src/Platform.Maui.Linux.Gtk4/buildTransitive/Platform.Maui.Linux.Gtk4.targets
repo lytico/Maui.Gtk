@@ -5,9 +5,17 @@
     Suppresses MAUI workload warnings since there's no official Linux TFM.
   -->
   <PropertyGroup>
+    <_PlatformMauiLinuxGtk4MauiBuildTasksVersion Condition="'$(_PlatformMauiLinuxGtk4MauiBuildTasksVersion)' == ''">10.0.31</_PlatformMauiLinuxGtk4MauiBuildTasksVersion>
+    <_PlatformMauiLinuxGtk4MauiBuildTasksDir Condition="'$(_PlatformMauiLinuxGtk4MauiBuildTasksDir)' == ''">$(NuGetPackageRoot)microsoft.maui.controls.build.tasks/$(_PlatformMauiLinuxGtk4MauiBuildTasksVersion)/buildTransitive/netstandard2.0/</_PlatformMauiLinuxGtk4MauiBuildTasksDir>
     <_MauiLinuxIsLinux Condition="$([MSBuild]::IsOSPlatform('Linux'))">true</_MauiLinuxIsLinux>
     <!-- Suppress "MAUI workload not installed" warnings for plain net10.0 projects -->
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <!-- Force MAUI XAML Source Generation for Linux GTK4 consumers -->
+    <MauiXamlInflator>SourceGen</MauiXamlInflator>
   </PropertyGroup>
+
+  <Import
+    Project="$(_PlatformMauiLinuxGtk4MauiBuildTasksDir)Microsoft.Maui.Controls.Build.Tasks.targets"
+    Condition="Exists('$(_PlatformMauiLinuxGtk4MauiBuildTasksDir)Microsoft.Maui.Controls.Build.Tasks.targets') and !$([System.String]::Copy('$(MSBuildAllProjects)').Contains('Microsoft.Maui.Controls.Build.Tasks.targets'))" />
 
 </Project>

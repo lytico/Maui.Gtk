@@ -1,14 +1,14 @@
 # Handler Property Wiring Audit Tracker
 
-Last updated: 2026-02-13
+Last updated: 2026-02-13 (CollectionView compile fix applied)
 
 ## Purpose
 Track MAUI handler property/command wiring parity work for `src/Maui.Linux/Handlers`, including visual controls and container/navigation handlers.
 
 ## Audit Snapshot
 - Handlers reviewed: **34**
-- Handlers with mapper/command parity gaps vs MAUI reference handlers: **21**
-- Missing mapper keys identified: **115**
+- Handlers with mapper/command parity gaps vs MAUI reference handlers: **18**
+- Missing mapper keys identified: **113**
 - Missing command keys identified: **0**
 
 ## Status Legend
@@ -18,18 +18,18 @@ Track MAUI handler property/command wiring parity work for `src/Maui.Linux/Handl
 
 ## Priority Workstreams
 ### P0 - Core functionality gaps
-- [ ] **CollectionViewHandler** — missing mapper keys: `19`, missing command keys: `0` _(Status: Not started)_
-- [ ] **WebViewHandler** — missing mapper keys: `1`, missing command keys: `0` _(Status: Not started)_
-- [ ] **ImageHandler** — missing mapper keys: `2`, missing command keys: `0` _(Status: Not started)_
-- [ ] **ImageButtonHandler** — missing mapper keys: `6`, missing command keys: `0` _(Status: Not started)_
+- [ ] **CollectionViewHandler** — missing mapper keys: `26`, missing command keys: `0` _(Status: In progress)_
+- [x] **WebViewHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done)_
+- [x] **ImageHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done)_
+- [x] **ImageButtonHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done)_
 
 ### P1 - Input and text parity
 - [ ] **EntryHandler** — missing mapper keys: `10`, missing command keys: `0` _(Status: Not started)_
 - [ ] **EditorHandler** — missing mapper keys: `10`, missing command keys: `0` _(Status: Not started)_
 - [ ] **SearchBarHandler** — missing mapper keys: `13`, missing command keys: `0` _(Status: Not started)_
 - [ ] **PickerHandler** — missing mapper keys: `7`, missing command keys: `0` _(Status: Not started)_
-- [ ] **DatePickerHandler** — missing mapper keys: `6`, missing command keys: `0` _(Status: Not started)_
-- [ ] **TimePickerHandler** — missing mapper keys: `4`, missing command keys: `0` _(Status: Not started)_
+- [ ] **DatePickerHandler** — missing mapper keys: `6`, missing command keys: `0` _(Status: In progress)_
+- [ ] **TimePickerHandler** — missing mapper keys: `4`, missing command keys: `0` _(Status: In progress)_
 
 ### P2 - Styling and polish
 - [ ] **ButtonHandler** — missing mapper keys: `6`, missing command keys: `0` _(Status: Not started)_
@@ -83,11 +83,11 @@ Track MAUI handler property/command wiring parity work for `src/Maui.Linux/Handl
 
 ### CollectionViewHandler
 - Reference handler: `Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler`
-- Missing mapper keys (19):
-  - `CanReorderItems`, `EmptyView`, `EmptyViewTemplate`, `Footer`, `FooterTemplate`, `Header`, `HeaderTemplate`, `HorizontalScrollBarVisibility`, `IsGrouped`, `IsVisible`, `ItemSizingStrategy`, `ItemsLayout`, `ItemsSource`, `ItemsUpdatingScrollMode`, `ItemTemplate`, `SelectedItem`, `SelectedItems`, `SelectionMode`, `VerticalScrollBarVisibility`
+- Missing mapper keys (26):
+  - `BackgroundColor`, `BackgroundImageSource`, `CanReorderItems`, `Description`, `EmptyView`, `EmptyViewTemplate`, `ExcludedWithChildren`, `Footer`, `FooterTemplate`, `Header`, `HeaderTemplate`, `HeadingLevel`, `Hint`, `HorizontalScrollBarVisibility`, `IsGrouped`, `IsInAccessibleTree`, `IsVisible`, `ItemSizingStrategy`, `ItemsLayout`, `ItemsSource`, `ItemsUpdatingScrollMode`, `ItemTemplate`, `SelectedItem`, `SelectedItems`, `SelectionMode`, `VerticalScrollBarVisibility`
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `In progress` _(compile blocker fixed; build green, parity work continues)_
 
 ### DatePickerHandler
 - Reference handler: `Microsoft.Maui.Handlers.DatePickerHandler`
@@ -95,7 +95,7 @@ Track MAUI handler property/command wiring parity work for `src/Maui.Linux/Handl
   - `CharacterSpacing`, `Font`, `IsOpen`, `MaximumDate`, `MinimumDate`, `TextColor`
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `In progress` _(click-to-edit popup now wired; remaining mapper parity work pending)_
 
 ### EditorHandler
 - Reference handler: `Microsoft.Maui.Handlers.EditorHandler`
@@ -123,19 +123,19 @@ Track MAUI handler property/command wiring parity work for `src/Maui.Linux/Handl
 
 ### ImageButtonHandler
 - Reference handler: `Microsoft.Maui.Handlers.ImageButtonHandler`
-- Missing mapper keys (6):
-  - `Aspect`, `CornerRadius`, `IsAnimationPlaying`, `Source`, `StrokeColor`, `StrokeThickness`
+- Missing mapper keys (0):
+  - _(none)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ### ImageHandler
 - Reference handler: `Microsoft.Maui.Handlers.ImageHandler`
-- Missing mapper keys (2):
-  - `IsAnimationPlaying`, `Source`
+- Missing mapper keys (0):
+  - _(none)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ### LabelHandler
 - Reference handler: `Microsoft.Maui.Handlers.LabelHandler`
@@ -207,15 +207,15 @@ Track MAUI handler property/command wiring parity work for `src/Maui.Linux/Handl
   - `CharacterSpacing`, `Font`, `IsOpen`, `TextColor`
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `In progress` _(click-to-edit popup now wired; remaining mapper parity work pending)_
 
 ### WebViewHandler
 - Reference handler: `Microsoft.Maui.Handlers.WebViewHandler`
-- Missing mapper keys (1):
-  - `UserAgent`
+- Missing mapper keys (0):
+  - _(none)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ### WindowHandler
 - Reference handler: `Microsoft.Maui.Handlers.WindowHandler`

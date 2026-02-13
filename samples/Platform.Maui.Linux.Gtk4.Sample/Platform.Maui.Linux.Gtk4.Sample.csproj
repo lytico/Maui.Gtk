@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Platform.Maui.Linux.Gtk4.Sample</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Platform.Maui.Linux.Gtk4\Platform.Maui.Linux.Gtk4.csproj" />
+    <ProjectReference Include="..\..\src\Platform.Maui.Linux.Gtk4.Essentials\Platform.Maui.Linux.Gtk4.Essentials.csproj" />
+    <ProjectReference Include="..\..\src\Platform.Maui.Linux.Gtk4.BlazorWebView\Platform.Maui.Linux.Gtk4.BlazorWebView.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(EnableMauiDevFlow)' == 'true'">
+    <ProjectReference Include="..\..\..\MauiDevFlow\src\MauiDevFlow.Agent.Gtk\MauiDevFlow.Agent.Gtk.csproj" />
+    <ProjectReference Include="..\..\..\MauiDevFlow\src\MauiDevFlow.Blazor.Gtk\MauiDevFlow.Blazor.Gtk.csproj" />
+  </ItemGroup>
+
+</Project>

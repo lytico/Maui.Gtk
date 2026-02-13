@@ -102,13 +102,8 @@ public static class MauiProgram
 
 ## XAML Support
 
-`Platform.Maui.Linux.Gtk4` imports MAUI XAML build tasks for Linux head projects and forces:
-
-```xml
-<MauiXamlInflator>SourceGen</MauiXamlInflator>
-```
-
-This means `*.xaml` files are collected as `MauiXaml` and compiled through MAUI XAML source generation by default.
+`Platform.Maui.Linux.Gtk4` relies on MAUI's normal transitive build assets for XAML.
+In Linux head projects, `*.xaml` files are still collected as `MauiXaml` and compiled by MAUI's XAML build pipeline without extra package-specific overrides.
 
 ## Adding Linux to a Multi-Targeted MAUI App
 

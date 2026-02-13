@@ -1,4 +1,4 @@
-# Maui.Linux
+# Platform.Maui.Linux.Gtk4
 
 A community-driven .NET MAUI backend for Linux, powered by **GTK4**. Run your .NET MAUI applications natively on Linux desktops with GTK4 rendering via [GirCore](https://github.com/gircore/gir.core) bindings.
 
@@ -44,10 +44,10 @@ sudo dnf install gtk4-devel webkitgtk6.0-devel
 
 ```bash
 # Install the template
-dotnet new install Maui.Linux.Templates
+dotnet new install Platform.Maui.Linux.Gtk4.Templates
 
 # Create a new Linux MAUI app
-dotnet new maui-linux -n MyApp.Linux
+dotnet new maui-linux-gtk4 -n MyApp.Linux
 cd MyApp.Linux
 dotnet run
 ```
@@ -57,8 +57,8 @@ dotnet run
 Add the NuGet package:
 
 ```bash
-dotnet add package Maui.Linux --prerelease
-dotnet add package Maui.Linux.Essentials --prerelease   # optional
+dotnet add package Platform.Maui.Linux.Gtk4 --prerelease
+dotnet add package Platform.Maui.Linux.Gtk4.Essentials --prerelease   # optional
 ```
 
 Then set up your entry point:
@@ -66,7 +66,7 @@ Then set up your entry point:
 **Program.cs**
 
 ```csharp
-using Maui.Linux.Platform;
+using Platform.Maui.Linux.Gtk4.Platform;
 using Microsoft.Maui.Hosting;
 
 public class Program : GtkMauiApplication
@@ -84,7 +84,7 @@ public class Program : GtkMauiApplication
 **MauiProgram.cs**
 
 ```csharp
-using Maui.Linux.Hosting;
+using Platform.Maui.Linux.Gtk4.Hosting;
 using Microsoft.Maui.Hosting;
 
 public static class MauiProgram
@@ -93,7 +93,7 @@ public static class MauiProgram
     {
         var builder = MauiApp
             .CreateBuilder()
-            .UseMauiAppLinux<App>();
+            .UseMauiAppLinuxGtk4<App>();
 
         return builder.Build();
     }
@@ -117,9 +117,9 @@ MyApp/                              ← Your existing multi-targeted MAUI projec
     └── ...
 
 MyApp.Linux/                        ← New Linux-specific project
-├── MyApp.Linux.csproj                 (net10.0, references Maui.Linux)
+├── MyApp.Linux.csproj                 (net10.0, references Platform.Maui.Linux.Gtk4)
 ├── Program.cs                         (GtkMauiApplication entry point)
-└── MauiProgram.cs                     (builder.UseMauiAppLinux<App>())
+└── MauiProgram.cs                     (builder.UseMauiAppLinuxGtk4<App>())
 ```
 
 ### Setup
@@ -127,7 +127,7 @@ MyApp.Linux/                        ← New Linux-specific project
 1. **Create the Linux head project** next to your MAUI project:
 
 ```bash
-dotnet new maui-linux -n MyApp.Linux
+dotnet new maui-linux-gtk4 -n MyApp.Linux
 ```
 
 2. **Reference your shared code** — add a project reference from `MyApp.Linux.csproj` to your MAUI project (or a shared class library):
@@ -149,13 +149,13 @@ dotnet run --project MyApp.Linux
 
 The platform-specific TFMs (`net10.0-android`, `net10.0-ios`, etc.) are powered by .NET workloads that Microsoft ships. Creating a custom `net10.0-linux` TFM would require building and distributing a full .NET workload — complex infrastructure that's unnecessary for most use cases.
 
-The separate project approach is the same pattern used by [OpenMaui](https://github.com/open-maui/maui-linux) and [MauiAvalonia](https://github.com/wieslawsoltes/MauiAvalonia). It works with standard `dotnet build`/`dotnet run`, is NuGet-distributable, and keeps your existing MAUI project unchanged.
+The separate project approach is the same pattern used by [OpenMaui](https://github.com/open-maui/maui-linux-gtk4) and [MauiAvalonia](https://github.com/wieslawsoltes/MauiAvalonia). It works with standard `dotnet build`/`dotnet run`, is NuGet-distributable, and keeps your existing MAUI project unchanged.
 
 ## Building from Source
 
 ```bash
-git clone https://github.com/Redth/Maui.Gtk.git
-cd Maui.Gtk
+git clone https://github.com/Redth/Platform.Maui.Linux.Gtk4.git
+cd Platform.Maui.Linux.Gtk4
 dotnet restore
 dotnet build
 ```
@@ -164,22 +164,22 @@ dotnet build
 
 ```bash
 # Sample app (includes native controls, Blazor Hybrid, essentials, and more)
-dotnet run --project samples/Maui.Linux.Sample
+dotnet run --project samples/Platform.Maui.Linux.Gtk4.Sample
 ```
 
 ## Project Structure
 
 ```
-Maui.Linux.slnx                          # Solution file
+Platform.Maui.Linux.Gtk4.slnx                          # Solution file
 ├── src/
-│   ├── Maui.Linux/                       # Core MAUI backend
+│   ├── Platform.Maui.Linux.Gtk4/                       # Core MAUI backend
 │   │   ├── Handlers/                     # GTK4 handler implementations
-│   │   ├── Hosting/                      # AppHostBuilderExtensions (UseMauiAppLinux)
+│   │   ├── Hosting/                      # AppHostBuilderExtensions (UseMauiAppLinuxGtk4)
 │   │   └── Platform/                     # GTK application, context, layout, theming
-│   ├── Maui.Linux.Essentials/            # MAUI Essentials for Linux (clipboard, etc.)
-│   └── Maui.Linux.BlazorWebView/         # BlazorWebView support via WebKitGTK
+│   ├── Platform.Maui.Linux.Gtk4.Essentials/            # MAUI Essentials for Linux (clipboard, etc.)
+│   └── Platform.Maui.Linux.Gtk4.BlazorWebView/         # BlazorWebView support via WebKitGTK
 ├── samples/
-│   └── Maui.Linux.Sample/                # Sample app (controls, Blazor, essentials)
+│   └── Platform.Maui.Linux.Gtk4.Sample/                # Sample app (controls, Blazor, essentials)
 ├── templates/                            # dotnet new templates
 └── docs/                                 # Documentation
 ```
@@ -188,10 +188,10 @@ Maui.Linux.slnx                          # Solution file
 
 | Package | Purpose |
 |---|---|
-| `Maui.Linux` | Core GTK4 backend — handlers, hosting, platform services |
-| `Maui.Linux.Essentials` | MAUI Essentials (clipboard, preferences, device info, etc.) |
-| `Maui.Linux.BlazorWebView` | Blazor Hybrid support via WebKitGTK |
-| `Maui.Linux.Templates` | `dotnet new` project templates |
+| `Platform.Maui.Linux.Gtk4` | Core GTK4 backend — handlers, hosting, platform services |
+| `Platform.Maui.Linux.Gtk4.Essentials` | MAUI Essentials (clipboard, preferences, device info, etc.) |
+| `Platform.Maui.Linux.Gtk4.BlazorWebView` | Blazor Hybrid support via WebKitGTK |
+| `Platform.Maui.Linux.Gtk4.Templates` | `dotnet new` project templates |
 
 ## Key Dependencies
 

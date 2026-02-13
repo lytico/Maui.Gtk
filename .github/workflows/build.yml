@@ -43,12 +43,12 @@ jobs:
 
       - name: Pack libraries
         run: |
-          dotnet pack src/Maui.Linux -c Release --no-build -o artifacts/
-          dotnet pack src/Maui.Linux.Essentials -c Release --no-build -o artifacts/
-          dotnet pack src/Maui.Linux.BlazorWebView -c Release --no-build -o artifacts/
+          dotnet pack src/Platform.Maui.Linux.Gtk4 -c Release --no-build -o artifacts/
+          dotnet pack src/Platform.Maui.Linux.Gtk4.Essentials -c Release --no-build -o artifacts/
+          dotnet pack src/Platform.Maui.Linux.Gtk4.BlazorWebView -c Release --no-build -o artifacts/
 
       - name: Pack templates
-        run: dotnet pack templates/Maui.Linux.Templates.csproj -c Release -o artifacts/
+        run: dotnet pack templates/Platform.Maui.Linux.Gtk4.Templates.csproj -c Release -o artifacts/
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4

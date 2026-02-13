@@ -3,7 +3,7 @@
 Last updated: 2026-02-13 (CollectionView compile fix applied)
 
 ## Purpose
-Track MAUI handler property/command wiring parity work for `src/Maui.Linux/Handlers`, including visual controls and container/navigation handlers.
+Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Linux.Gtk4/Handlers`, including visual controls and container/navigation handlers.
 
 ## Audit Snapshot
 - Handlers reviewed: **34**

@@ -19,6 +19,11 @@ public static class MauiProgram
 			.UseMauiAppLinuxGtk4<App>()
 			.AddLinuxGtk4Essentials();
 
+		builder.ConfigureFonts(fonts =>
+		{
+			fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+		});
+
 		builder.Services.AddBlazorWebView();
 		builder.Services.AddLinuxGtk4BlazorWebView();
 

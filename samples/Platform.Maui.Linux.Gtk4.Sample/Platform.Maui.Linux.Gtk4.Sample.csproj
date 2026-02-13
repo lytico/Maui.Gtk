@@ -6,6 +6,10 @@
     <RootNamespace>Platform.Maui.Linux.Gtk4.Sample</RootNamespace>
   </PropertyGroup>
 
+  <Import
+    Project="..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.props"
+    Condition="Exists('..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.props')" />
+
   <ItemGroup>
     <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
@@ -20,5 +24,9 @@
     <ProjectReference Include="..\..\..\MauiDevFlow\src\MauiDevFlow.Agent.Gtk\MauiDevFlow.Agent.Gtk.csproj" />
     <ProjectReference Include="..\..\..\MauiDevFlow\src\MauiDevFlow.Blazor.Gtk\MauiDevFlow.Blazor.Gtk.csproj" />
   </ItemGroup>
+
+  <Import
+    Project="..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.targets"
+    Condition="Exists('..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.targets')" />
 
 </Project>

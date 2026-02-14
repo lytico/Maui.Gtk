@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <PropertyGroup>
+    <DefineConstants>$(DefineConstants);LINUX;LINUX_GTK</DefineConstants>
     <EnableDefaultMauiResourceItems Condition="'$(EnableDefaultMauiResourceItems)' == ''">true</EnableDefaultMauiResourceItems>
   </PropertyGroup>
 

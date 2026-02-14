@@ -9,6 +9,7 @@ public class ButtonHandler : GtkViewHandler<IButton, Gtk.Button>
 		{
 			[nameof(ITextButton.Text)] = MapText,
 			[nameof(ITextButton.TextColor)] = MapTextColor,
+			[nameof(ITextStyle.Font)] = MapFont,
 			[nameof(IButton.Padding)] = MapPadding,
 		};
 
@@ -58,6 +59,16 @@ public class ButtonHandler : GtkViewHandler<IButton, Gtk.Button>
 		{
 			handler.ApplyCss(handler.PlatformView, $"color: {ToGtkColor(textStyle.TextColor)};");
 		}
+	}
+
+	public static void MapFont(ButtonHandler handler, IButton button)
+	{
+		if (button is not ITextStyle textStyle)
+			return;
+
+		var css = handler.BuildFontCss(textStyle.Font);
+		if (!string.IsNullOrEmpty(css))
+			handler.ApplyCss(handler.PlatformView, css);
 	}
 
 	public static void MapPadding(ButtonHandler handler, IButton button)

@@ -78,10 +78,7 @@ public class EntryHandler : GtkViewHandler<IEntry, Gtk.Entry>
 
 	public static void MapFont(EntryHandler handler, IEntry entry)
 	{
-		var font = entry.Font;
-		var css = string.Empty;
-		if (font.Size > 0) css += $"font-size: {font.Size}pt; ";
-		if (!string.IsNullOrEmpty(font.Family)) css += $"font-family: \"{font.Family}\"; ";
+		var css = handler.BuildFontCss(entry.Font);
 		if (!string.IsNullOrEmpty(css)) handler.ApplyCss(handler.PlatformView, css);
 	}
 

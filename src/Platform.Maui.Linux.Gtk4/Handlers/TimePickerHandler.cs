@@ -11,6 +11,7 @@ public class TimePickerHandler : GtkViewHandler<ITimePicker, Gtk.Box>
 		{
 			[nameof(ITimePicker.Time)] = MapTime,
 			[nameof(ITimePicker.Format)] = MapFormat,
+			[nameof(ITextStyle.Font)] = MapFont,
 		};
 
 	public TimePickerHandler() : base(Mapper)
@@ -140,5 +141,16 @@ public class TimePickerHandler : GtkViewHandler<ITimePicker, Gtk.Box>
 	public static void MapFormat(TimePickerHandler handler, ITimePicker timePicker)
 	{
 		MapTime(handler, timePicker);
+	}
+
+	public static void MapFont(TimePickerHandler handler, ITimePicker timePicker)
+	{
+		if (timePicker is not ITextStyle textStyle)
+			return;
+
+		var button = handler.PlatformView?.GetFirstChild() as Gtk.Button;
+		var css = handler.BuildFontCss(textStyle.Font);
+		if (!string.IsNullOrEmpty(css))
+			handler.ApplyCss(button, css);
 	}
 }

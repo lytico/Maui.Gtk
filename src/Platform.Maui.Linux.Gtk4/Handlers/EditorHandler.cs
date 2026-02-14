@@ -51,10 +51,7 @@ public class EditorHandler : GtkViewHandler<IEditor, Gtk.TextView>
 
 	public static void MapFont(EditorHandler handler, IEditor editor)
 	{
-		var font = editor.Font;
-		var css = string.Empty;
-		if (font.Size > 0) css += $"font-size: {font.Size}pt; ";
-		if (!string.IsNullOrEmpty(font.Family)) css += $"font-family: \"{font.Family}\"; ";
+		var css = handler.BuildFontCss(editor.Font);
 		if (!string.IsNullOrEmpty(css)) handler.ApplyCss(handler.PlatformView, css);
 	}
 

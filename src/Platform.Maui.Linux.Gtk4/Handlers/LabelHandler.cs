@@ -42,20 +42,7 @@ public class LabelHandler : GtkViewHandler<ILabel, Gtk.Label>
 
 	public static void MapFont(LabelHandler handler, ILabel label)
 	{
-		var font = label.Font;
-		var css = string.Empty;
-
-		if (font.Size > 0)
-			css += $"font-size: {font.Size}pt; ";
-
-		if (!string.IsNullOrEmpty(font.Family))
-			css += $"font-family: \"{font.Family}\"; ";
-
-		if (font.Weight != Microsoft.Maui.FontWeight.Regular)
-			css += $"font-weight: {(int)font.Weight}; ";
-
-		if (font.Slant == Microsoft.Maui.FontSlant.Italic)
-			css += "font-style: italic; ";
+		var css = handler.BuildFontCss(label.Font);
 
 		if (!string.IsNullOrEmpty(css))
 			handler.ApplyCss(handler.PlatformView, css);

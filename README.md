@@ -112,8 +112,10 @@ Linux head projects can use MAUI resource item groups for common `Resources/*` p
 - `MauiImage` from `Resources/Images/**`
 - `MauiFont` from `Resources/Fonts/**`
 - `MauiAsset` from `Resources/Raw/**` (with `LogicalName` defaulting to `%(RecursiveDir)%(Filename)%(Extension)`)
+- `MauiIcon` from explicit items, or default `Resources/AppIcon/appicon.{svg|png|ico}`
 
 These are copied into build/publish output so image/file lookups can resolve at runtime.
+When `MauiIcon` is present, Linux builds emit `hicolor` icon-theme files in output and runtime sets the GTK window default icon name from that icon.
 
 ## Adding Linux to a Multi-Targeted MAUI App
 

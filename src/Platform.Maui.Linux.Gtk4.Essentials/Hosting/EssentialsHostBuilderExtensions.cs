@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Maui.Hosting;
+using System.Reflection;
 using Platform.Maui.Linux.Gtk4.Essentials.AppModel;
 using Platform.Maui.Linux.Gtk4.Essentials.Communication;
 using Platform.Maui.Linux.Gtk4.Essentials.DataTransfer;
@@ -64,6 +65,24 @@ public static class EssentialsHostBuilderExtensions
 		builder.Services.TryAddSingleton<Microsoft.Maui.Devices.Sensors.IGeocoding, LinuxGeocoding>();
 		builder.Services.TryAddSingleton<Microsoft.Maui.Accessibility.ISemanticScreenReader, LinuxSemanticScreenReader>();
 
+		// Wire static Essentials APIs (Preferences.Default, FilePicker.Default, etc.)
+		SetEssentialsDefaults();
+
 		return builder;
+	}
+
+	private static void SetEssentialsDefaults()
+	{
+		SetDefault(typeof(Microsoft.Maui.Storage.Preferences), new LinuxPreferences());
+		SetDefault(typeof(Microsoft.Maui.Storage.FilePicker), new LinuxFilePicker());
+		SetDefault(typeof(Microsoft.Maui.Storage.SecureStorage), new LinuxSecureStorage());
+		SetDefault(typeof(Microsoft.Maui.ApplicationModel.DataTransfer.Clipboard), new LinuxClipboard());
+		SetDefault(typeof(Microsoft.Maui.Media.MediaPicker), new LinuxMediaPicker());
+	}
+
+	private static void SetDefault(Type essentialsType, object implementation)
+	{
+		var setDefault = essentialsType.GetMethod("SetDefault", BindingFlags.Static | BindingFlags.NonPublic);
+		setDefault?.Invoke(null, new[] { implementation });
 	}
 }

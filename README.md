@@ -100,6 +100,11 @@ public static class MauiProgram
 }
 ```
 
+## XAML Support
+
+`Platform.Maui.Linux.Gtk4` relies on MAUI's normal transitive build assets for XAML.
+In Linux head projects, `*.xaml` files are still collected as `MauiXaml` and compiled by MAUI's XAML build pipeline without extra package-specific overrides.
+
 ## Adding Linux to a Multi-Targeted MAUI App
 
 Since there is no official `-linux` TFM (Target Framework Moniker) from Microsoft, MAUI projects can't conditionally include the Linux backend via `TargetFrameworks` the way they do for Android/iOS/Windows. Instead, use the **"Linux head project"** pattern:

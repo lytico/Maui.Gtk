@@ -11,6 +11,7 @@ public class DatePickerHandler : GtkViewHandler<IDatePicker, Gtk.Box>
 		{
 			[nameof(IDatePicker.Date)] = MapDate,
 			[nameof(IDatePicker.Format)] = MapFormat,
+			[nameof(ITextStyle.Font)] = MapFont,
 		};
 
 	public DatePickerHandler() : base(Mapper)
@@ -140,5 +141,16 @@ public class DatePickerHandler : GtkViewHandler<IDatePicker, Gtk.Box>
 	public static void MapFormat(DatePickerHandler handler, IDatePicker datePicker)
 	{
 		MapDate(handler, datePicker);
+	}
+
+	public static void MapFont(DatePickerHandler handler, IDatePicker datePicker)
+	{
+		if (datePicker is not ITextStyle textStyle)
+			return;
+
+		var button = handler.PlatformView?.GetFirstChild() as Gtk.Button;
+		var css = handler.BuildFontCss(textStyle.Font);
+		if (!string.IsNullOrEmpty(css))
+			handler.ApplyCss(button, css);
 	}
 }

@@ -1,6 +1,7 @@
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Handlers;
+using Platform.Maui.Linux.Gtk4.Platform;
 
 namespace Platform.Maui.Linux.Gtk4.Handlers;
 
@@ -167,6 +168,12 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		var provider = Gtk.CssProvider.New();
 		provider.LoadFromString($"{selector} {{ {css} }}");
 		widget.GetStyleContext().AddProvider(provider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
+	}
+
+	protected string BuildFontCss(Microsoft.Maui.Font font)
+	{
+		var fontManager = MauiContext?.Services.GetService(typeof(IGtkFontManager)) as IGtkFontManager;
+		return fontManager?.BuildFontCss(font) ?? GtkFontManager.BuildFallbackFontCss(font);
 	}
 
 	protected static string ToGtkColor(Color color)

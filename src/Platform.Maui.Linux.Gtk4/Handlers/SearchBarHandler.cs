@@ -10,6 +10,7 @@ public class SearchBarHandler : GtkViewHandler<ISearchBar, Gtk.SearchEntry>
 			[nameof(ISearchBar.Text)] = MapText,
 			[nameof(ISearchBar.Placeholder)] = MapPlaceholder,
 			[nameof(ISearchBar.TextColor)] = MapTextColor,
+			[nameof(ITextStyle.Font)] = MapFont,
 		};
 
 	public SearchBarHandler() : base(Mapper)
@@ -54,5 +55,15 @@ public class SearchBarHandler : GtkViewHandler<ISearchBar, Gtk.SearchEntry>
 	{
 		if (searchBar.TextColor != null)
 			handler.ApplyCss(handler.PlatformView, $"color: {ToGtkColor(searchBar.TextColor)};");
+	}
+
+	public static void MapFont(SearchBarHandler handler, ISearchBar searchBar)
+	{
+		if (searchBar is not ITextStyle textStyle)
+			return;
+
+		var css = handler.BuildFontCss(textStyle.Font);
+		if (!string.IsNullOrEmpty(css))
+			handler.ApplyCss(handler.PlatformView, css);
 	}
 }

@@ -7,12 +7,14 @@ public class ResourceAssetsPage : ContentPage
 {
 	readonly Label _imageStatus;
 	readonly Label _fontStatus;
+	readonly Label _appIconStatus;
 
 	public ResourceAssetsPage()
 	{
-		Title = "Resource Image + Font";
+		Title = "Resource Image + Font + AppIcon";
 		_imageStatus = new Label { FontSize = 12, TextColor = Colors.Gray };
 		_fontStatus = new Label { FontSize = 12, TextColor = Colors.Gray };
+		_appIconStatus = new Label { FontSize = 12, TextColor = Colors.Gray };
 
 		var refreshButton = new Button { Text = "Refresh Resource Status" };
 		refreshButton.Clicked += (s, e) => UpdateStatus();
@@ -37,6 +39,12 @@ public class ResourceAssetsPage : ContentPage
 						FontSize = 14,
 						TextColor = Colors.Gray,
 					},
+					new Label
+					{
+						Text = "App icon comes from MauiIcon item metadata.",
+						FontSize = 14,
+						TextColor = Colors.Gray,
+					},
 					new Border
 					{
 						Stroke = Colors.LightGray,
@@ -56,7 +64,33 @@ public class ResourceAssetsPage : ContentPage
 						FontSize = 20,
 						FontFamily = "OpenSansRegular",
 					},
+					new Label
+					{
+						Text = "OpenSans-Regular.ttf filename preview",
+						FontSize = 20,
+						FontFamily = "OpenSans-Regular.ttf",
+					},
+					new Label
+					{
+						Text = "OpenSansRegular bold + italic preview",
+						FontSize = 20,
+						FontFamily = "OpenSansRegular",
+						FontAttributes = FontAttributes.Bold | FontAttributes.Italic,
+					},
+					new Entry
+					{
+						Text = "Entry control using OpenSansRegular",
+						FontFamily = "OpenSansRegular",
+					},
+					new Editor
+					{
+						Text = "Editor control using OpenSansRegular.\nTry typing here to verify runtime text controls use the same font mapping.",
+						FontFamily = "OpenSansRegular",
+						AutoSize = EditorAutoSizeOption.TextChanges,
+						HeightRequest = 90,
+					},
 					_fontStatus,
+					_appIconStatus,
 					refreshButton,
 				}
 			}
@@ -70,8 +104,21 @@ public class ResourceAssetsPage : ContentPage
 		var baseDirectory = AppContext.BaseDirectory;
 		var imagePath = Path.Combine(baseDirectory, "dotnet_bot.png");
 		var fontPath = Path.Combine(baseDirectory, "OpenSans-Regular.ttf");
+		var appIconDirectory = Path.Combine(baseDirectory, "hicolor", "scalable", "apps");
+		var appIconThemeIndexPath = Path.Combine(baseDirectory, "hicolor", "index.theme");
+		var appIconFilePath = Directory.Exists(appIconDirectory)
+			? Directory.EnumerateFiles(appIconDirectory)
+				.Select(path => new FileInfo(path))
+				.OrderByDescending(static info => info.LastWriteTimeUtc)
+				.Select(static info => info.FullName)
+				.FirstOrDefault()
+			: null;
+		var appIconName = string.IsNullOrWhiteSpace(appIconFilePath)
+			? "<none>"
+			: Path.GetFileNameWithoutExtension(appIconFilePath);
 
 		_imageStatus.Text = $"dotnet_bot.png exists: {File.Exists(imagePath)}";
-		_fontStatus.Text = $"OpenSans-Regular.ttf exists: {File.Exists(fontPath)}";
+		_fontStatus.Text = $"OpenSans-Regular.ttf exists: {File.Exists(fontPath)}. Compare alias/font-file labels plus Entry/Editor previews above.";
+		_appIconStatus.Text = $"App icon ({appIconName}) exists: {(!string.IsNullOrWhiteSpace(appIconFilePath) && File.Exists(appIconFilePath))}, hicolor index.theme exists: {File.Exists(appIconThemeIndexPath)}";
 	}
 }

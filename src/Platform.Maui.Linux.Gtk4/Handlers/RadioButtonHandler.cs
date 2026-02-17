@@ -11,6 +11,7 @@ public class RadioButtonHandler : GtkViewHandler<IRadioButton, Gtk.CheckButton>
 		{
 			[nameof(IRadioButton.IsChecked)] = MapIsChecked,
 			[nameof(IRadioButton.Content)] = MapContent,
+			[nameof(ITextStyle.Font)] = MapFont,
 		};
 
 	public RadioButtonHandler() : base(Mapper)
@@ -67,5 +68,15 @@ public class RadioButtonHandler : GtkViewHandler<IRadioButton, Gtk.CheckButton>
 	{
 		if (radioButton.Content is string text)
 			handler.PlatformView?.SetLabel(text);
+	}
+
+	public static void MapFont(RadioButtonHandler handler, IRadioButton radioButton)
+	{
+		if (radioButton is not ITextStyle textStyle)
+			return;
+
+		var css = handler.BuildFontCss(textStyle.Font);
+		if (!string.IsNullOrEmpty(css))
+			handler.ApplyCss(handler.PlatformView, css);
 	}
 }

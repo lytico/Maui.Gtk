@@ -10,6 +10,7 @@ public class PickerHandler : GtkViewHandler<IPicker, Gtk.DropDown>
 			[nameof(IPicker.Title)] = MapTitle,
 			[nameof(IPicker.SelectedIndex)] = MapSelectedIndex,
 			[nameof(IPicker.Items)] = MapItems,
+			[nameof(ITextStyle.Font)] = MapFont,
 		};
 
 	public PickerHandler() : base(Mapper)
@@ -56,5 +57,15 @@ public class PickerHandler : GtkViewHandler<IPicker, Gtk.DropDown>
 		var items = picker.Items?.ToArray() ?? Array.Empty<string>();
 		var stringList = Gtk.StringList.New(items);
 		handler.PlatformView?.SetModel(stringList);
+	}
+
+	public static void MapFont(PickerHandler handler, IPicker picker)
+	{
+		if (picker is not ITextStyle textStyle)
+			return;
+
+		var css = handler.BuildFontCss(textStyle.Font);
+		if (!string.IsNullOrEmpty(css))
+			handler.ApplyCss(handler.PlatformView, css);
 	}
 }

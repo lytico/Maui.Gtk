@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -90,6 +91,19 @@ public static partial class AppHostBuilderExtensions
 
 			return Dispatcher.GetForCurrentThread()!;
 		});
+
+		builder.Services.RemoveAll<IFontRegistrar>();
+		builder.Services.RemoveAll<IFontManager>();
+		builder.Services.RemoveAll<IEmbeddedFontLoader>();
+
+		builder.Services.AddSingleton<IEmbeddedFontLoader>(svc =>
+			new FileSystemEmbeddedFontLoader(Path.Combine(Path.GetTempPath(), "maui-gtk4-font-cache"), svc));
+		builder.Services.AddSingleton<GtkFontRegistrar>();
+		builder.Services.AddSingleton<IGtkFontRegistry>(svc => svc.GetRequiredService<GtkFontRegistrar>());
+		builder.Services.AddSingleton<IFontRegistrar>(svc => svc.GetRequiredService<GtkFontRegistrar>());
+		builder.Services.AddSingleton<GtkFontManager>();
+		builder.Services.AddSingleton<IGtkFontManager>(svc => svc.GetRequiredService<GtkFontManager>());
+		builder.Services.AddSingleton<IFontManager>(svc => svc.GetRequiredService<GtkFontManager>());
 
 		builder.ConfigureMauiHandlers(handlers =>
 		{

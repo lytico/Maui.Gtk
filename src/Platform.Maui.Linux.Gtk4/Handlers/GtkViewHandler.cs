@@ -61,11 +61,13 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 
 		var width = Math.Min(natWidth, widthConstraint);
 
-		// If MAUI set an explicit request, use it
+		// If MAUI set an explicit request or maximum, use it
 		if (VirtualView is Microsoft.Maui.Controls.VisualElement ve)
 		{
 			if (ve.WidthRequest >= 0)
 				width = Math.Min(ve.WidthRequest, widthConstraint);
+			if (ve.MaximumWidthRequest >= 0 && ve.MaximumWidthRequest < width)
+				width = ve.MaximumWidthRequest;
 		}
 
 		// Measure vertical size with the actual width constraint so wrapping
@@ -79,6 +81,8 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		{
 			if (ve2.HeightRequest >= 0)
 				height = Math.Min(ve2.HeightRequest, heightConstraint);
+			if (ve2.MaximumHeightRequest >= 0 && ve2.MaximumHeightRequest < height)
+				height = ve2.MaximumHeightRequest;
 		}
 
 		// Restore previous size request

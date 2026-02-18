@@ -202,6 +202,61 @@ class TransformsPage : ContentPage
 						}
 					},
 					new Label { Text = "Round 16px / Circle / Ellipse / Diagonal corners", FontSize = 11, TextColor = Colors.Gray },
+
+					// --- Gradient Brushes ---
+					new Label { Text = "Gradient Brushes", FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 12, 0, 0) },
+					new HorizontalStackLayout
+					{
+						Spacing = 16,
+						Children =
+						{
+							new Frame
+							{
+								WidthRequest = 120, HeightRequest = 80, Padding = 0,
+								CornerRadius = 8, BorderColor = Colors.Transparent, HasShadow = false,
+								Background = new LinearGradientBrush
+								{
+									StartPoint = new Point(0, 0), EndPoint = new Point(1, 1),
+									GradientStops = { new GradientStop(Colors.DodgerBlue, 0), new GradientStop(Colors.MediumPurple, 1) },
+								},
+								Content = new Label { Text = "Linear ↘", TextColor = Colors.White, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center },
+							},
+							new Frame
+							{
+								WidthRequest = 120, HeightRequest = 80, Padding = 0,
+								CornerRadius = 8, BorderColor = Colors.Transparent, HasShadow = false,
+								Background = new LinearGradientBrush
+								{
+									StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5),
+									GradientStops = { new GradientStop(Colors.OrangeRed, 0), new GradientStop(Colors.Gold, 0.5f), new GradientStop(Colors.LimeGreen, 1) },
+								},
+								Content = new Label { Text = "3-Stop →", TextColor = Colors.White, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center },
+							},
+							new Frame
+							{
+								WidthRequest = 120, HeightRequest = 80, Padding = 0,
+								CornerRadius = 8, BorderColor = Colors.Transparent, HasShadow = false,
+								Background = new RadialGradientBrush
+								{
+									Center = new Point(0.5, 0.5), Radius = 0.6,
+									GradientStops = { new GradientStop(Colors.White, 0), new GradientStop(Colors.Coral, 0.6f), new GradientStop(Colors.DarkRed, 1) },
+								},
+								Content = new Label { Text = "Radial", TextColor = Colors.White, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center },
+							},
+							new Frame
+							{
+								WidthRequest = 120, HeightRequest = 80, Padding = 0,
+								CornerRadius = 40, BorderColor = Colors.Transparent, HasShadow = false,
+								Background = new LinearGradientBrush
+								{
+									StartPoint = new Point(0, 0), EndPoint = new Point(0, 1),
+									GradientStops = { new GradientStop(Colors.DeepSkyBlue, 0), new GradientStop(Colors.DeepPink, 1) },
+								},
+								Content = new Label { Text = "Rounded", TextColor = Colors.White, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center },
+							},
+						}
+					},
+					new Label { Text = "Linear diagonal / 3-stop horizontal / Radial / Rounded pill", FontSize = 11, TextColor = Colors.Gray },
 				}
 			}
 		};

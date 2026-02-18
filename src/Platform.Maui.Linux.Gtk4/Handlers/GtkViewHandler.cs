@@ -166,6 +166,48 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			handler.ApplyCss(handler.PlatformView,
 				$"background-color: {ToGtkColor(solidPaint.Color)}; background-image: none;");
 		}
+		else if (view.Background is LinearGradientPaint lgp)
+		{
+			handler.ApplyCss(handler.PlatformView, BuildLinearGradientCss(lgp));
+		}
+		else if (view.Background is RadialGradientPaint rgp)
+		{
+			handler.ApplyCss(handler.PlatformView, BuildRadialGradientCss(rgp));
+		}
+	}
+
+	static string BuildLinearGradientCss(LinearGradientPaint paint)
+	{
+		// MAUI uses StartPoint/EndPoint in 0-1 relative coordinates
+		var angle = CalculateGradientAngle(paint.StartPoint, paint.EndPoint);
+		var stops = string.Join(", ",
+			paint.GradientStops
+				.OrderBy(s => s.Offset)
+				.Select(s => $"{ToGtkColor(s.Color)} {s.Offset * 100:F0}%"));
+		return $"background-image: linear-gradient({angle:F0}deg, {stops}); background-color: transparent;";
+	}
+
+	static double CalculateGradientAngle(Point start, Point end)
+	{
+		// CSS gradient angles: 0deg = bottom-to-top, 90deg = left-to-right
+		double dx = end.X - start.X;
+		double dy = end.Y - start.Y;
+		double radians = Math.Atan2(dx, -dy);
+		double degrees = radians * 180.0 / Math.PI;
+		return (degrees + 360) % 360;
+	}
+
+	static string BuildRadialGradientCss(RadialGradientPaint paint)
+	{
+		// MAUI: Center (0-1), Radius (0-1 of element size)
+		var cx = paint.Center.X * 100;
+		var cy = paint.Center.Y * 100;
+		var r = paint.Radius * 100;
+		var stops = string.Join(", ",
+			paint.GradientStops
+				.OrderBy(s => s.Offset)
+				.Select(s => $"{ToGtkColor(s.Color)} {s.Offset * 100:F0}%"));
+		return $"background-image: radial-gradient(circle {r:F0}% at {cx:F0}% {cy:F0}%, {stops}); background-color: transparent;";
 	}
 
 	static void MapOpacity(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)

@@ -90,22 +90,30 @@ public class RefreshSwipePage : ContentPage
 			},
 		};
 
-		Content = new StackLayout
+		Content = new ScrollView
 		{
-			Padding = new Thickness(16),
-			Children =
+			Content = new StackLayout
 			{
-				new Label
+				Padding = new Thickness(16),
+				Spacing = 12,
+				Children =
 				{
-					Text = "RefreshView & SwipeView Demo",
-					FontSize = 22,
-					FontAttributes = FontAttributes.Bold,
-					Margin = new Thickness(0, 0, 0, 8),
-				},
-				_statusLabel,
-				refreshView,
-				new BoxView { HeightRequest = 16 },
-				swipeDemo,
+					new Label
+					{
+						Text = "RefreshView & SwipeView Demo",
+						FontSize = 22,
+						FontAttributes = FontAttributes.Bold,
+						Margin = new Thickness(0, 0, 0, 8),
+					},
+					_statusLabel,
+					refreshView,
+					new BoxView { HeightRequest = 16 },
+					swipeDemo,
+					new BoxView { HeightRequest = 16 },
+					BuildPointerGestureDemo(),
+					new BoxView { HeightRequest = 16 },
+					BuildSwipeGestureDemo(),
+				}
 			}
 		};
 	}
@@ -133,5 +141,107 @@ public class RefreshSwipePage : ContentPage
 				});
 			}
 		}
+	}
+
+	static View BuildPointerGestureDemo()
+	{
+		var posLabel = new Label { Text = "Move pointer over the box →", FontSize = 13, TextColor = Colors.Gray };
+		var stateLabel = new Label { Text = "Outside", FontSize = 14, FontAttributes = FontAttributes.Bold };
+
+		var trackingBox = new BoxView
+		{
+			Color = Colors.CornflowerBlue,
+			WidthRequest = 200,
+			HeightRequest = 100,
+			HorizontalOptions = LayoutOptions.Start,
+		};
+
+		var pointerGesture = new PointerGestureRecognizer();
+		pointerGesture.PointerEnteredCommand = new Command(() =>
+		{
+			stateLabel.Text = "🟢 Inside";
+			stateLabel.TextColor = Colors.Green;
+			trackingBox.Color = Colors.MediumSeaGreen;
+		});
+		pointerGesture.PointerMovedCommand = new Command(() =>
+		{
+			posLabel.Text = "Pointer moving...";
+		});
+		pointerGesture.PointerExitedCommand = new Command(() =>
+		{
+			stateLabel.Text = "🔴 Outside";
+			stateLabel.TextColor = Colors.Red;
+			trackingBox.Color = Colors.CornflowerBlue;
+			posLabel.Text = "Move pointer over the box →";
+		});
+		pointerGesture.PointerPressedCommand = new Command(() =>
+		{
+			stateLabel.Text = "⬇️ Pressed";
+			trackingBox.Color = Colors.DarkSlateBlue;
+		});
+		pointerGesture.PointerReleasedCommand = new Command(() =>
+		{
+			stateLabel.Text = "⬆️ Released";
+			trackingBox.Color = Colors.MediumSeaGreen;
+		});
+		trackingBox.GestureRecognizers.Add(pointerGesture);
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "Pointer Gesture", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "Tracks enter/move/exit/press/release on the box below.", FontSize = 12, TextColor = Colors.Gray },
+				stateLabel,
+				posLabel,
+				trackingBox,
+			}
+		};
+	}
+
+	static View BuildSwipeGestureDemo()
+	{
+		var directionLabel = new Label { Text = "Swipe on the box below (drag quickly)", FontSize = 13, TextColor = Colors.Gray };
+		var resultLabel = new Label { Text = "No swipe detected", FontSize = 14 };
+
+		var swipeBox = new BoxView
+		{
+			Color = Colors.Coral,
+			WidthRequest = 250,
+			HeightRequest = 100,
+			HorizontalOptions = LayoutOptions.Start,
+		};
+
+		foreach (var dir in new[] { SwipeDirection.Left, SwipeDirection.Right, SwipeDirection.Up, SwipeDirection.Down })
+		{
+			var swipe = new SwipeGestureRecognizer { Direction = dir };
+			swipe.Swiped += (s, e) =>
+			{
+				string arrow = e.Direction switch
+				{
+					SwipeDirection.Left => "⬅️",
+					SwipeDirection.Right => "➡️",
+					SwipeDirection.Up => "⬆️",
+					SwipeDirection.Down => "⬇️",
+					_ => "?",
+				};
+				resultLabel.Text = $"{arrow} Swiped {e.Direction}!";
+				resultLabel.TextColor = Colors.DodgerBlue;
+			};
+			swipeBox.GestureRecognizers.Add(swipe);
+		}
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "Swipe Gesture", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				directionLabel,
+				resultLabel,
+				swipeBox,
+			}
+		};
 	}
 }

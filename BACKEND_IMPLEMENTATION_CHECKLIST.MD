@@ -193,7 +193,7 @@ Every handler must support these properties mapped from the base `IView`:
 - [x] Margin — Handled by MAUI layout engine (cross-platform)
 - [x] Padding — Mapped on individual handlers (Entry, Editor, Button, etc.)
 - [x] FlowDirection (LTR, RTL) — `MapFlowDirection` sets `Gtk.TextDirection`
-- [ ] ZIndex — Not mapped
+- [x] ZIndex — `MapZIndex` reorders GTK siblings via `InsertBefore`/`InsertAfter`
 
 ### Appearance
 - [x] BackgroundColor / Background — `MapBackground` applies via CSS `background-color`
@@ -221,7 +221,7 @@ Every handler must support these properties mapped from the base `IView`:
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| ❌ **VisualStateManager** | Missing | No GoToState implementation; GTK native widget states (hover, focused) work natively |
+| ✅ **VisualStateManager** | Done | `GoToState` triggered by GTK EventControllerMotion/GestureClick/EventControllerFocus — Normal, PointerOver, Pressed, Disabled, Focused |
 | ❌ **PropertyTrigger** | Missing | Not implemented |
 | ❌ **DataTrigger** | Missing | Not implemented |
 | ❌ **MultiTrigger** | Missing | Not implemented |
@@ -366,12 +366,11 @@ FormattedText requires Pango markup rendering for rich text:
 | **WebView** | 6 | 6 | 100% |
 | **MenuBar** | 4 | 4 | 100% |
 | **Essentials** | 18 (+ 2 partial) | 26 | 77% |
-| **Base View Properties** | 16 | 22 | 73% |
+| **Base View Properties** | 18 | 22 | 82% |
 | **FormattedText/Spans** | 9 | 9 | 100% |
-| **VisualStateManager** | 0 | 6 | 0% |
+| **VisualStateManager** | 5 | 6 | 83% |
 
 ### Key Gaps (Priority Order)
 1. **PinchGestureRecognizer** — Pinch zoom not implemented
-2. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing
-3. **Shell GoToAsync** — Route-based navigation not implemented
-4. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)
+2. **Shell GoToAsync** — Route-based navigation not implemented
+3. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)

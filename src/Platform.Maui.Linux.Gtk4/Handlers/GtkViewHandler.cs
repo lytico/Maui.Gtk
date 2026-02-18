@@ -26,11 +26,102 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			[nameof(IView.InputTransparent)] = MapInputTransparent,
 			[nameof(IView.Clip)] = MapClip,
 			[nameof(IView.FlowDirection)] = MapFlowDirection,
+			[nameof(IView.ZIndex)] = MapZIndex,
 		};
 
 	protected GtkViewHandler(IPropertyMapper mapper, CommandMapper? commandMapper = null)
 		: base(mapper, commandMapper)
 	{
+	}
+
+	Gtk.EventControllerMotion? _vsmMotion;
+	Gtk.GestureClick? _vsmClick;
+	Gtk.EventControllerFocus? _vsmFocus;
+	bool _isPointerOver;
+
+	protected override void ConnectHandler(TPlatformView platformView)
+	{
+		base.ConnectHandler(platformView);
+		SetupVisualStateTracking(platformView);
+	}
+
+	protected override void DisconnectHandler(TPlatformView platformView)
+	{
+		CleanupVisualStateTracking(platformView);
+		base.DisconnectHandler(platformView);
+	}
+
+	void SetupVisualStateTracking(Gtk.Widget widget)
+	{
+		_vsmMotion = Gtk.EventControllerMotion.New();
+		_vsmMotion.OnEnter += OnPointerEnter;
+		_vsmMotion.OnLeave += OnPointerLeave;
+		widget.AddController(_vsmMotion);
+
+		_vsmClick = Gtk.GestureClick.New();
+		_vsmClick.OnPressed += OnPressed;
+		_vsmClick.OnReleased += OnReleased;
+		widget.AddController(_vsmClick);
+
+		_vsmFocus = Gtk.EventControllerFocus.New();
+		_vsmFocus.OnEnter += OnFocusIn;
+		_vsmFocus.OnLeave += OnFocusOut;
+		widget.AddController(_vsmFocus);
+	}
+
+	void CleanupVisualStateTracking(Gtk.Widget widget)
+	{
+		if (_vsmMotion != null) { widget.RemoveController(_vsmMotion); _vsmMotion = null; }
+		if (_vsmClick != null) { widget.RemoveController(_vsmClick); _vsmClick = null; }
+		if (_vsmFocus != null) { widget.RemoveController(_vsmFocus); _vsmFocus = null; }
+	}
+
+	void OnPointerEnter(Gtk.EventControllerMotion sender, Gtk.EventControllerMotion.EnterSignalArgs args)
+	{
+		_isPointerOver = true;
+		if (VirtualView is Microsoft.Maui.Controls.VisualElement ve)
+			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "PointerOver");
+	}
+
+	void OnPointerLeave(Gtk.EventControllerMotion sender, EventArgs args)
+	{
+		_isPointerOver = false;
+		GoToCurrentState();
+	}
+
+	void OnPressed(Gtk.GestureClick sender, Gtk.GestureClick.PressedSignalArgs args)
+	{
+		if (VirtualView is Microsoft.Maui.Controls.VisualElement ve)
+			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "Pressed");
+	}
+
+	void OnReleased(Gtk.GestureClick sender, Gtk.GestureClick.ReleasedSignalArgs args)
+	{
+		GoToCurrentState();
+	}
+
+	void OnFocusIn(Gtk.EventControllerFocus sender, EventArgs args)
+	{
+		if (VirtualView is Microsoft.Maui.Controls.VisualElement ve)
+			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "Focused");
+	}
+
+	void OnFocusOut(Gtk.EventControllerFocus sender, EventArgs args)
+	{
+		GoToCurrentState();
+	}
+
+	void GoToCurrentState()
+	{
+		if (VirtualView is not Microsoft.Maui.Controls.VisualElement ve)
+			return;
+
+		if (!ve.IsEnabled)
+			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "Disabled");
+		else if (_isPointerOver)
+			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "PointerOver");
+		else
+			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "Normal");
 	}
 
 	public override void PlatformArrange(Rect rect)
@@ -223,6 +314,7 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 	static void MapIsEnabled(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
 	{
 		handler.PlatformView?.SetSensitive(view.IsEnabled);
+		handler.GoToCurrentState();
 	}
 
 	/// <summary>
@@ -361,6 +453,41 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			_ => Gtk.TextDirection.None, // inherit from parent
 		};
 		handler.PlatformView.SetDirection(dir);
+	}
+
+	// Track ZIndex per widget
+	static readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> _zIndexMap = new();
+
+	static void MapZIndex(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
+	{
+		var widget = handler.PlatformView;
+		if (widget == null) return;
+
+		var parent = widget.GetParent();
+		if (parent == null) return;
+
+		int key = widget.GetHashCode();
+		_zIndexMap[key] = view.ZIndex;
+
+		// Reorder siblings: GTK4 draws last child on top.
+		// Move widget before the first sibling with higher ZIndex.
+		var sibling = parent.GetFirstChild();
+		Gtk.Widget? insertBefore = null;
+
+		while (sibling != null)
+		{
+			if (sibling != widget && _zIndexMap.TryGetValue(sibling.GetHashCode(), out int sibZ) && sibZ > view.ZIndex)
+			{
+				insertBefore = sibling;
+				break;
+			}
+			sibling = sibling.GetNextSibling();
+		}
+
+		if (insertBefore != null)
+			widget.InsertBefore(parent, insertBefore);
+		else
+			widget.InsertAfter(parent, null); // move to end (highest z)
 	}
 }
 

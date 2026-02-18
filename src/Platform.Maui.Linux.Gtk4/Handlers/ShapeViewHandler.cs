@@ -35,6 +35,18 @@ public class ShapeViewHandler : GtkViewHandler<IShapeView, Gtk.DrawingArea>
 		return area;
 	}
 
+	public override void PlatformArrange(Rect rect)
+	{
+		base.PlatformArrange(rect);
+
+		if (PlatformView != null)
+		{
+			PlatformView.SetContentWidth((int)rect.Width);
+			PlatformView.SetContentHeight((int)rect.Height);
+			PlatformView.QueueDraw();
+		}
+	}
+
 	private void OnDraw(Gtk.DrawingArea area, Cairo.Context cr, int width, int height)
 	{
 		if (VirtualView == null)

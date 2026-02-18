@@ -67,12 +67,16 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<IndicatorView, IndicatorViewHandler>();
 
 		// BoxView / Shapes
-		// MAUI Shape controls (Rectangle, Ellipse, etc.) implement IShapeView,
-		// so ShapeViewHandler handles them all via the IShapeView registration.
+		// Register each shape type individually for reliable handler resolution.
 #pragma warning disable CS0618
 		handlersCollection.AddHandler<BoxView, BoxViewHandler>();
 #pragma warning restore CS0618
-		handlersCollection.AddHandler(typeof(Microsoft.Maui.IShapeView), typeof(ShapeViewHandler));
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Rectangle, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Ellipse, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Line, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Polyline, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Polygon, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Path, ShapeViewHandler>();
 
 		return handlersCollection;
 	}

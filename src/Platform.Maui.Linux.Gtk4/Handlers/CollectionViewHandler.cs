@@ -2,13 +2,16 @@ using System.Collections;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Handlers;
+using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Platform;
+using Platform.Maui.Linux.Gtk4.Platform;
 
 namespace Platform.Maui.Linux.Gtk4.Handlers;
 
 /// <summary>
 /// Basic CollectionView handler using Gtk.ListView and GTK selection models.
 /// Supports ItemsSource, selection mode/selection state, EmptyView, Header/Footer,
-/// scrollbar visibility, and basic ItemsLayout orientation.
+/// scrollbar visibility, ItemTemplate, and basic ItemsLayout orientation.
 /// </summary>
 public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 {
@@ -20,6 +23,7 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 	Gtk.Label? _headerLabel;
 	Gtk.Label? _footerLabel;
 	readonly List<object?> _items = [];
+	readonly List<Gtk.Widget> _templateWidgets = [];
 	bool _updatingSelection;
 
 	public static new IPropertyMapper<IView, CollectionViewHandler> Mapper =
@@ -64,6 +68,63 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 		_model = Gtk.StringList.New(null);
 
+		RebuildListView();
+
+		// Outer box to hold header, list, and footer
+		_outerBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+		_outerBox.SetVexpand(true);
+		_headerLabel = Gtk.Label.New(string.Empty);
+		_headerLabel.SetVisible(false);
+		_headerLabel.SetHalign(Gtk.Align.Start);
+		_headerLabel.SetMarginStart(12);
+		_headerLabel.SetMarginTop(8);
+		_headerLabel.SetMarginBottom(4);
+
+		_footerLabel = Gtk.Label.New(string.Empty);
+		_footerLabel.SetVisible(false);
+		_footerLabel.SetHalign(Gtk.Align.Start);
+		_footerLabel.SetMarginStart(12);
+		_footerLabel.SetMarginTop(4);
+		_footerLabel.SetMarginBottom(8);
+
+		_outerBox.Append(_headerLabel);
+		_outerBox.Append(_listView!);
+		_outerBox.Append(_footerLabel);
+		scrolled.SetChild(_outerBox);
+
+		return scrolled;
+	}
+
+	void RebuildListView()
+	{
+		_templateWidgets.Clear();
+		var hasTemplate = VirtualView is CollectionView cv && cv.ItemTemplate != null;
+		Gtk.ListItemFactory factory;
+
+		if (hasTemplate)
+			factory = BuildTemplateFactory();
+		else
+			factory = BuildStringFactory();
+
+		if (_selectionModel == null)
+			_selectionModel = Gtk.NoSelection.New(_model);
+
+		var newListView = Gtk.ListView.New(_selectionModel, factory);
+		if (!hasTemplate)
+			newListView.AddCssClass("navigation-sidebar");
+		newListView.SetVexpand(true);
+
+		if (_listView != null && _outerBox != null)
+		{
+			_outerBox.InsertChildAfter(newListView, _listView);
+			_outerBox.Remove(_listView);
+		}
+
+		_listView = newListView;
+	}
+
+	Gtk.SignalListItemFactory BuildStringFactory()
+	{
 		var factory = Gtk.SignalListItemFactory.New();
 		factory.OnSetup += (_, args) =>
 		{
@@ -84,35 +145,325 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			var item = (Gtk.StringObject)listItem.GetItem()!;
 			label.SetText(item.GetString());
 		};
+		return factory;
+	}
 
-		_selectionModel = Gtk.NoSelection.New(_model);
-		_listView = Gtk.ListView.New(_selectionModel, factory);
-		_listView.AddCssClass("navigation-sidebar");
-		_listView.SetVexpand(true);
+	Gtk.SignalListItemFactory BuildTemplateFactory()
+	{
+		var factory = Gtk.SignalListItemFactory.New();
+		factory.OnSetup += (_, args) =>
+		{
+			var listItem = (Gtk.ListItem)args.Object;
+			// Use a Gtk.Box as container — it respects SetSizeRequest for
+			// natural height, unlike Gtk.Fixed which always reports 0.
+			var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+			box.SetHexpand(true);
+			box.SetVexpand(false);
+			_templateWidgets.Add(box);
+			listItem.SetChild(box);
+		};
+		factory.OnBind += (_, args) =>
+		{
+			var listItem = (Gtk.ListItem)args.Object;
+			var box = (Gtk.Box)listItem.GetChild()!;
 
-		// Outer box to hold header, list, and footer
-		_outerBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
-		_outerBox.SetVexpand(true);
-		_headerLabel = Gtk.Label.New(string.Empty);
-		_headerLabel.SetVisible(false);
-		_headerLabel.SetHalign(Gtk.Align.Start);
-		_headerLabel.SetMarginStart(12);
-		_headerLabel.SetMarginTop(8);
-		_headerLabel.SetMarginBottom(4);
+			// Remove previous children
+			while (box.GetFirstChild() is Gtk.Widget child)
+				box.Remove(child);
 
-		_footerLabel = Gtk.Label.New(string.Empty);
-		_footerLabel.SetVisible(false);
-		_footerLabel.SetHalign(Gtk.Align.Start);
-		_footerLabel.SetMarginStart(12);
-		_footerLabel.SetMarginTop(4);
-		_footerLabel.SetMarginBottom(8);
+			var idx = (int)listItem.GetPosition();
+			if (idx < 0 || idx >= _items.Count) return;
+			var dataItem = _items[idx];
 
-		_outerBox.Append(_headerLabel);
-		_outerBox.Append(_listView);
-		_outerBox.Append(_footerLabel);
-		scrolled.SetChild(_outerBox);
+			if (VirtualView is not CollectionView collectionView || collectionView.ItemTemplate == null)
+				return;
 
-		return scrolled;
+			try
+			{
+				// Create MAUI view from DataTemplate
+				var template = collectionView.ItemTemplate;
+				var content = template is DataTemplateSelector selector
+					? selector.SelectTemplate(dataItem, collectionView)?.CreateContent()
+					: template.CreateContent();
+
+				if (content is not View mauiView)
+					return;
+
+				mauiView.BindingContext = dataItem;
+
+				// Measure the MAUI view to determine row height
+				var widthConstraint = _listView?.GetAllocatedWidth() ?? 400;
+				if (widthConstraint <= 0) widthConstraint = 400;
+
+				// Build native GTK widgets from the MAUI template view
+				var nativeWidget = BuildNativeFromTemplate(mauiView, widthConstraint);
+				_templateWidgets.Add(nativeWidget.widget);
+				box.SetSizeRequest(-1, nativeWidget.height);
+				box.Append(nativeWidget.widget);
+			}
+			catch (Exception ex)
+			{
+				var fallback = Gtk.Label.New(dataItem?.ToString() ?? "(error)");
+				fallback.SetHalign(Gtk.Align.Start);
+				fallback.SetMarginStart(12);
+				box.Append(fallback);
+				Console.WriteLine($"[CollectionView] ItemTemplate error: {ex.Message}");
+			}
+		};
+		return factory;
+	}
+
+	/// <summary>
+	/// Renders a MAUI view template as native GTK widgets for use in ListView rows.
+	/// This bypasses the MAUI handler tree to avoid GtkLayoutPanel/Gtk.Fixed zero-height issues.
+	/// </summary>
+	(Gtk.Widget widget, int height) BuildNativeFromTemplate(View mauiView, double widthConstraint)
+	{
+		// For horizontal layouts (StackLayout/HorizontalStackLayout), create a Gtk.Box
+		if (mauiView is StackLayout { Orientation: StackOrientation.Horizontal } hStack)
+			return BuildHorizontalStack(hStack, widthConstraint);
+		if (mauiView is HorizontalStackLayout hsl)
+			return BuildHorizontalStackFromLayout(hsl, widthConstraint);
+
+		// For vertical layouts
+		if (mauiView is StackLayout { Orientation: StackOrientation.Vertical } vStack)
+			return BuildVerticalStack(vStack, widthConstraint);
+		if (mauiView is VerticalStackLayout vsl)
+			return BuildVerticalStackFromLayout(vsl, widthConstraint);
+
+		// For Grid layout — flatten children into a Box
+		if (mauiView is Grid grid)
+			return BuildFromGrid(grid, widthConstraint);
+
+		// Single element
+		return BuildSingleNativeWidget(mauiView);
+	}
+
+	(Gtk.Widget widget, int height) BuildHorizontalStack(StackLayout stack, double widthConstraint)
+	{
+		var box = Gtk.Box.New(Gtk.Orientation.Horizontal, (int)stack.Spacing);
+		box.SetHexpand(true);
+		ApplyPadding(box, stack.Padding);
+		int maxHeight = 0;
+		foreach (var child in stack.Children)
+		{
+			if (child is View childView)
+			{
+				var (w, h) = BuildSingleNativeWidget(childView);
+				box.Append(w);
+				maxHeight = Math.Max(maxHeight, h);
+			}
+		}
+		maxHeight += (int)(stack.Padding.VerticalThickness);
+		return (box, Math.Max(maxHeight, 40));
+	}
+
+	(Gtk.Widget widget, int height) BuildHorizontalStackFromLayout(HorizontalStackLayout stack, double widthConstraint)
+	{
+		var box = Gtk.Box.New(Gtk.Orientation.Horizontal, (int)stack.Spacing);
+		box.SetHexpand(true);
+		ApplyPadding(box, stack.Padding);
+		int maxHeight = 0;
+		foreach (var child in stack.Children)
+		{
+			if (child is View childView)
+			{
+				var (w, h) = BuildSingleNativeWidget(childView);
+				box.Append(w);
+				maxHeight = Math.Max(maxHeight, h);
+			}
+		}
+		maxHeight += (int)(stack.Padding.VerticalThickness);
+		return (box, Math.Max(maxHeight, 40));
+	}
+
+	(Gtk.Widget widget, int height) BuildVerticalStack(StackLayout stack, double widthConstraint)
+	{
+		var box = Gtk.Box.New(Gtk.Orientation.Vertical, (int)stack.Spacing);
+		box.SetHexpand(true);
+		ApplyPadding(box, stack.Padding);
+		int totalHeight = 0;
+		foreach (var child in stack.Children)
+		{
+			if (child is View childView)
+			{
+				var (w, h) = BuildSingleNativeWidget(childView);
+				box.Append(w);
+				totalHeight += h + (int)stack.Spacing;
+			}
+		}
+		totalHeight += (int)(stack.Padding.VerticalThickness);
+		return (box, Math.Max(totalHeight, 20));
+	}
+
+	(Gtk.Widget widget, int height) BuildVerticalStackFromLayout(VerticalStackLayout stack, double widthConstraint)
+	{
+		var box = Gtk.Box.New(Gtk.Orientation.Vertical, (int)stack.Spacing);
+		box.SetHexpand(true);
+		ApplyPadding(box, stack.Padding);
+		int totalHeight = 0;
+		foreach (var child in stack.Children)
+		{
+			if (child is View childView)
+			{
+				var (w, h) = BuildSingleNativeWidget(childView);
+				box.Append(w);
+				totalHeight += h + (int)stack.Spacing;
+			}
+		}
+		totalHeight += (int)(stack.Padding.VerticalThickness);
+		return (box, Math.Max(totalHeight, 20));
+	}
+
+	(Gtk.Widget widget, int height) BuildFromGrid(Grid grid, double widthConstraint)
+	{
+		// Simplified: put all grid children in a horizontal box
+		var box = Gtk.Box.New(Gtk.Orientation.Horizontal, 8);
+		box.SetHexpand(true);
+		ApplyPadding(box, grid.Padding);
+		int maxHeight = 0;
+		foreach (var child in grid.Children)
+		{
+			if (child is View childView)
+			{
+				var (w, h) = BuildSingleNativeWidget(childView);
+				box.Append(w);
+				maxHeight = Math.Max(maxHeight, h);
+			}
+		}
+		maxHeight += (int)(grid.Padding.VerticalThickness);
+		return (box, Math.Max(maxHeight, 40));
+	}
+
+	(Gtk.Widget widget, int height) BuildSingleNativeWidget(View mauiView)
+	{
+		// Recurse for layout containers
+		if (mauiView is StackLayout sl)
+			return sl.Orientation == StackOrientation.Horizontal
+				? BuildHorizontalStack(sl, 400)
+				: BuildVerticalStack(sl, 400);
+		if (mauiView is HorizontalStackLayout hsl)
+			return BuildHorizontalStackFromLayout(hsl, 400);
+		if (mauiView is VerticalStackLayout vsl)
+			return BuildVerticalStackFromLayout(vsl, 400);
+		if (mauiView is Grid grid)
+			return BuildFromGrid(grid, 400);
+
+		if (mauiView is Label label)
+		{
+			var gtkLabel = Gtk.Label.New(label.Text ?? "");
+			gtkLabel.SetHalign(Gtk.Align.Start);
+			gtkLabel.SetValign(Gtk.Align.Center);
+
+			if (label.FontSize > 0 && label.FontSize != 14)
+			{
+				var cssProvider = Gtk.CssProvider.New();
+				cssProvider.LoadFromString($"label {{ font-size: {(int)label.FontSize}px; }}");
+				gtkLabel.GetStyleContext().AddProvider(cssProvider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
+			}
+			if (label.TextColor != null)
+			{
+				var c = label.TextColor;
+				var cssProvider = Gtk.CssProvider.New();
+				cssProvider.LoadFromString($"label {{ color: rgba({(int)(c.Red*255)},{(int)(c.Green*255)},{(int)(c.Blue*255)},{c.Alpha}); }}");
+				gtkLabel.GetStyleContext().AddProvider(cssProvider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
+			}
+			if (label.FontAttributes.HasFlag(FontAttributes.Bold))
+			{
+				var cssProvider = Gtk.CssProvider.New();
+				cssProvider.LoadFromString("label { font-weight: bold; }");
+				gtkLabel.GetStyleContext().AddProvider(cssProvider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
+			}
+
+			// Evaluate bindings to resolve text from BindingContext
+			if (string.IsNullOrEmpty(label.Text) && mauiView.BindingContext != null)
+			{
+				// Trigger binding evaluation
+				mauiView.BindingContext = mauiView.BindingContext;
+				gtkLabel.SetLabel(label.Text ?? "");
+			}
+
+			ApplyMargin(gtkLabel, label.Margin);
+			int h = label.FontSize > 20 ? (int)label.FontSize + 8 : 22;
+			return (gtkLabel, h);
+		}
+
+		if (mauiView is BoxView boxView)
+		{
+			var area = Gtk.DrawingArea.New();
+			var w = (int)(boxView.WidthRequest > 0 ? boxView.WidthRequest : 40);
+			var h = (int)(boxView.HeightRequest > 0 ? boxView.HeightRequest : 40);
+			area.SetContentWidth(w);
+			area.SetContentHeight(h);
+			var color = boxView.Color ?? (boxView.Background is SolidColorBrush scb ? scb.Color : null);
+			if (color != null)
+			{
+				var c = color;
+				area.SetDrawFunc((_, cr, width, height) =>
+				{
+					var cornerRadius = (float)boxView.CornerRadius.TopLeft;
+					if (cornerRadius > 0)
+					{
+						DrawRoundedRect(cr, 0, 0, width, height, cornerRadius);
+						Cairo.Internal.Context.SetSourceRgba(cr.Handle, c.Red, c.Green, c.Blue, c.Alpha);
+						Cairo.Internal.Context.Fill(cr.Handle);
+					}
+					else
+					{
+						Cairo.Internal.Context.SetSourceRgba(cr.Handle, c.Red, c.Green, c.Blue, c.Alpha);
+						Cairo.Internal.Context.Rectangle(cr.Handle, 0, 0, width, height);
+						Cairo.Internal.Context.Fill(cr.Handle);
+					}
+				});
+			}
+			ApplyMargin(area, boxView.Margin);
+			return (area, h);
+		}
+
+		if (mauiView is Image image)
+		{
+			var gtkImage = Gtk.Image.New();
+			if (image.Source is FontImageSource fontSrc)
+			{
+				gtkImage.SetFromIconName(fontSrc.Glyph ?? "image-missing");
+				var size = (int)(fontSrc.Size > 0 ? fontSrc.Size : 24);
+				gtkImage.SetPixelSize(size);
+			}
+			var imgSize = (int)(image.HeightRequest > 0 ? image.HeightRequest : 24);
+			ApplyMargin(gtkImage, image.Margin);
+			return (gtkImage, imgSize);
+		}
+
+		// Fallback: create label with ToString
+		var fallback = Gtk.Label.New(mauiView.GetType().Name);
+		fallback.SetHalign(Gtk.Align.Start);
+		return (fallback, 22);
+	}
+
+	static void DrawRoundedRect(Cairo.Context cr, double x, double y, double w, double h, float r)
+	{
+		Cairo.Internal.Context.NewSubPath(cr.Handle);
+		Cairo.Internal.Context.Arc(cr.Handle, x + w - r, y + r, r, -Math.PI / 2, 0);
+		Cairo.Internal.Context.Arc(cr.Handle, x + w - r, y + h - r, r, 0, Math.PI / 2);
+		Cairo.Internal.Context.Arc(cr.Handle, x + r, y + h - r, r, Math.PI / 2, Math.PI);
+		Cairo.Internal.Context.Arc(cr.Handle, x + r, y + r, r, Math.PI, 3 * Math.PI / 2);
+		Cairo.Internal.Context.ClosePath(cr.Handle);
+	}
+
+	static void ApplyPadding(Gtk.Widget widget, Thickness padding)
+	{
+		if (padding.Left > 0) widget.SetMarginStart((int)padding.Left);
+		if (padding.Right > 0) widget.SetMarginEnd((int)padding.Right);
+		if (padding.Top > 0) widget.SetMarginTop((int)padding.Top);
+		if (padding.Bottom > 0) widget.SetMarginBottom((int)padding.Bottom);
+	}
+
+	static void ApplyMargin(Gtk.Widget widget, Thickness margin)
+	{
+		if (margin.Left > 0) widget.SetMarginStart((int)margin.Left);
+		if (margin.Right > 0) widget.SetMarginEnd((int)margin.Right);
+		if (margin.Top > 0) widget.SetMarginTop((int)margin.Top);
+		if (margin.Bottom > 0) widget.SetMarginBottom((int)margin.Bottom);
 	}
 
 	protected override void ConnectHandler(Gtk.ScrolledWindow platformView)
@@ -379,8 +730,9 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 	public static void MapItemTemplate(CollectionViewHandler handler, IView view)
 	{
-		// Full DataTemplate rendering requires MAUI view instantiation and recycling;
-		// currently items display via ToString(). Re-populate to pick up any template change.
+		// Rebuild the ListView with the appropriate factory (string vs template)
+		handler.RebuildListView();
+		handler.HookSelectionChanged();
 		MapItemsSource(handler, view);
 	}
 

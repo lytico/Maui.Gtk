@@ -348,11 +348,16 @@ public class CollectionViewPage : ContentPage
 
 	View BuildCollectionViewDemo()
 	{
-		var fruits = new List<string>
+		var contacts = new List<ContactItem>
 		{
-			"🍎 Apple", "🍌 Banana", "🍒 Cherry", "🍇 Grapes", "🥝 Kiwi",
-			"🍋 Lemon", "🥭 Mango", "🍊 Orange", "🍑 Peach", "🍓 Strawberry",
-			"🍉 Watermelon", "🍍 Pineapple", "🫐 Blueberry", "🍐 Pear",
+			new("Alice Johnson", "alice@example.com", "AJ", Colors.Coral),
+			new("Bob Smith", "bob@example.com", "BS", Colors.CornflowerBlue),
+			new("Carol White", "carol@example.com", "CW", Colors.MediumSeaGreen),
+			new("David Brown", "david@example.com", "DB", Colors.MediumOrchid),
+			new("Eve Davis", "eve@example.com", "ED", Colors.SandyBrown),
+			new("Frank Miller", "frank@example.com", "FM", Colors.SlateBlue),
+			new("Grace Lee", "grace@example.com", "GL", Colors.Teal),
+			new("Hank Wilson", "hank@example.com", "HW", Colors.IndianRed),
 		};
 
 		var selectedLabel = new Label
@@ -364,20 +369,58 @@ public class CollectionViewPage : ContentPage
 
 		var cv = new CollectionView
 		{
-			ItemsSource = fruits,
-			Header = "🛒 Fruit Market",
-			Footer = $"{fruits.Count} fruits available",
-			EmptyView = "No fruits found!",
+			ItemsSource = contacts,
+			Header = "📇 Contacts (ItemTemplate)",
+			Footer = $"{contacts.Count} contacts",
+			EmptyView = "No contacts found!",
 			SelectionMode = SelectionMode.Single,
-			HeightRequest = 350,
+			HeightRequest = 400,
+			ItemTemplate = new DataTemplate(() =>
+			{
+				var avatar = new BoxView
+				{
+					WidthRequest = 36,
+					HeightRequest = 36,
+				};
+				avatar.SetBinding(BoxView.ColorProperty, "AvatarColor");
+
+				var nameLabel = new Label
+				{
+					FontSize = 14,
+					FontAttributes = FontAttributes.Bold,
+				};
+				nameLabel.SetBinding(Label.TextProperty, "Name");
+
+				var emailLabel = new Label
+				{
+					FontSize = 11,
+					TextColor = Colors.Gray,
+				};
+				emailLabel.SetBinding(Label.TextProperty, "Email");
+
+				return new HorizontalStackLayout
+				{
+					Spacing = 10,
+					Padding = new Thickness(8, 6),
+					Children =
+					{
+						avatar,
+						new VerticalStackLayout
+						{
+							Spacing = 2,
+							Children = { nameLabel, emailLabel },
+						},
+					},
+				};
+			}),
 		};
 
 		cv.SelectionChanged += (s, e) =>
 		{
-			if (e.CurrentSelection.Count > 0)
+			if (e.CurrentSelection.FirstOrDefault() is ContactItem contact)
 			{
-				selectedLabel.Text = $"Selected: {e.CurrentSelection[0]}";
-				selectedLabel.TextColor = Colors.DodgerBlue;
+				selectedLabel.Text = $"📧 {contact.Name} ({contact.Email})";
+				selectedLabel.TextColor = contact.AvatarColor;
 			}
 			else
 			{
@@ -386,35 +429,15 @@ public class CollectionViewPage : ContentPage
 			}
 		};
 
-		var modeLabel = new Label { Text = "Selection: Single", FontSize = 12, TextColor = Colors.Gray };
-		var modeBtn = new Button { Text = "Toggle Selection Mode", FontSize = 13 };
-		modeBtn.Clicked += (s, e) =>
-		{
-			cv.SelectionMode = cv.SelectionMode switch
-			{
-				SelectionMode.None => SelectionMode.Single,
-				SelectionMode.Single => SelectionMode.Multiple,
-				_ => SelectionMode.None,
-			};
-			modeLabel.Text = $"Selection: {cv.SelectionMode}";
-		};
-
-		var clearBtn = new Button { Text = "Clear Items (show EmptyView)", FontSize = 13 };
-		var restoreBtn = new Button { Text = "Restore Items", FontSize = 13 };
-		clearBtn.Clicked += (s, e) => cv.ItemsSource = Array.Empty<string>();
-		restoreBtn.Clicked += (s, e) => cv.ItemsSource = fruits;
-
 		return new VerticalStackLayout
 		{
 			Spacing = 8,
 			Children =
 			{
-				new Label { Text = "Native CollectionView", FontSize = 16, FontAttributes = FontAttributes.Bold },
-				new Label { Text = "Uses the GTK ListView-backed handler with header, footer, selection and empty view.", FontSize = 12, TextColor = Colors.Gray },
+				new Label { Text = "CollectionView + ItemTemplate", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "Uses DataTemplate with data bindings for each row.", FontSize = 12, TextColor = Colors.Gray },
 				selectedLabel,
 				cv,
-				modeLabel,
-				new HorizontalStackLayout { Spacing = 8, Children = { modeBtn, clearBtn, restoreBtn } },
 			}
 		};
 	}

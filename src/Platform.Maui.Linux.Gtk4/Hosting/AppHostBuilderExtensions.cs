@@ -60,6 +60,10 @@ public static partial class AppHostBuilderExtensions
 
 		// Phase 6: Advanced handlers
 		handlersCollection.AddHandler<CollectionView, CollectionViewHandler>();
+#pragma warning disable CS0618
+		handlersCollection.AddHandler<ListView, ListViewHandler>();
+		handlersCollection.AddHandler<TableView, TableViewHandler>();
+#pragma warning restore CS0618
 		handlersCollection.AddHandler<GraphicsView, GraphicsViewHandler>();
 		handlersCollection.AddHandler<RefreshView, RefreshViewHandler>();
 		handlersCollection.AddHandler<SwipeView, SwipeViewHandler>();

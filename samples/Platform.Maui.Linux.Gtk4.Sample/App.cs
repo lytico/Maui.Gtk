@@ -29,6 +29,7 @@ class MainShell : FlyoutPage
 		("🔄 Transforms & Effects", () => new TransformsPage()),
 		("💬 Alerts & Dialogs", () => new AlertsPage()),
 		("📋 Collection View", () => new CollectionViewPage()),
+		("📜 ListView & TableView", () => new ListViewTableViewPage()),
 		("✏️ Text Input Styling", () => new TextInputStylingPage()),
 		("🍔 Menu & Toolbar", () => new MenuBarPage()),
 		("🔄 Refresh & Swipe", () => new RefreshSwipePage()),

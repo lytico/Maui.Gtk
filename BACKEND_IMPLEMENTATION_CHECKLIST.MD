@@ -104,10 +104,10 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | Control | Status | Notes |
 |---------|--------|-------|
 | ⚠️ **CollectionView** | Partial | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate. Missing: virtualization |
-| ❌ **ListView** | Missing | No handler — use CollectionView as alternative |
+| ✅ **ListView** | Done | Handler with ItemsSource, ItemTemplate (ViewCell/TextCell), selection, Header/Footer, grouping, separators |
 | ⚠️ **CarouselView** | Partial | Horizontal/vertical scrolling with `Gtk.ScrolledWindow`. Missing: snap navigation, Loop, PeekAreaInsets |
 | ✅ **IndicatorView** | Done | Cairo-drawn dots with IndicatorColor, SelectedIndicatorColor, IndicatorSize |
-| ❌ **TableView** | Missing | No handler |
+| ✅ **TableView** | Done | Handler with TableRoot/TableSection, TextCell, SwitchCell, EntryCell, ViewCell rendering |
 | ⚠️ **SwipeView** | Partial | Passthrough container — swipe-to-reveal not implemented (desktop pattern) |
 | ✅ **RefreshView** | Done | Desktop-friendly: spinner + refresh button, IsRefreshing, RefreshColor, Command |
 
@@ -356,7 +356,7 @@ FormattedText requires Pango markup rendering for rich text:
 | **Layouts** | 9 | 9 | 100% |
 | **Basic Controls** | 14 | 14 | 100% |
 | **Input Controls** | 4 | 4 | 100% |
-| **Collection Controls** | 4 (+ 3 partial) | 7 | 57-100% |
+| **Collection Controls** | 6 (+ 1 partial) | 7 | 86-100% |
 | **Navigation** | 5 | 5 | 100% |
 | **Alerts & Dialogs** | 4 | 4 | 100% |
 | **Gesture Recognizers** | 5 | 5 | 100% |
@@ -371,6 +371,5 @@ FormattedText requires Pango markup rendering for rich text:
 | **VisualStateManager** | 6 | 6 | 100% |
 
 ### Key Gaps (Priority Order)
-1. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)
-2. **CollectionView** — Virtualization not yet implemented
-3. **CarouselView** — Snap navigation, Loop, PeekAreaInsets not yet implemented
+1. **CollectionView** — Virtualization not yet implemented
+2. **CarouselView** — Snap navigation, Loop, PeekAreaInsets not yet implemented

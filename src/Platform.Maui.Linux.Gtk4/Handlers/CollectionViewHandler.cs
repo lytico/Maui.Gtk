@@ -639,34 +639,32 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 	public static void MapItemsSource(CollectionViewHandler handler, IView view)
 	{
-		if (view is not CollectionView collectionView || handler._model == null)
+		if (view is not CollectionView collectionView)
 			return;
 
 		handler._items.Clear();
 		handler._groupHeaderIndices.Clear();
-		while (handler._model.GetNItems() > 0)
-			handler._model.Remove(0);
+
+		// Collect all string representations first, then create StringList in one shot
+		var strings = new List<string>();
 
 		if (collectionView.ItemsSource != null)
 		{
 			if (collectionView.IsGrouped)
 			{
-				// Each item in ItemsSource is a group (IEnumerable) with the group itself as header
 				foreach (var group in collectionView.ItemsSource)
 				{
-					// Add group header
 					int headerIdx = handler._items.Count;
 					handler._groupHeaderIndices.Add(headerIdx);
 					handler._items.Add(group);
-					handler._model.Append(group?.ToString() ?? "Group");
+					strings.Add(group?.ToString() ?? "Group");
 
-					// Add group items
 					if (group is IEnumerable groupItems)
 					{
 						foreach (var item in groupItems)
 						{
 							handler._items.Add(item);
-							handler._model.Append(item?.ToString() ?? string.Empty);
+							strings.Add(item?.ToString() ?? string.Empty);
 						}
 					}
 				}
@@ -676,10 +674,24 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 				foreach (var item in collectionView.ItemsSource)
 				{
 					handler._items.Add(item);
-					handler._model.Append(item?.ToString() ?? string.Empty);
+					strings.Add(item?.ToString() ?? string.Empty);
 				}
 			}
 		}
+
+		// Replace model in one shot — avoids O(n) individual Append/Remove signals
+		handler.UnhookSelectionChanged();
+		handler._model = Gtk.StringList.New(strings.ToArray());
+
+		handler._selectionModel = collectionView.SelectionMode switch
+		{
+			SelectionMode.Single => Gtk.SingleSelection.New(handler._model),
+			SelectionMode.Multiple => Gtk.MultiSelection.New(handler._model),
+			_ => Gtk.NoSelection.New(handler._model),
+		};
+
+		handler._listView?.SetModel(handler._selectionModel);
+		handler.HookSelectionChanged();
 
 		handler.UpdateDisplayedChild(collectionView);
 		MapSelectedItem(handler, view);

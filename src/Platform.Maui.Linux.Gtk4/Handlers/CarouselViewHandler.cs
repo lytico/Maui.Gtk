@@ -43,7 +43,7 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		sw.SetPolicy(Gtk.PolicyType.External, Gtk.PolicyType.Never);
 
 		_itemsBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 0);
-		_itemsBox.SetHomogeneous(true);
+		// Do NOT use SetHomogeneous — we size each card to the full viewport
 		sw.SetChild(_itemsBox);
 
 		return sw;
@@ -63,9 +63,6 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		swipe.OnSwipe += OnSwipe;
 		platformView.AddController(swipe);
 
-		// Resize cards when viewport changes
-		platformView.OnNotify += OnViewportNotify;
-
 		// Populate on connect since ItemsSource may already be set
 		if (VirtualView is CarouselView cv)
 			PopulateItems(cv);
@@ -80,17 +77,7 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		}
 		if (_scrollAdj != null)
 			_scrollAdj.OnNotify -= OnScrollChanged;
-		platformView.OnNotify -= OnViewportNotify;
 		base.DisconnectHandler(platformView);
-	}
-
-	void OnViewportNotify(GObject.Object sender, GObject.Object.NotifySignalArgs args)
-	{
-		if (args.Pspec.GetName() == "default-width" || args.Pspec.GetName() == "default-height")
-		{
-			ResizeCardsToViewport();
-			ScrollToPosition(animate: false);
-		}
 	}
 
 	void OnSwipe(Gtk.GestureSwipe sender, Gtk.GestureSwipe.SwipeSignalArgs args)
@@ -230,22 +217,27 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			_itemsBox.Append(card);
 		}
 
-		// Size cards to fill viewport after layout
-		ResizeCardsToViewport();
-
-		if (_currentPosition < _itemWidgets.Count)
-			ScrollToPosition(animate: false);
+		// Defer sizing until after GTK allocation pass
+		GLib.Functions.IdleAdd(0, () =>
+		{
+			ResizeCardsToViewport();
+			if (_currentPosition < _itemWidgets.Count)
+				ScrollToPosition(animate: false);
+			return false;
+		});
 	}
 
 	void ResizeCardsToViewport()
 	{
+		if (_itemWidgets.Count == 0) return;
+
+		// Use the MAUI HeightRequest if set, otherwise the allocated size
 		int viewportWidth = PlatformView.GetAllocatedWidth();
 		int viewportHeight = PlatformView.GetAllocatedHeight();
-		if (viewportWidth <= 0) viewportWidth = 400;
-		if (viewportHeight <= 0) viewportHeight = 150;
+		if (viewportWidth <= 1) return; // Not allocated yet, will retry
 
 		foreach (var card in _itemWidgets)
-			card.SetSizeRequest(viewportWidth, viewportHeight);
+			card.SetSizeRequest(viewportWidth, Math.Max(viewportHeight, 100));
 	}
 
 	uint _animTimerId;

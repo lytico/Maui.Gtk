@@ -40,49 +40,80 @@ class MainShell : FlyoutPage
 		("🐚 Shell Navigation", () => new ShellDemoPage()),
 	];
 
+	Label? _selectedLabel;
+
 	public MainShell()
 	{
 		Title = "Platform.Maui.Linux.Gtk4 GTK4 Demo";
 
 		var menuStack = new VerticalStackLayout { Spacing = 0 };
 
-		menuStack.Children.Add(new Label
+		// Header
+		menuStack.Children.Add(new VerticalStackLayout
 		{
-			Text = "🐧 Platform.Maui.Linux.Gtk4",
-			FontSize = 20,
-			FontAttributes = FontAttributes.Bold,
-			TextColor = Colors.DodgerBlue,
-			Padding = new Thickness(16, 20, 16, 4),
+			Padding = new Thickness(16, 20, 16, 12),
+			Spacing = 2,
+			Children =
+			{
+				new Label
+				{
+					Text = "🐧 Platform.Maui.Linux.Gtk4",
+					FontSize = 18,
+					FontAttributes = FontAttributes.Bold,
+					TextColor = Colors.DodgerBlue,
+				},
+				new Label
+				{
+					Text = "GTK4 Demo App",
+					FontSize = 12,
+					TextColor = Colors.Gray,
+				},
+			}
 		});
-		menuStack.Children.Add(new Label
-		{
-			Text = "GTK4 Demo App",
-			FontSize = 12,
-			TextColor = Colors.Gray,
-			Padding = new Thickness(16, 0, 16, 12),
-		});
-		menuStack.Children.Add(new BoxView { HeightRequest = 1, Color = Colors.LightGray });
 
+		bool first = true;
 		foreach (var (name, factory) in _pages)
 		{
-			var btn = new Button
+			var label = new Label
 			{
 				Text = name,
 				FontSize = 14,
-				HorizontalOptions = LayoutOptions.Fill,
+				Padding = new Thickness(16, 10),
 			};
+
+			var tapGesture = new TapGestureRecognizer();
 			var capturedFactory = factory;
-			btn.Clicked += (s, e) =>
+			var capturedLabel = label;
+			tapGesture.Tapped += (s, e) =>
 			{
+				// Update selection highlight
+				if (_selectedLabel != null)
+				{
+					_selectedLabel.BackgroundColor = Colors.Transparent;
+					_selectedLabel.FontAttributes = FontAttributes.None;
+				}
+				capturedLabel.BackgroundColor = Color.FromRgba(0.3, 0.5, 0.8, 0.25);
+				capturedLabel.FontAttributes = FontAttributes.Bold;
+				_selectedLabel = capturedLabel;
+
 				var page = capturedFactory();
-				// Wrap non-NavigationPage detail pages in a NavigationPage
-				// so they get a nav bar with the hamburger toggle
 				if (page is ContentPage cp)
 					Detail = new NavigationPage(cp);
 				else
 					Detail = page;
 			};
-			menuStack.Children.Add(btn);
+			label.GestureRecognizers.Add(tapGesture);
+
+			// Select the first item (Home) by default
+			if (first)
+			{
+				label.BackgroundColor = Color.FromRgba(0.3, 0.5, 0.8, 0.25);
+				label.FontAttributes = FontAttributes.Bold;
+				_selectedLabel = label;
+				first = false;
+			}
+
+			menuStack.Children.Add(label);
 		}
 
 		Flyout = new ContentPage

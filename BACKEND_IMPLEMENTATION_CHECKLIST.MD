@@ -243,6 +243,7 @@ Every handler must support these properties mapped from the base `IView`:
 | ✅ **Font loading** | Done | Registered via `fc-config` / Fontconfig for system-wide availability |
 | ✅ **Font properties** | Done | FontSize, FontFamily, FontAttributes applied to Label, Button, Entry, Editor, etc. |
 | ✅ **IFontNamedSizeService** | Done | `GtkFontNamedSizeService` registered via `DependencyService`. Maps `NamedSize` enum (Default=14, Micro=10, Small=12, Medium=14, Large=18, Body=14, Header=24, Title=20, Subtitle=16, Caption=12) |
+| ✅ **FontImageSource** | Done | Font glyphs rendered as images via Cairo ImageSurface + Pango Layout → `Gdk.MemoryTexture`. Supports Glyph, Color, Size, FontFamily. Works in Image, ImageButton, Button.ImageSource, etc. |
 
 ---
 
@@ -397,7 +398,7 @@ FormattedText requires Pango markup rendering for rich text:
 | **Gesture Recognizers** | 5 | 5 | 100% |
 | **Graphics** | 4 | 4 | 100% |
 | **Shapes** | 7 | 7 | 100% |
-| **Font Services** | 6 | 6 | 100% |
+| **Font Services** | 7 | 7 | 100% |
 | **WebView** | 6 | 6 | 100% |
 | **MenuBar** | 4 | 4 | 100% |
 | **Essentials** | 19 (+ 2 partial) | 26 | 81% |

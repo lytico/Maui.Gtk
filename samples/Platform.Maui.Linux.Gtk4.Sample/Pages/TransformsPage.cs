@@ -274,6 +274,10 @@ class TransformsPage : ContentPage
 					// --- ContextFlyout (right-click menu) ---
 					new Label { Text = "ContextFlyout (right-click)", FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 16, 0, 0) },
 					BuildContextFlyoutDemo(),
+
+					// --- FontImageSource (font icons) ---
+					new Label { Text = "FontImageSource (Font Icons)", FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 16, 0, 0) },
+					BuildFontImageSourceDemo(),
 				}
 			}
 		};
@@ -486,6 +490,46 @@ class TransformsPage : ContentPage
 		{
 			Spacing = 8,
 			Children = { resultLabel, box, new Label { Text = "Right-click the purple box for a context menu", FontSize = 11, TextColor = Colors.Gray } }
+		};
+	}
+
+	static View BuildFontImageSourceDemo()
+	{
+		// Unicode symbols that work with any font
+		return new HorizontalStackLayout
+		{
+			Spacing = 16,
+			Children =
+			{
+				new Image
+				{
+					Source = new FontImageSource { Glyph = "★", Color = Colors.Gold, Size = 32 },
+					WidthRequest = 40, HeightRequest = 40,
+				},
+				new Image
+				{
+					Source = new FontImageSource { Glyph = "♥", Color = Colors.Red, Size = 32 },
+					WidthRequest = 40, HeightRequest = 40,
+				},
+				new Image
+				{
+					Source = new FontImageSource { Glyph = "⚡", Color = Colors.Orange, Size = 32 },
+					WidthRequest = 40, HeightRequest = 40,
+				},
+				new Image
+				{
+					Source = new FontImageSource { Glyph = "✓", Color = Colors.Green, Size = 32 },
+					WidthRequest = 40, HeightRequest = 40,
+				},
+				new Button
+				{
+					Text = "Font Icon Button",
+					ImageSource = new FontImageSource { Glyph = "⚙", Color = Colors.DodgerBlue, Size = 20 },
+					BackgroundColor = Colors.White,
+					TextColor = Colors.DodgerBlue,
+				},
+				new Label { Text = "← Unicode glyphs rendered as images via Cairo+Pango", FontSize = 11, TextColor = Colors.Gray, VerticalTextAlignment = TextAlignment.Center },
+			}
 		};
 	}
 }

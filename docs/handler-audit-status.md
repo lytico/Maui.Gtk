@@ -1,6 +1,6 @@
 # Handler Property Wiring Audit Tracker
 
-Last updated: 2026-02-18 (+ Shell, MenuBar, RefreshView, SwipeView, CarouselView, IndicatorView, Essentials fixes)
+Last updated: 2026-02-18 (+ MenuBar navigation fix, ToolbarItems in nav bar, rendering bug fixes)
 
 ## Purpose
 Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Linux.Gtk4/Handlers`, including visual controls and container/navigation handlers.

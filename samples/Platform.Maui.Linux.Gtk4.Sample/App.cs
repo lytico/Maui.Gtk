@@ -24,6 +24,8 @@ class MainShell : FlyoutPage
 		("📅 Pickers & Search", () => new PickersPage()),
 		("📐 Layouts", () => new LayoutsPage()),
 		("📐 Flex & Absolute", () => new LayoutsAdvancedPage()),
+		("🔤 FormattedText", () => new FormattedTextPage()),
+		("🔷 Shapes", () => new ShapesPage()),
 		("💬 Alerts & Dialogs", () => new AlertsPage()),
 		("📋 Collection View", () => new CollectionViewPage()),
 		("✏️ Text Input Styling", () => new TextInputStylingPage()),

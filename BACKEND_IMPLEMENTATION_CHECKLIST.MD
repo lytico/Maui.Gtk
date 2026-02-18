@@ -163,13 +163,13 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 ### Shapes
 | Shape | Status | Notes |
 |-------|--------|-------|
-| ⚠️ **Rectangle** | Registered | Handler registered but Cairo shape rendering is minimal |
-| ⚠️ **Ellipse** | Registered | Handler registered but Cairo shape rendering is minimal |
-| ⚠️ **Line** | Registered | Handler registered but Cairo shape rendering is minimal |
-| ⚠️ **Path** | Registered | Handler registered but Cairo shape rendering is minimal |
-| ⚠️ **Polygon** | Registered | Handler registered but Cairo shape rendering is minimal |
-| ⚠️ **Polyline** | Registered | Handler registered but Cairo shape rendering is minimal |
-| ⚠️ **Fill & Stroke** | Partial | Basic fill/stroke via ShapeViewHandler, full geometry rendering incomplete |
+| ✅ **Rectangle** | Done | Rounded corners via RadiusX/RadiusY |
+| ✅ **Ellipse** | Done | Full ellipse and circle rendering |
+| ✅ **Line** | Done | X1, Y1, X2, Y2 |
+| ✅ **Path** | Done | PathGeometry with Line, Bezier, QuadraticBezier, PolyLine, PolyBezier segments |
+| ✅ **Polygon** | Done | Points collection, closed shape |
+| ✅ **Polyline** | Done | Points collection, open shape |
+| ✅ **Fill & Stroke** | Done | SolidColorBrush fill/stroke, StrokeThickness, dash pattern, line cap/join |
 
 ---
 
@@ -181,7 +181,7 @@ Every handler must support these properties mapped from the base `IView`:
 - [x] Opacity — `MapOpacity` applies via CSS
 - [x] IsVisible — `MapVisibility` toggles `Gtk.Widget.SetVisible()`
 - [x] IsEnabled — `MapIsEnabled` toggles `Gtk.Widget.SetSensitive()`
-- [ ] InputTransparent — Not mapped
+- [x] InputTransparent — `MapInputTransparent` sets `Gtk.Widget.SetCanTarget()`
 
 ### Sizing
 - [x] WidthRequest / HeightRequest — Used in `GetDesiredSize()` measurement
@@ -199,13 +199,13 @@ Every handler must support these properties mapped from the base `IView`:
 - [x] BackgroundColor / Background — `MapBackground` applies via CSS `background-color`
 
 ### Transforms
-- [ ] TranslationX / TranslationY — Not mapped
-- [ ] Rotation / RotationX / RotationY — Not mapped
-- [ ] Scale / ScaleX / ScaleY — Not mapped
-- [ ] AnchorX / AnchorY — Not mapped
+- [x] TranslationX / TranslationY — `MapTransform` applies via CSS `translate()`
+- [x] Rotation / RotationX / RotationY — CSS `rotate()` / `rotateX()` / `rotateY()`
+- [x] Scale / ScaleX / ScaleY — CSS `scale()`
+- [x] AnchorX / AnchorY — CSS `transform-origin`
 
 ### Effects
-- [ ] Shadow — Not mapped
+- [x] Shadow — `MapShadow` applies via CSS `box-shadow`
 - [ ] Clip — Not mapped
 
 ### Automation
@@ -309,15 +309,15 @@ FormattedText requires Pango markup rendering for rich text:
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| ❌ **Span rendering** | Missing | Pango markup not yet wired for Spans |
-| ❌ **Span.Text** | Missing | |
-| ❌ **Span.TextColor** | Missing | |
-| ❌ **Span.BackgroundColor** | Missing | |
-| ❌ **Span.FontSize** | Missing | |
-| ❌ **Span.FontFamily** | Missing | |
-| ❌ **Span.FontAttributes** | Missing | |
-| ❌ **Span.TextDecorations** | Missing | |
-| ❌ **Span.CharacterSpacing** | Missing | |
+| ✅ **Span rendering** | Done | Pango markup via `Gtk.Label.SetMarkup()` |
+| ✅ **Span.Text** | Done | Escaped via `GLib.Functions.MarkupEscapeText` |
+| ✅ **Span.TextColor** | Done | Pango `foreground` attribute |
+| ✅ **Span.BackgroundColor** | Done | Pango `background` attribute |
+| ✅ **Span.FontSize** | Done | Pango `size` attribute (in Pango units) |
+| ✅ **Span.FontFamily** | Done | Pango `font_family` attribute |
+| ✅ **Span.FontAttributes** | Done | Pango `weight="bold"` / `style="italic"` |
+| ✅ **Span.TextDecorations** | Done | Pango `underline="single"` / `strikethrough="true"` |
+| ✅ **Span.CharacterSpacing** | Done | Pango `letter_spacing` attribute |
 
 > Note: GTK4 `Gtk.Label` supports Pango markup natively, making Span rendering straightforward to implement.
 
@@ -361,20 +361,18 @@ FormattedText requires Pango markup rendering for rich text:
 | **Alerts & Dialogs** | 4 | 4 | 100% |
 | **Gesture Recognizers** | 2 (+ 1 partial) | 5 | 50% |
 | **Graphics** | 4 | 4 | 100% |
-| **Shapes** | 0 (6 registered) | 6 | ~10% |
+| **Shapes** | 7 | 7 | 100% |
 | **Font Services** | 5 | 5 | 100% |
 | **WebView** | 6 | 6 | 100% |
 | **MenuBar** | 4 | 4 | 100% |
 | **Essentials** | 18 (+ 2 partial) | 26 | 77% |
-| **Base View Properties** | 9 | 22 | 41% |
-| **FormattedText/Spans** | 0 | 9 | 0% |
+| **Base View Properties** | 16 | 22 | 73% |
+| **FormattedText/Spans** | 9 | 9 | 100% |
 | **VisualStateManager** | 0 | 6 | 0% |
 
 ### Key Gaps (Priority Order)
-1. **FormattedText/Spans** — Pango markup support for Label (straightforward)
-2. **Transforms** — TranslationX/Y, Rotation, Scale via GTK CSS transforms
-3. **Shape rendering** — Handlers registered but Cairo geometry incomplete
-4. **CollectionView ItemTemplate** — Currently uses `ToString()`, needs DataTemplate rendering
-5. **Gesture recognizers** — Swipe and Pinch missing
-6. **Shadow / Clip** — Not mapped
-7. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing
+1. **CollectionView ItemTemplate** — Currently uses `ToString()`, needs DataTemplate rendering
+2. **Gesture recognizers** — Swipe and Pinch missing
+3. **Clip** — RoundRectangleGeometry, EllipseGeometry clipping not mapped
+4. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing
+5. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)

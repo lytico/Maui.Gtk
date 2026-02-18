@@ -22,6 +22,18 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			[nameof(IView.IsEnabled)] = MapIsEnabled,
 			[nameof(IView.Semantics)] = MapSemantics,
 			[nameof(IView.AutomationId)] = MapAutomationId,
+			[nameof(IView.TranslationX)] = MapTransform,
+			[nameof(IView.TranslationY)] = MapTransform,
+			[nameof(IView.Rotation)] = MapTransform,
+			[nameof(IView.RotationX)] = MapTransform,
+			[nameof(IView.RotationY)] = MapTransform,
+			[nameof(IView.Scale)] = MapTransform,
+			[nameof(IView.ScaleX)] = MapTransform,
+			[nameof(IView.ScaleY)] = MapTransform,
+			[nameof(IView.AnchorX)] = MapTransform,
+			[nameof(IView.AnchorY)] = MapTransform,
+			[nameof(IView.Shadow)] = MapShadow,
+			[nameof(IView.InputTransparent)] = MapInputTransparent,
 		};
 
 	protected GtkViewHandler(IPropertyMapper mapper, CommandMapper? commandMapper = null)
@@ -183,6 +195,66 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 	protected static string ToGtkColor(Color color)
 	{
 		return $"rgba({(int)(color.Red * 255)},{(int)(color.Green * 255)},{(int)(color.Blue * 255)},{color.Alpha})";
+	}
+
+	static void MapTransform(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
+	{
+		var widget = handler.PlatformView;
+		if (widget == null) return;
+
+		var transforms = new System.Text.StringBuilder();
+
+		// Translation
+		if (view.TranslationX != 0 || view.TranslationY != 0)
+			transforms.Append($"translate({view.TranslationX:F1}px, {view.TranslationY:F1}px) ");
+
+		// Scale (MAUI Scale applies uniformly, ScaleX/ScaleY individually)
+		double sx = view.Scale * view.ScaleX;
+		double sy = view.Scale * view.ScaleY;
+		if (sx != 1.0 || sy != 1.0)
+			transforms.Append($"scale({sx:F3}, {sy:F3}) ");
+
+		// Rotation (Z-axis)
+		if (view.Rotation != 0)
+			transforms.Append($"rotate({view.Rotation:F1}deg) ");
+
+		// RotationX/RotationY (3D perspective transforms)
+		if (view.RotationX != 0)
+			transforms.Append($"rotateX({view.RotationX:F1}deg) ");
+		if (view.RotationY != 0)
+			transforms.Append($"rotateY({view.RotationY:F1}deg) ");
+
+		var transformStr = transforms.ToString().Trim();
+		var originCss = $"transform-origin: {view.AnchorX * 100:F0}% {view.AnchorY * 100:F0}%;";
+
+		if (string.IsNullOrEmpty(transformStr))
+			handler.ApplyCss(widget, $"transform: none; {originCss}");
+		else
+			handler.ApplyCss(widget, $"transform: {transformStr}; {originCss}");
+	}
+
+	static void MapShadow(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
+	{
+		var widget = handler.PlatformView;
+		if (widget == null) return;
+
+		var shadow = view.Shadow;
+		if (shadow == null || shadow.Paint is not SolidPaint paint || paint.Color == null)
+		{
+			handler.ApplyCss(widget, "box-shadow: none;");
+			return;
+		}
+
+		var color = ToGtkColor(paint.Color);
+		var ox = shadow.Offset.X;
+		var oy = shadow.Offset.Y;
+		var radius = shadow.Radius;
+		handler.ApplyCss(widget, $"box-shadow: {ox:F0}px {oy:F0}px {radius:F0}px {color};");
+	}
+
+	static void MapInputTransparent(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
+	{
+		handler.PlatformView?.SetCanTarget(!view.InputTransparent);
 	}
 }
 

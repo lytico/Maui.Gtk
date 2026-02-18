@@ -552,6 +552,39 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 	{
 		base.ConnectHandler(platformView);
 		HookSelectionChanged();
+
+		if (VirtualView is CollectionView cv)
+			cv.ScrollToRequested += OnScrollToRequested;
+	}
+
+	protected override void DisconnectHandler(Gtk.ScrolledWindow platformView)
+	{
+		if (VirtualView is CollectionView cv)
+			cv.ScrollToRequested -= OnScrollToRequested;
+
+		base.DisconnectHandler(platformView);
+	}
+
+	void OnScrollToRequested(object? sender, ScrollToRequestEventArgs e)
+	{
+		if (_listView == null)
+			return;
+
+		int index = -1;
+
+		if (e.Mode == ScrollToMode.Position)
+		{
+			index = e.Index;
+		}
+		else if (e.Item != null)
+		{
+			index = _items.IndexOf(e.Item);
+		}
+
+		if (index < 0 || index >= _items.Count)
+			return;
+
+		_listView.ScrollTo((uint)index, Gtk.ListScrollFlags.None, null);
 	}
 
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)

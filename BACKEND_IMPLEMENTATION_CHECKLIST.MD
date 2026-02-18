@@ -118,7 +118,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | Feature | Status | Notes |
 |---------|--------|-------|
 | ✅ **NavigationPage stack** | Done | PushAsync, PopAsync, PopToRootAsync |
-| ⚠️ **Shell navigation** | Partial | Flyout, tabs, content hierarchy. Missing: GoToAsync route-based navigation |
+| ⚠️ **Shell navigation** | Partial | Flyout, tabs, content hierarchy, GoToAsync route navigation. Missing: deep linking, query parameters |
 | N/A **URL/route-based routing** | N/A | Not applicable to desktop Linux apps |
 | N/A **Route ↔ Shell sync** | N/A | Browser-specific concept |
 | N/A **Non-Shell routing** | N/A | Browser-specific concept |
@@ -372,5 +372,4 @@ FormattedText requires Pango markup rendering for rich text:
 
 ### Key Gaps (Priority Order)
 1. **PinchGestureRecognizer** — Pinch zoom not implemented
-2. **Shell GoToAsync** — Route-based navigation not implemented
-3. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)
+2. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)

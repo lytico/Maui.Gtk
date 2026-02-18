@@ -157,6 +157,19 @@ class ShellHomePage : ContentPage
 							Application.Current.MainPage = new Sample.MainShell();
 					}),
 				},
+				new Label { Text = "GoToAsync Navigation:", FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 12, 0, 0) },
+				new Button
+				{
+					Text = "GoToAsync → Settings",
+					BackgroundColor = Colors.Teal, TextColor = Colors.White,
+					Command = new Command(async () => await Shell.Current.GoToAsync("//settings")),
+				},
+				new Button
+				{
+					Text = "GoToAsync → About",
+					BackgroundColor = Colors.SlateBlue, TextColor = Colors.White,
+					Command = new Command(async () => await Shell.Current.GoToAsync("//about")),
+				},
 			}
 		};
 	}

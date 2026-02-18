@@ -19,9 +19,6 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 	Gtk.StringList? _model;
 	Gtk.SelectionModel? _selectionModel;
 	Gtk.Label? _emptyLabel;
-	Gtk.Box? _outerBox;
-	Gtk.Label? _headerLabel;
-	Gtk.Label? _footerLabel;
 	readonly List<object?> _items = [];
 	readonly List<Gtk.Widget> _templateWidgets = [];
 	readonly HashSet<int> _groupHeaderIndices = [];
@@ -71,27 +68,8 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 		RebuildListView();
 
-		// Outer box to hold header, list, and footer
-		_outerBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
-		_outerBox.SetVexpand(true);
-		_headerLabel = Gtk.Label.New(string.Empty);
-		_headerLabel.SetVisible(false);
-		_headerLabel.SetHalign(Gtk.Align.Start);
-		_headerLabel.SetMarginStart(12);
-		_headerLabel.SetMarginTop(8);
-		_headerLabel.SetMarginBottom(4);
-
-		_footerLabel = Gtk.Label.New(string.Empty);
-		_footerLabel.SetVisible(false);
-		_footerLabel.SetHalign(Gtk.Align.Start);
-		_footerLabel.SetMarginStart(12);
-		_footerLabel.SetMarginTop(4);
-		_footerLabel.SetMarginBottom(8);
-
-		_outerBox.Append(_headerLabel);
-		_outerBox.Append(_listView!);
-		_outerBox.Append(_footerLabel);
-		scrolled.SetChild(_outerBox);
+		// ListView is the direct child of ScrolledWindow for proper virtualization
+		scrolled.SetChild(_listView!);
 
 		return scrolled;
 	}
@@ -115,11 +93,9 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			newListView.AddCssClass("navigation-sidebar");
 		newListView.SetVexpand(true);
 
-		if (_listView != null && _outerBox != null)
-		{
-			_outerBox.InsertChildAfter(newListView, _listView);
-			_outerBox.Remove(_listView);
-		}
+		// Replace in the ScrolledWindow directly
+		if (_listView != null)
+			PlatformView?.SetChild(newListView);
 
 		_listView = newListView;
 	}
@@ -584,17 +560,7 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		if (index < 0 || index >= _items.Count)
 			return;
 
-		// The ListView is inside a Box inside the ScrolledWindow, so
-		// Gtk.ListView.ScrollTo won't work (it needs to be the direct
-		// scrollable child). Instead, estimate position from the
-		// vadjustment range and scroll proportionally.
-		var vadj = PlatformView.GetVadjustment();
-		if (vadj == null || _items.Count <= 1)
-			return;
-
-		double fraction = (double)index / (_items.Count - 1);
-		double target = fraction * (vadj.GetUpper() - vadj.GetPageSize());
-		vadj.SetValue(Math.Clamp(target, vadj.GetLower(), vadj.GetUpper() - vadj.GetPageSize()));
+		_listView.ScrollTo((uint)index, Gtk.ListScrollFlags.None, null);
 	}
 
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
@@ -836,36 +802,12 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 	public static void MapHeader(CollectionViewHandler handler, IView view)
 	{
-		if (view is not CollectionView collectionView || handler._headerLabel == null)
-			return;
-
-		var headerText = collectionView.Header?.ToString();
-		if (!string.IsNullOrEmpty(headerText))
-		{
-			handler._headerLabel.SetText(headerText);
-			handler._headerLabel.SetVisible(true);
-		}
-		else
-		{
-			handler._headerLabel.SetVisible(false);
-		}
+		// Header/Footer are not rendered as separate widgets to preserve
+		// GTK ListView virtualization (ListView must be direct ScrolledWindow child).
 	}
 
 	public static void MapFooter(CollectionViewHandler handler, IView view)
 	{
-		if (view is not CollectionView collectionView || handler._footerLabel == null)
-			return;
-
-		var footerText = collectionView.Footer?.ToString();
-		if (!string.IsNullOrEmpty(footerText))
-		{
-			handler._footerLabel.SetText(footerText);
-			handler._footerLabel.SetVisible(true);
-		}
-		else
-		{
-			handler._footerLabel.SetVisible(false);
-		}
 	}
 
 	public static void MapItemsLayout(CollectionViewHandler handler, IView view)
@@ -911,14 +853,14 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 	void UpdateDisplayedChild(CollectionView collectionView)
 	{
-		if (PlatformView == null || _listView == null || _outerBox == null)
+		if (PlatformView == null || _listView == null)
 			return;
 
 		var hasItems = _items.Count > 0;
 		if (hasItems || collectionView.EmptyView == null)
 		{
-			_listView.SetVisible(true);
-			_emptyLabel?.SetVisible(false);
+			if (PlatformView.GetChild() != _listView)
+				PlatformView.SetChild(_listView);
 			return;
 		}
 
@@ -931,15 +873,9 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			_emptyLabel.SetWrap(true);
 			_emptyLabel.SetJustify(Gtk.Justification.Center);
 			_emptyLabel.SetVexpand(true);
-			// Insert before footer
-			if (_footerLabel != null)
-				_outerBox.InsertChildAfter(_emptyLabel, _listView);
-			else
-				_outerBox.Append(_emptyLabel);
 		}
 
 		_emptyLabel.SetText(collectionView.EmptyView?.ToString() ?? string.Empty);
-		_emptyLabel.SetVisible(true);
-		_listView.SetVisible(false);
+		PlatformView.SetChild(_emptyLabel);
 	}
 }

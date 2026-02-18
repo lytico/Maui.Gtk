@@ -190,23 +190,23 @@ Every handler must support these properties mapped from the base `IView`:
 
 ### Layout
 - [x] HorizontalOptions / VerticalOptions — Handled by MAUI cross-platform layout
-- [ ] Margin — Not explicitly mapped (handled by MAUI layout engine)
-- [ ] Padding — Mapped on individual handlers (Entry, Editor, Button, etc.), not base
-- [ ] FlowDirection (LTR, RTL) — Not mapped
+- [x] Margin — Handled by MAUI layout engine (cross-platform)
+- [x] Padding — Mapped on individual handlers (Entry, Editor, Button, etc.)
+- [x] FlowDirection (LTR, RTL) — `MapFlowDirection` sets `Gtk.TextDirection`
 - [ ] ZIndex — Not mapped
 
 ### Appearance
 - [x] BackgroundColor / Background — `MapBackground` applies via CSS `background-color`
 
 ### Transforms
-- [x] TranslationX / TranslationY — `MapTransform` applies via CSS `translate()`
-- [x] Rotation / RotationX / RotationY — CSS `rotate()` / `rotateX()` / `rotateY()`
-- [x] Scale / ScaleX / ScaleY — CSS `scale()`
-- [x] AnchorX / AnchorY — CSS `transform-origin`
+- [x] TranslationX / TranslationY — `Gsk.Transform.Translate()` via `SetChildTransform`
+- [x] Rotation / RotationX / RotationY — `Gsk.Transform.Rotate()` via `SetChildTransform`
+- [x] Scale / ScaleX / ScaleY — `Gsk.Transform.Scale()` via `SetChildTransform`
+- [x] AnchorX / AnchorY — Translate-to-anchor pattern in transform chain
 
 ### Effects
 - [x] Shadow — `MapShadow` applies via CSS `box-shadow`
-- [ ] Clip — Not mapped
+- [x] Clip — `MapClip` applies CSS `border-radius` + `overflow:hidden` for RoundRectangleGeometry/EllipseGeometry
 
 ### Automation
 - [x] AutomationId — `MapAutomationId` sets accessible name
@@ -372,6 +372,5 @@ FormattedText requires Pango markup rendering for rich text:
 
 ### Key Gaps (Priority Order)
 1. **Gesture recognizers** — Swipe and Pinch missing
-2. **Clip** — RoundRectangleGeometry, EllipseGeometry clipping not mapped
-3. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing
-4. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)
+2. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing
+3. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)

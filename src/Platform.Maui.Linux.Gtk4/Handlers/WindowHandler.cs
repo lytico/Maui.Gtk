@@ -63,7 +63,7 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 			container.AddPage(platformContent);
 		}
 
-		// Apply MenuBar and ToolbarItems from the content page
+		// Apply MenuBar from the content page
 		if (handler.PlatformView != null && window.Content is Microsoft.Maui.Controls.Page page)
 		{
 			GtkMenuBarManager.ApplyToWindow(handler.PlatformView, page);

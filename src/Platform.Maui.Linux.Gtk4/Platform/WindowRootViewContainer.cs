@@ -18,14 +18,19 @@ public class WindowRootViewContainer : Gtk.Box
 		SetHexpand(true);
 	}
 
-	public void SetMenuBar(Gtk.Widget menuBar)
+	public void SetMenuBar(Gtk.Widget? menuBar)
 	{
 		if (_menuBar != null)
 			Remove(_menuBar);
 
 		_menuBar = menuBar;
-		// Menu bar goes at the top, before the page content
-		Prepend(menuBar);
+		if (menuBar != null)
+			Prepend(menuBar);
+	}
+
+	public void ClearMenuBar()
+	{
+		SetMenuBar(null);
 	}
 
 	public void AddPage(Gtk.Widget page)

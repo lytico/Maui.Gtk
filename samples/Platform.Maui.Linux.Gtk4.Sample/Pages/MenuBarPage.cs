@@ -107,7 +107,7 @@ public class MenuBarPage : ContentPage
 				{
 					Text = "This page defines MenuBarItems (File, Edit, Help) and ToolbarItems " +
 					       "(Refresh, Settings). On GTK4, the menu bar appears as a PopoverMenuBar " +
-					       "at the top of the window, and toolbar items appear as buttons in the HeaderBar.",
+					       "below the title bar, and toolbar items appear as buttons in the navigation bar.",
 					FontSize = 14,
 					TextColor = Colors.DimGray,
 				},

@@ -1,6 +1,7 @@
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Platform;
+using Platform.Maui.Linux.Gtk4.Platform;
 
 namespace Platform.Maui.Linux.Gtk4.Handlers;
 
@@ -10,6 +11,7 @@ public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.Bo
 	Gtk.Button? _backButton;
 	Gtk.Button? _flyoutToggle;
 	Gtk.Label? _titleLabel;
+	Gtk.Box? _toolbarBox; // Right-aligned toolbar buttons
 	Gtk.Stack? _stack;
 	IReadOnlyList<IView>? _currentStack;
 
@@ -57,6 +59,10 @@ public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.Bo
 		_titleLabel.SetHexpand(true);
 		_titleLabel.SetXalign(0);
 		_navBar.Append(_titleLabel);
+
+		// Toolbar buttons container (right-aligned)
+		_toolbarBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 4);
+		_navBar.Append(_toolbarBox);
 
 		// Style the nav bar
 		ApplyNavBarStyle();
@@ -253,6 +259,64 @@ public class NavigationPageHandler : GtkViewHandler<IStackNavigationView, Gtk.Bo
 			var sep = _navBar.GetNextSibling();
 			if (sep is Gtk.Separator separator)
 				separator.SetVisible(NavigationPage.GetHasNavigationBar(page));
+		}
+
+		// Update ToolbarItems in the nav bar
+		UpdateToolbarItems(topPage as Page);
+
+		// Update MenuBar on the window
+		UpdateMenuBar(topPage as Page);
+	}
+
+	void UpdateToolbarItems(Page? page)
+	{
+		if (_toolbarBox == null) return;
+
+		// Clear existing toolbar buttons
+		while (_toolbarBox.GetFirstChild() is Gtk.Widget child)
+			_toolbarBox.Remove(child);
+
+		if (page?.ToolbarItems == null || page.ToolbarItems.Count == 0)
+			return;
+
+		foreach (var item in page.ToolbarItems)
+		{
+			var button = Gtk.Button.NewWithLabel(item.Text ?? string.Empty);
+			button.AddCssClass("flat");
+
+			var capturedItem = item;
+			button.OnClicked += (_, _) =>
+			{
+				if (capturedItem.Command?.CanExecute(capturedItem.CommandParameter) == true)
+					capturedItem.Command.Execute(capturedItem.CommandParameter);
+				((IMenuItemController)capturedItem).Activate();
+			};
+
+			button.SetSensitive(item.IsEnabled);
+			_toolbarBox.Append(button);
+		}
+	}
+
+	void UpdateMenuBar(Page? page)
+	{
+		// Get the active window from the Gtk.Application
+		var app = Gtk.Application.GetDefault();
+		if (app == null) return;
+
+		var gtkApp = (Gtk.Application)app;
+		var window = gtkApp.GetActiveWindow();
+		if (window == null) return;
+
+		if (page?.MenuBarItems != null && page.MenuBarItems.Count > 0)
+		{
+			GtkMenuBarManager.ApplyToWindow(window, page);
+		}
+		else
+		{
+			// Clear menu bar when navigating to a page without menu items
+			var rootContainer = window.GetChild() as WindowRootViewContainer;
+			rootContainer?.ClearMenuBar();
+			window.InsertActionGroup("menu", null);
 		}
 	}
 }

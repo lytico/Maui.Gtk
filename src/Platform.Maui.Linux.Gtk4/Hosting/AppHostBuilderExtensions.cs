@@ -62,6 +62,8 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<GraphicsView, GraphicsViewHandler>();
 		handlersCollection.AddHandler<RefreshView, RefreshViewHandler>();
 		handlersCollection.AddHandler<SwipeView, SwipeViewHandler>();
+		handlersCollection.AddHandler<CarouselView, CarouselViewHandler>();
+		handlersCollection.AddHandler<IndicatorView, IndicatorViewHandler>();
 
 		// BoxView / Shapes (MAUI routes BoxView through ShapeView internally)
 #pragma warning disable CS0618

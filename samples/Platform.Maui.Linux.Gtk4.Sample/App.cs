@@ -27,6 +27,7 @@ class MainShell : FlyoutPage
 		("✏️ Text Input Styling", () => new TextInputStylingPage()),
 		("🍔 Menu & Toolbar", () => new MenuBarPage()),
 		("🔄 Refresh & Swipe", () => new RefreshSwipePage()),
+		("🎠 Carousel & Indicators", () => new CarouselIndicatorPage()),
 		("🎨 Graphics (Cairo)", () => new GraphicsPage()),
 		("📱 Device & App Info", () => new DeviceInfoPage()),
 		("🔋 Battery & Network", () => new BatteryNetworkPage()),

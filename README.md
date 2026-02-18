@@ -36,24 +36,67 @@ https://github.com/user-attachments/assets/039f1695-3cd0-4b0b-ad11-dce304d0cdce
 
 ## Features
 
-- **Native GTK4 rendering** — MAUI controls map to real GTK4 widgets (~95% handler coverage).
-- **Blazor Hybrid support** — Host Blazor components inside a native GTK window using WebKitGTK.
-- **All basic controls** — Label, Button, Entry, Editor, CheckBox, Switch, Slider, Stepper, ProgressBar, ActivityIndicator, Image, ImageButton, BoxView, RadioButton.
-- **Input & selection** — Picker, DatePicker, TimePicker, SearchBar.
-- **Collection controls** — CollectionView (virtualized via GTK4 `Gtk.ListView`), ListView, TableView, CarouselView, SwipeView, RefreshView, IndicatorView.
-- **Layout support** — StackLayout, Grid, FlexLayout, AbsoluteLayout, ScrollView, ContentView, Border, Frame.
-- **Navigation** — NavigationPage, TabbedPage, FlyoutPage, Shell (flyout, tabs, route navigation).
-- **Alerts & Dialogs** — DisplayAlert, DisplayActionSheet, DisplayPromptAsync via native GTK4 windows.
-- **Gestures** — Tap, Pan, Swipe, Pinch, Pointer gesture recognizers.
-- **Graphics & Shapes** — GraphicsView via Cairo, all shape types (Rectangle, Ellipse, Line, Path, Polygon, Polyline).
-- **Font icons** — FontImageSource rendering via Cairo/Pango, embedded font registration with FontAwesome support.
-- **Animations** — TranslateTo, FadeTo, ScaleTo, RotateTo via `GtkPlatformTicker` + Gsk.Transform.
-- **ControlTemplate** — Full ContentPresenter and TemplatedView support.
-- **VisualStateManager** — Normal, PointerOver, Pressed, Disabled, Focused states.
-- **Transforms** — TranslationX/Y, Rotation, Scale via Gsk.Transform; Shadow, Clip, ZIndex.
-- **Essentials** — Clipboard, Preferences, DeviceInfo, AppInfo, Battery, Connectivity, FilePicker, and more.
-- **Cairo-based graphics** — `GraphicsView` draws via the Microsoft.Maui.Graphics Cairo backend.
-- **Theming** — Automatic light/dark theme detection through `GtkThemeManager`.
+### Controls (43 handlers)
+
+| Category | Controls |
+|----------|----------|
+| **Basic Controls** | Label, Button, Entry, Editor, CheckBox, Switch, Slider, Stepper, ProgressBar, ActivityIndicator, Image, ImageButton, BoxView, RadioButton |
+| **Input & Selection** | Picker, DatePicker, TimePicker, SearchBar |
+| **Collections** | CollectionView (virtualized `Gtk.ListView`), ListView, TableView, CarouselView, SwipeView, RefreshView, IndicatorView |
+| **Layouts** | StackLayout, Grid, FlexLayout, AbsoluteLayout, ScrollView, ContentView, Border, Frame |
+| **Pages & Navigation** | ContentPage, NavigationPage, TabbedPage, FlyoutPage, Shell (flyout, tabs, route navigation) |
+| **Shapes** | Rectangle, Ellipse, Line, Path, Polygon, Polyline — Cairo-rendered with fill, stroke, dash patterns |
+| **Other** | GraphicsView (Cairo), WebView (WebKitGTK), MenuBar (`Gtk.PopoverMenuBar`) |
+
+### Platform Features
+
+- **Native GTK4 rendering** — Every control maps to a real GTK4 widget, styled via GTK CSS.
+- **Blazor Hybrid** — Host Blazor components inside a native GTK window via WebKitGTK.
+- **Gestures** — Tap, Pan, Swipe, Pinch, and Pointer gesture recognizers via GTK4 event controllers.
+- **Animations** — `TranslateTo`, `FadeTo`, `ScaleTo`, `RotateTo` via `GtkPlatformTicker` + `Gsk.Transform` at ~60fps.
+- **Transforms** — TranslationX/Y, Rotation, Scale via `Gsk.Transform`; Shadow (CSS `box-shadow`), Clip, ZIndex.
+- **VisualStateManager** — Normal, PointerOver, Pressed, Disabled, Focused states via GTK4 event controllers.
+- **ControlTemplate** — Full ContentPresenter and TemplatedView support via `IContentView` handler mapping.
+- **Font icons** — Embedded font registration with fontconfig/Pango, FontImageSource rendering via Cairo. FontAwesome and custom icon fonts work out of the box.
+- **FormattedText** — Rich text via Pango markup: Span colors, fonts, sizes, bold/italic, underline/strikethrough, character spacing.
+- **Alerts & Dialogs** — `DisplayAlert`, `DisplayActionSheet`, `DisplayPromptAsync` via native GTK4 modal windows.
+- **Brushes & Gradients** — SolidColorBrush, LinearGradientBrush, RadialGradientBrush via CSS gradients.
+- **Tooltips & Context Menus** — `ToolTipProperties.Text` and `ContextFlyout` via `Gtk.PopoverMenu`.
+- **Theming** — Automatic light/dark theme detection via `GtkThemeManager`.
+- **Lifecycle Events** — `ConfigureLifecycleEvents().AddGtk()` hooks for `OnWindowCreated` and `OnMauiApplicationCreated`.
+- **Desktop integration** — App icons via hicolor icon theme, `.desktop` file generation, `MauiImage`/`MauiFont`/`MauiAsset` resource processing.
+
+### Essentials (20 of 26 services)
+
+| Status | Services |
+|--------|----------|
+| ✅ **Done** | AppInfo, AppActions, Battery (UPower), Browser (`xdg-open`), Clipboard (`Gdk.Clipboard`), Connectivity (NetworkManager), DeviceDisplay, DeviceInfo, FilePicker (`Gtk.FileDialog`), FileSystem (XDG dirs), Launcher, Map, MediaPicker, Preferences (JSON), SecureStorage, Screenshot, SemanticScreenReader (AT-SPI), Share (XDG Portal), TextToSpeech (`espeak-ng`), VersionTracking |
+| ⚠️ **Partial** | Geolocation (GeoClue — basic location only), WebAuthenticator (basic OAuth via system browser) |
+| ❌ **Stub** | Vibration, PhoneDialer, SMS, Contacts — not applicable to desktop Linux |
+
+### Implementation Parity
+
+| Category | Coverage | Notes |
+|----------|----------|-------|
+| Core Infrastructure | 100% | Dispatcher, handler factory, rendering pipeline |
+| Pages | 100% | ContentPage, NavigationPage, TabbedPage, FlyoutPage, Shell |
+| Layouts | 100% | All layout types including FlexLayout and AbsoluteLayout |
+| Basic Controls | 100% | All 14 standard controls |
+| Input Controls | 100% | Picker, DatePicker, TimePicker, SearchBar |
+| Collection Controls | 100% | Virtualized CollectionView, ListView, TableView, CarouselView, SwipeView |
+| Navigation & Routing | 100% | Push/pop, Shell routes, query parameters |
+| Alerts & Dialogs | 100% | All three dialog types + modal overlay |
+| Gesture Recognizers | 100% | All 5 gesture types |
+| Graphics & Shapes | 100% | GraphicsView + all 6 shape types |
+| Font Management | 100% | Registrar, manager, FontImageSource, named sizes |
+| WebView | 100% | URL, HTML, JavaScript, navigation events |
+| Animations | 100% | All animation types via GtkPlatformTicker |
+| VisualStateManager | 100% | All visual states + triggers + behaviors |
+| ControlTemplate | 100% | ContentPresenter, TemplatedView |
+| Base View Properties | 100% | Opacity, visibility, transforms, shadow, clip, automation |
+| FormattedText | 100% | All Span properties via Pango markup |
+| MenuBar | 100% | MenuBarItem, MenuFlyoutItem, popover menus |
+| Essentials | 81% | 20 done + 2 partial, 4 stubs (desktop N/A) |
 
 ## Prerequisites
 

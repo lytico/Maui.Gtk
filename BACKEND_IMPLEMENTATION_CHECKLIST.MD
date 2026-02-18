@@ -103,7 +103,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 
 | Control | Status | Notes |
 |---------|--------|-------|
-| ⚠️ **CollectionView** | Partial | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem. Missing: ItemTemplate/DataTemplateSelector (uses `ToString()`), grouping, virtualization |
+| ⚠️ **CollectionView** | Partial | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering). Missing: grouping, virtualization |
 | ❌ **ListView** | Missing | No handler — use CollectionView as alternative |
 | ⚠️ **CarouselView** | Partial | Horizontal/vertical scrolling with `Gtk.ScrolledWindow`. Missing: snap navigation, Loop, PeekAreaInsets |
 | ✅ **IndicatorView** | Done | Cairo-drawn dots with IndicatorColor, SelectedIndicatorColor, IndicatorSize |
@@ -371,8 +371,7 @@ FormattedText requires Pango markup rendering for rich text:
 | **VisualStateManager** | 0 | 6 | 0% |
 
 ### Key Gaps (Priority Order)
-1. **CollectionView ItemTemplate** — Currently uses `ToString()`, needs DataTemplate rendering
-2. **Gesture recognizers** — Swipe and Pinch missing
-3. **Clip** — RoundRectangleGeometry, EllipseGeometry clipping not mapped
-4. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing
-5. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)
+1. **Gesture recognizers** — Swipe and Pinch missing
+2. **Clip** — RoundRectangleGeometry, EllipseGeometry clipping not mapped
+3. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing
+4. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)

@@ -1,5 +1,6 @@
 using System.Net.Http;
 using Microsoft.Maui;
+using Platform.Maui.Linux.Gtk4.Platform;
 
 namespace Platform.Maui.Linux.Gtk4.Handlers;
 
@@ -11,14 +12,15 @@ internal static class GtkImageSourceLoader
 	static extern int cairo_surface_write_to_png(nint surface,
 		[System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPUTF8Str)] string filename);
 
-	public static async Task<Gdk.Texture?> LoadTextureAsync(IImageSource? source, CancellationToken cancellationToken)
+	public static async Task<Gdk.Texture?> LoadTextureAsync(IImageSource? source, CancellationToken cancellationToken,
+		IGtkFontManager? fontManager = null)
 	{
 		if (source == null)
 			return null;
 
 		return source switch
 		{
-			IFontImageSource fontSource => LoadFromFontImageSource(fontSource),
+			IFontImageSource fontSource => LoadFromFontImageSource(fontSource, fontManager),
 			IFileImageSource fileSource => await LoadFromFileAsync(fileSource, cancellationToken),
 			IUriImageSource uriSource => await LoadFromUriAsync(uriSource, cancellationToken),
 			IStreamImageSource streamSource => await LoadFromStreamAsync(streamSource, cancellationToken),
@@ -26,7 +28,7 @@ internal static class GtkImageSourceLoader
 		};
 	}
 
-	static Gdk.Texture? LoadFromFontImageSource(IFontImageSource fontSource)
+	static Gdk.Texture? LoadFromFontImageSource(IFontImageSource fontSource, IGtkFontManager? fontManager)
 	{
 		var glyph = fontSource.Glyph;
 		if (string.IsNullOrEmpty(glyph))
@@ -48,7 +50,16 @@ internal static class GtkImageSourceLoader
 		var layout = PangoCairo.Functions.CreateLayout(cr);
 		var fontDesc = Pango.FontDescription.New();
 
+		// Resolve font family through the font manager so that registered
+		// embedded fonts (e.g. FontAwesome) are found via fontconfig
 		var fontFamily = fontSource.Font.Family;
+		if (!string.IsNullOrEmpty(fontFamily) && fontManager != null)
+		{
+			var css = fontManager.BuildFontCss(fontSource.Font);
+			var resolved = ExtractFontFamily(css);
+			if (!string.IsNullOrEmpty(resolved))
+				fontFamily = resolved;
+		}
 		if (!string.IsNullOrEmpty(fontFamily))
 			fontDesc.SetFamily(fontFamily);
 
@@ -146,5 +157,25 @@ internal static class GtkImageSourceLoader
 			return cwdPath;
 
 		return source;
+	}
+
+	// Extract font-family value from CSS like: font-family: "Font Awesome 6 Free Solid";
+	static string? ExtractFontFamily(string css)
+	{
+		const string prefix = "font-family: ";
+		var idx = css.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+		if (idx < 0) return null;
+		idx += prefix.Length;
+
+		// Strip quotes
+		if (idx < css.Length && css[idx] == '"')
+		{
+			idx++;
+			var end = css.IndexOf('"', idx);
+			return end > idx ? css[idx..end] : null;
+		}
+
+		var semi = css.IndexOf(';', idx);
+		return semi > idx ? css[idx..semi].Trim() : css[idx..].Trim();
 	}
 }

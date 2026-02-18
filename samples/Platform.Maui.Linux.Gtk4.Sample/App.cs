@@ -20,6 +20,7 @@ class MainShell : FlyoutPage
 		("🏠 Home", () => new HomePage()),
 		("🧩 XAML Runtime", () => new XamlRuntimePage()),
 		("🖼️ Image / Font / Icon", () => new ResourceAssetsPage()),
+		("🔣 FontAwesome Icons", () => new FontAwesomePage()),
 		("🎛️ Controls", () => new ControlsPage()),
 		("📅 Pickers & Search", () => new PickersPage()),
 		("📐 Layouts", () => new LayoutsPage()),

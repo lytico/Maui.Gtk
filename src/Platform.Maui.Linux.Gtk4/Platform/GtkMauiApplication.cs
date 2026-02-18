@@ -47,6 +47,10 @@ public abstract class GtkMauiApplication : IPlatformApplication
 		Services = applicationContext.Services;
 		InvokeLifecycleEvents<GtkApplicationActivated>(del => del(sender));
 
+		// Eagerly extract and register all embedded fonts with fontconfig
+		// before any widgets are created, so Pango can find them.
+		(Services.GetService(typeof(IGtkFontManager)) as IGtkFontManager)?.EagerlyRegisterAllFonts();
+
 		_mauiApp = Services.GetRequiredService<IApplication>();
 		InvokeLifecycleEvents<GtkMauiApplicationCreated>(del => del(_mauiApp));
 

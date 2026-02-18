@@ -1,4 +1,5 @@
 using Microsoft.Maui;
+using Platform.Maui.Linux.Gtk4.Platform;
 using IImage = Microsoft.Maui.IImage;
 
 namespace Platform.Maui.Linux.Gtk4.Handlers;
@@ -67,7 +68,8 @@ public class ImageHandler : GtkViewHandler<IImage, Gtk.Picture>
 	{
 		try
 		{
-			var texture = await GtkImageSourceLoader.LoadTextureAsync(source, cancellationToken);
+			var fontManager = MauiContext?.Services.GetService(typeof(IGtkFontManager)) as IGtkFontManager;
+			var texture = await GtkImageSourceLoader.LoadTextureAsync(source, cancellationToken, fontManager);
 			if (cancellationToken.IsCancellationRequested)
 				return;
 

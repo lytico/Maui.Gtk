@@ -123,6 +123,20 @@ public class ControlsPage : ContentPage
 
 					Separator(),
 
+					// Triggers
+					SectionHeader("Triggers"),
+					new Label { Text = "PropertyTrigger, DataTrigger, EventTrigger & MultiTrigger demos:", FontSize = 12, TextColor = Colors.Gray },
+					BuildTriggersDemo(),
+
+					Separator(),
+
+					// Behaviors
+					SectionHeader("Behaviors"),
+					new Label { Text = "Custom Behavior that limits Entry to numeric input:", FontSize = 12, TextColor = Colors.Gray },
+					BuildBehaviorsDemo(),
+
+					Separator(),
+
 					// VisualStateManager
 					SectionHeader("VisualStateManager"),
 					new Label { Text = "Hover/press buttons below to see VSM state changes:", FontSize = 12, TextColor = Colors.Gray },
@@ -212,4 +226,147 @@ public class ControlsPage : ContentPage
 			Children = { stateLabel, vsmButton, toggleBtn }
 		};
 	}
+
+	static View BuildTriggersDemo()
+	{
+		// 1. PropertyTrigger: Entry turns green background when text is not empty
+		var propTriggerEntry = new Entry { Placeholder = "Type to trigger green background" };
+		var propTrigger = new Trigger(typeof(Entry)) { Property = Entry.IsTextPredictionEnabledProperty, Value = true };
+		// Use a simpler PropertyTrigger: when IsFocused = true, change background
+		var focusTrigger = new Trigger(typeof(Entry))
+		{
+			Property = VisualElement.IsFocusedProperty,
+			Value = true,
+		};
+		focusTrigger.Setters.Add(new Setter { Property = VisualElement.BackgroundColorProperty, Value = Colors.LightGoldenrodYellow });
+		propTriggerEntry.Triggers.Add(focusTrigger);
+
+		// 2. DataTrigger: Label changes when entry text length > 5
+		var dataTriggerLabel = new Label
+		{
+			Text = "Type > 5 chars in entry above",
+			FontSize = 14,
+			TextColor = Colors.Gray,
+			BindingContext = propTriggerEntry,
+		};
+		dataTriggerLabel.SetBinding(Label.TextProperty, new Binding("Text",
+			converter: new FuncConverter<string, string>(s =>
+				string.IsNullOrEmpty(s) ? "Type > 5 chars in entry above"
+				: s.Length > 5 ? $"✅ \"{s}\" has {s.Length} chars (> 5)!"
+				: $"⏳ \"{s}\" has {s.Length} chars (need > 5)")));
+
+		var dataTrigger = new DataTrigger(typeof(Label))
+		{
+			Binding = new Binding("Text.Length", source: propTriggerEntry),
+			Value = 0,
+		};
+		// When text length is 0, make label italic
+		dataTrigger.Setters.Add(new Setter { Property = Label.FontAttributesProperty, Value = FontAttributes.Italic });
+		dataTriggerLabel.Triggers.Add(dataTrigger);
+
+		// 3. EventTrigger: flash button on click
+		var eventTriggerBtn = new Button
+		{
+			Text = "Click for EventTrigger",
+			BackgroundColor = Colors.CornflowerBlue,
+			TextColor = Colors.White,
+		};
+		var eventTrigger = new EventTrigger { Event = "Clicked" };
+		eventTrigger.Actions.Add(new FlashAction());
+		eventTriggerBtn.Triggers.Add(eventTrigger);
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "PropertyTrigger (focus entry → yellow bg):", FontSize = 12, TextColor = Colors.DimGray },
+				propTriggerEntry,
+				new Label { Text = "DataTrigger (text length tracking):", FontSize = 12, TextColor = Colors.DimGray },
+				dataTriggerLabel,
+				new Label { Text = "EventTrigger (click → flash):", FontSize = 12, TextColor = Colors.DimGray },
+				eventTriggerBtn,
+			}
+		};
+	}
+
+	static View BuildBehaviorsDemo()
+	{
+		var numericEntry = new Entry { Placeholder = "Only numbers allowed", Keyboard = Keyboard.Numeric };
+		numericEntry.Behaviors.Add(new NumericOnlyBehavior());
+
+		var statusLabel = new Label { Text = "Enter a number:", FontSize = 12, TextColor = Colors.Gray };
+		numericEntry.TextChanged += (s, e) =>
+		{
+			if (string.IsNullOrEmpty(e.NewTextValue))
+				statusLabel.Text = "Enter a number:";
+			else if (double.TryParse(e.NewTextValue, out var v))
+				statusLabel.Text = $"✅ Valid number: {v}";
+			else
+				statusLabel.Text = "❌ Invalid (non-numeric stripped)";
+		};
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children = { numericEntry, statusLabel }
+		};
+	}
+}
+
+/// <summary>
+/// TriggerAction that flashes a button's background on click.
+/// </summary>
+class FlashAction : TriggerAction<Button>
+{
+	protected override async void Invoke(Button sender)
+	{
+		var original = sender.BackgroundColor;
+		sender.BackgroundColor = Colors.Gold;
+		sender.Text = "⚡ Flashed!";
+		await Task.Delay(400);
+		sender.BackgroundColor = original;
+		sender.Text = "Click for EventTrigger";
+	}
+}
+
+/// <summary>
+/// Behavior that strips non-numeric characters from Entry text.
+/// </summary>
+class NumericOnlyBehavior : Behavior<Entry>
+{
+	protected override void OnAttachedTo(Entry entry)
+	{
+		base.OnAttachedTo(entry);
+		entry.TextChanged += OnTextChanged;
+	}
+
+	protected override void OnDetachingFrom(Entry entry)
+	{
+		entry.TextChanged -= OnTextChanged;
+		base.OnDetachingFrom(entry);
+	}
+
+	void OnTextChanged(object? sender, TextChangedEventArgs e)
+	{
+		if (sender is not Entry entry || string.IsNullOrEmpty(e.NewTextValue))
+			return;
+
+		var filtered = new string(e.NewTextValue.Where(c => char.IsDigit(c) || c == '.' || c == '-').ToArray());
+		if (filtered != e.NewTextValue)
+			entry.Text = filtered;
+	}
+}
+
+/// <summary>
+/// Simple IValueConverter using Func for inline converters in C# code.
+/// </summary>
+class FuncConverter<TIn, TOut> : IValueConverter
+{
+	readonly Func<TIn?, TOut?> _convert;
+	public FuncConverter(Func<TIn?, TOut?> convert) => _convert = convert;
+	public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+		=> _convert(value is TIn t ? t : default);
+	public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+		=> throw new NotImplementedException();
 }

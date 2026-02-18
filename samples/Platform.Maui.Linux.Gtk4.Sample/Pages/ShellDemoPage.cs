@@ -62,6 +62,9 @@ public class DemoShell : Shell
 		FlyoutFooter = "GTK4 Backend v1.0";
 		FlyoutBackgroundColor = Colors.WhiteSmoke;
 
+		// Register routes for GoToAsync navigation with query parameters
+		Routing.RegisterRoute("details", typeof(ShellDetailsPage));
+
 		// Home item (single section, single content)
 		var homeItem = new ShellItem { Title = "🏠 Home", Route = "home" };
 		var homeSection = new ShellSection { Title = "Home" };
@@ -169,6 +172,13 @@ class ShellHomePage : ContentPage
 					Text = "GoToAsync → About",
 					BackgroundColor = Colors.SlateBlue, TextColor = Colors.White,
 					Command = new Command(async () => await Shell.Current.GoToAsync("//about")),
+				},
+				new Label { Text = "GoToAsync with Query Params:", FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 12, 0, 0) },
+				new Button
+				{
+					Text = "GoToAsync → Details?id=42&name=Widget",
+					BackgroundColor = Colors.Coral, TextColor = Colors.White,
+					Command = new Command(async () => await Shell.Current.GoToAsync("details?id=42&name=Widget")),
 				},
 			}
 		};
@@ -296,6 +306,61 @@ class ShellAboutPage : ContentPage
 					       "Shell navigation with flyout menu, tabs, and URI routing.",
 					HorizontalTextAlignment = TextAlignment.Center,
 					TextColor = Colors.DimGray,
+				},
+			}
+		};
+	}
+}
+
+/// <summary>
+/// Detail page that receives query parameters via IQueryAttributable.
+/// Demonstrates Shell GoToAsync("route?id=42&amp;name=Widget") support.
+/// </summary>
+[QueryProperty(nameof(ItemId), "id")]
+[QueryProperty(nameof(ItemName), "name")]
+class ShellDetailsPage : ContentPage
+{
+	readonly Label _idLabel;
+	readonly Label _nameLabel;
+
+	string? _itemId;
+	string? _itemName;
+
+	public string? ItemId
+	{
+		get => _itemId;
+		set { _itemId = value; _idLabel.Text = $"ID: {value ?? "(none)"}"; }
+	}
+
+	public string? ItemName
+	{
+		get => _itemName;
+		set { _itemName = value; _nameLabel.Text = $"Name: {value ?? "(none)"}"; }
+	}
+
+	public ShellDetailsPage()
+	{
+		Title = "Details";
+		_idLabel = new Label { Text = "ID: (loading...)", FontSize = 16 };
+		_nameLabel = new Label { Text = "Name: (loading...)", FontSize = 16 };
+
+		Content = new StackLayout
+		{
+			Padding = new Thickness(24),
+			Spacing = 12,
+			Children =
+			{
+				new Label { Text = "📋 Detail Page (Query Params)", FontSize = 22, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "This page received data via Shell query parameters:", TextColor = Colors.DimGray },
+				new BoxView { HeightRequest = 2, Color = Colors.Coral },
+				_idLabel,
+				_nameLabel,
+				new BoxView { HeightRequest = 2, Color = Colors.Coral },
+				new Button
+				{
+					Text = "← Back",
+					BackgroundColor = Colors.Gray, TextColor = Colors.White,
+					Command = new Command(async () => await Shell.Current.GoToAsync("..")),
 				},
 			}
 		};

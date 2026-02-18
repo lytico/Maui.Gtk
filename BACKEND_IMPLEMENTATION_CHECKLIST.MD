@@ -118,7 +118,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | Feature | Status | Notes |
 |---------|--------|-------|
 | ✅ **NavigationPage stack** | Done | PushAsync, PopAsync, PopToRootAsync |
-| ⚠️ **Shell navigation** | Partial | Flyout, tabs, content hierarchy, GoToAsync route navigation. Missing: deep linking, query parameters |
+| ✅ **Shell navigation** | Done | Flyout, tabs, content hierarchy, GoToAsync route navigation, query parameters via `[QueryProperty]` |
 | N/A **URL/route-based routing** | N/A | Not applicable to desktop Linux apps |
 | N/A **Route ↔ Shell sync** | N/A | Browser-specific concept |
 | N/A **Non-Shell routing** | N/A | Browser-specific concept |
@@ -222,11 +222,11 @@ Every handler must support these properties mapped from the base `IView`:
 | Feature | Status | Notes |
 |---------|--------|-------|
 | ✅ **VisualStateManager** | Done | `GoToState` triggered by GTK EventControllerMotion/GestureClick/EventControllerFocus — Normal, PointerOver, Pressed, Disabled, Focused |
-| ❌ **PropertyTrigger** | Missing | Not implemented |
-| ❌ **DataTrigger** | Missing | Not implemented |
-| ❌ **MultiTrigger** | Missing | Not implemented |
-| ❌ **EventTrigger** | Missing | Not implemented |
-| ❌ **Behaviors** | Missing | Not implemented |
+| ✅ **PropertyTrigger** | Done | Cross-platform — works via MAUI property change notifications, no platform handler needed |
+| ✅ **DataTrigger** | Done | Cross-platform — works via MAUI data binding and property change notifications |
+| ✅ **MultiTrigger** | Done | Cross-platform — works via MAUI property change notifications |
+| ✅ **EventTrigger** | Done | Cross-platform — works via MAUI event system and TriggerAction |
+| ✅ **Behaviors** | Done | Cross-platform — Behavior<T> OnAttachedTo/OnDetachingFrom works via MAUI Controls layer |
 
 > Note: Many VSM scenarios "just work" because GTK4 natively handles hover, focus, active, and disabled states via its CSS engine.
 
@@ -357,9 +357,9 @@ FormattedText requires Pango markup rendering for rich text:
 | **Basic Controls** | 14 | 14 | 100% |
 | **Input Controls** | 4 | 4 | 100% |
 | **Collection Controls** | 4 (+ 3 partial) | 7 | 57-100% |
-| **Navigation** | 4 | 4 | 100% |
+| **Navigation** | 5 | 5 | 100% |
 | **Alerts & Dialogs** | 4 | 4 | 100% |
-| **Gesture Recognizers** | 2 (+ 1 partial) | 5 | 50% |
+| **Gesture Recognizers** | 4 | 5 | 80% |
 | **Graphics** | 4 | 4 | 100% |
 | **Shapes** | 7 | 7 | 100% |
 | **Font Services** | 5 | 5 | 100% |
@@ -368,8 +368,10 @@ FormattedText requires Pango markup rendering for rich text:
 | **Essentials** | 18 (+ 2 partial) | 26 | 77% |
 | **Base View Properties** | 18 | 22 | 82% |
 | **FormattedText/Spans** | 9 | 9 | 100% |
-| **VisualStateManager** | 5 | 6 | 83% |
+| **VisualStateManager** | 6 | 6 | 100% |
 
 ### Key Gaps (Priority Order)
-1. **PinchGestureRecognizer** — Pinch zoom not implemented
+1. **PinchGestureRecognizer** — Pinch zoom not implemented (uncommon on desktop)
 2. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)
+3. **CollectionView** — Grouping and virtualization not yet implemented
+4. **CarouselView** — Snap navigation, Loop, PeekAreaInsets not yet implemented

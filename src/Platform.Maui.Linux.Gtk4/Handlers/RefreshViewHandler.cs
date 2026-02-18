@@ -17,7 +17,7 @@ public class RefreshViewHandler : GtkViewHandler<IView, Gtk.Box>
 	Gtk.Widget? _contentWidget;
 
 	public static new IPropertyMapper<IView, RefreshViewHandler> Mapper =
-		new PropertyMapper<IView, RefreshViewHandler>(ViewHandler.ViewMapper)
+		new PropertyMapper<IView, RefreshViewHandler>(ViewMapper)
 		{
 			["Content"] = MapContent,
 			["IsRefreshing"] = MapIsRefreshing,

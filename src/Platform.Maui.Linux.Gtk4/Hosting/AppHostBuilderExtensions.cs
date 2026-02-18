@@ -117,6 +117,8 @@ public static partial class AppHostBuilderExtensions
 		builder.Services.AddSingleton<IFontManager>(svc => svc.GetRequiredService<GtkFontManager>());
 
 		// Animation ticker — drives all MAUI animations (TranslateTo, FadeTo, etc.)
+		// Must RemoveAll first to override MAUI's default Ticker registration.
+		builder.Services.RemoveAll<ITicker>();
 		builder.Services.AddSingleton<ITicker>(svc => new GtkPlatformTicker());
 
 		// Named font sizes (FontSize="Title", etc.)

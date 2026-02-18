@@ -27,7 +27,7 @@ public partial class ShellHandler : GtkViewHandler<Shell, Gtk.Box>
 	bool _updatingSelection;
 
 	public static new IPropertyMapper<Shell, ShellHandler> Mapper =
-		new PropertyMapper<Shell, ShellHandler>(ViewHandler.ViewMapper)
+		new PropertyMapper<Shell, ShellHandler>(ViewMapper)
 		{
 			[nameof(Shell.CurrentItem)] = MapCurrentItem,
 			[nameof(Shell.Items)] = MapItems,

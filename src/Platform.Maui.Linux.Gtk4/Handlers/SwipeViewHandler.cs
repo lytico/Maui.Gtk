@@ -24,7 +24,7 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 	bool _isOpen;
 
 	public static new IPropertyMapper<IView, SwipeViewHandler> Mapper =
-		new PropertyMapper<IView, SwipeViewHandler>(ViewHandler.ViewMapper)
+		new PropertyMapper<IView, SwipeViewHandler>(ViewMapper)
 		{
 			["Content"] = MapContent,
 			["LeftItems"] = MapSwipeItems,

@@ -12,7 +12,7 @@ namespace Platform.Maui.Linux.Gtk4.Handlers;
 public class ShapeViewHandler : GtkViewHandler<IShapeView, Gtk.DrawingArea>
 {
 	public static new IPropertyMapper<IShapeView, ShapeViewHandler> Mapper =
-		new PropertyMapper<IShapeView, ShapeViewHandler>(ViewHandler.ViewMapper)
+		new PropertyMapper<IShapeView, ShapeViewHandler>(ViewMapper)
 		{
 			[nameof(IShapeView.Shape)] = MapShape,
 			[nameof(IShapeView.Fill)] = MapFill,

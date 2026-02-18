@@ -195,6 +195,14 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		bool hasScale = sx != 1.0 || sy != 1.0;
 		bool hasRotation = view.Rotation != 0;
 
+		if (!hasScale && !hasRotation)
+		{
+			// Translation-only: just use Move with offset (avoids SetChildTransform issues)
+			fixedParent.SetChildTransform(widget, null);
+			fixedParent.Move(widget, rect.X + view.TranslationX, rect.Y + view.TranslationY);
+			return;
+		}
+
 		var transform = Gsk.Transform.New();
 
 		// Start with the layout position + user translation
@@ -208,25 +216,22 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		}
 
 		// Move to anchor, apply rotation/scale, move back
-		if (hasRotation || hasScale)
-		{
-			float anchorX = (float)(view.AnchorX * rect.Width);
-			float anchorY = (float)(view.AnchorY * rect.Height);
+		float anchorX = (float)(view.AnchorX * rect.Width);
+		float anchorY = (float)(view.AnchorY * rect.Height);
 
-			var anchorPt = Graphene.Point.Alloc();
-			anchorPt.Init(anchorX, anchorY);
-			transform = transform.Translate(anchorPt);
+		var anchorPt = Graphene.Point.Alloc();
+		anchorPt.Init(anchorX, anchorY);
+		transform = transform.Translate(anchorPt);
 
-			if (hasRotation)
-				transform = transform.Rotate((float)view.Rotation);
+		if (hasRotation)
+			transform = transform.Rotate((float)view.Rotation);
 
-			if (hasScale)
-				transform = transform.Scale((float)sx, (float)sy);
+		if (hasScale)
+			transform = transform.Scale((float)sx, (float)sy);
 
-			var negPt = Graphene.Point.Alloc();
-			negPt.Init(-anchorX, -anchorY);
-			transform = transform.Translate(negPt);
-		}
+		var negPt = Graphene.Point.Alloc();
+		negPt.Init(-anchorX, -anchorY);
+		transform = transform.Translate(negPt);
 
 		fixedParent.SetChildTransform(widget, transform);
 	}

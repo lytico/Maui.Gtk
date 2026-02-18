@@ -1,6 +1,5 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
-using System.Collections.ObjectModel;
 
 namespace Platform.Maui.Linux.Gtk4.Sample.Pages;
 
@@ -10,7 +9,7 @@ namespace Platform.Maui.Linux.Gtk4.Sample.Pages;
 /// </summary>
 public class RefreshSwipePage : ContentPage
 {
-	readonly ObservableCollection<string> _items = new();
+	readonly StackLayout _itemsStack;
 	readonly Label _statusLabel;
 	int _refreshCount;
 
@@ -26,18 +25,20 @@ public class RefreshSwipePage : ContentPage
 			Margin = new Thickness(0, 8),
 		};
 
+		_itemsStack = new StackLayout { Spacing = 4 };
 		LoadItems();
 
-		var listView = new ListView
+		var itemsScroll = new ScrollView
 		{
-			ItemsSource = _items,
+			Content = _itemsStack,
 			VerticalOptions = LayoutOptions.FillAndExpand,
+			HeightRequest = 250,
 		};
 
 		RefreshView refreshView = null!;
 		refreshView = new RefreshView
 		{
-			Content = listView,
+			Content = itemsScroll,
 			RefreshColor = Colors.DodgerBlue,
 			Command = new Command(async () =>
 			{
@@ -100,9 +101,16 @@ public class RefreshSwipePage : ContentPage
 
 	void LoadItems()
 	{
-		_items.Clear();
+		_itemsStack.Children.Clear();
 		var rng = new Random();
 		for (int i = 1; i <= 15; i++)
-			_items.Add($"Item {i} (value: {rng.Next(100, 999)})");
+		{
+			_itemsStack.Children.Add(new Label
+			{
+				Text = $"  Item {i} (value: {rng.Next(100, 999)})",
+				Padding = new Thickness(8, 4),
+				BackgroundColor = i % 2 == 0 ? Colors.WhiteSmoke : Colors.White,
+			});
+		}
 	}
 }

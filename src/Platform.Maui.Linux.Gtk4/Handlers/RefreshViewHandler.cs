@@ -14,6 +14,7 @@ public class RefreshViewHandler : GtkViewHandler<IView, Gtk.Box>
 {
 	Gtk.Spinner? _spinner;
 	Gtk.Button? _refreshButton;
+	Gtk.Widget? _contentWidget;
 
 	public static new IPropertyMapper<IView, RefreshViewHandler> Mapper =
 		new PropertyMapper<IView, RefreshViewHandler>(ViewHandler.ViewMapper)
@@ -67,11 +68,19 @@ public class RefreshViewHandler : GtkViewHandler<IView, Gtk.Box>
 		if (view is not RefreshView refreshView || handler.MauiContext == null)
 			return;
 
+		// Remove old content
+		if (handler._contentWidget != null)
+		{
+			handler.PlatformView.Remove(handler._contentWidget);
+			handler._contentWidget = null;
+		}
+
 		if (refreshView.Content != null)
 		{
 			var platformContent = (Gtk.Widget)refreshView.Content.ToPlatform(handler.MauiContext);
 			platformContent.SetVexpand(true);
 			platformContent.SetHexpand(true);
+			handler._contentWidget = platformContent;
 			handler.PlatformView.Append(platformContent);
 		}
 	}

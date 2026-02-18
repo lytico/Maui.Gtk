@@ -37,6 +37,14 @@ public class IndicatorViewHandler : GtkViewHandler<IView, Gtk.Box>
 		return box;
 	}
 
+	protected override void ConnectHandler(Gtk.Box platformView)
+	{
+		base.ConnectHandler(platformView);
+		// Rebuild dots on connect since Count may already be set
+		if (VirtualView is IndicatorView iv)
+			RebuildDots(iv);
+	}
+
 	public static void MapIndicators(IndicatorViewHandler handler, IView view)
 	{
 		handler.RebuildDots(view as IndicatorView);

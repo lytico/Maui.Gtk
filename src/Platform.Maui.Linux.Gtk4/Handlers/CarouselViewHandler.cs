@@ -12,7 +12,7 @@ namespace Platform.Maui.Linux.Gtk4.Handlers;
 public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 {
 	Gtk.Box? _itemsBox;
-	readonly List<Gtk.Label> _itemLabels = new();
+	readonly List<Gtk.Widget> _itemWidgets = new();
 	int _currentPosition;
 
 	public static new IPropertyMapper<IView, CarouselViewHandler> Mapper =
@@ -36,6 +36,7 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		var sw = Gtk.ScrolledWindow.New();
 		sw.SetVexpand(true);
 		sw.SetHexpand(true);
+		sw.SetSizeRequest(-1, 150);
 		sw.SetPolicy(Gtk.PolicyType.Automatic, Gtk.PolicyType.Never);
 
 		_itemsBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 0);
@@ -43,6 +44,14 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		sw.SetChild(_itemsBox);
 
 		return sw;
+	}
+
+	protected override void ConnectHandler(Gtk.ScrolledWindow platformView)
+	{
+		base.ConnectHandler(platformView);
+		// Populate on connect since ItemsSource may already be set
+		if (VirtualView is CarouselView cv)
+			PopulateItems(cv);
 	}
 
 	public static void MapItemsSource(CarouselViewHandler handler, IView view)
@@ -83,34 +92,42 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		if (_itemsBox == null) return;
 
 		// Clear existing
-		foreach (var lbl in _itemLabels)
-			_itemsBox.Remove(lbl);
-		_itemLabels.Clear();
+		foreach (var w in _itemWidgets)
+			_itemsBox.Remove(w);
+		_itemWidgets.Clear();
 
 		if (cv.ItemsSource is not IEnumerable items) return;
 
 		foreach (var item in items)
 		{
+			var card = Gtk.Box.New(Gtk.Orientation.Vertical, 4);
+			card.SetHexpand(true);
+			card.SetVexpand(true);
+			card.SetHalign(Gtk.Align.Fill);
+			card.SetValign(Gtk.Align.Center);
+			// Give each card a minimum width so they're visible
+			card.SetSizeRequest(250, 150);
+
 			var label = Gtk.Label.New(item?.ToString() ?? "");
-			label.SetHexpand(true);
-			label.SetVexpand(true);
+			label.SetWrap(true);
 			label.SetHalign(Gtk.Align.Center);
 			label.SetValign(Gtk.Align.Center);
-			label.SetWrap(true);
-			_itemLabels.Add(label);
-			_itemsBox.Append(label);
+			label.SetHexpand(true);
+			card.Append(label);
+
+			_itemWidgets.Add(card);
+			_itemsBox.Append(card);
 		}
 
-		if (_currentPosition < _itemLabels.Count)
+		if (_currentPosition < _itemWidgets.Count)
 			ScrollToPosition();
 	}
 
 	void ScrollToPosition()
 	{
-		// Gtk.ScrolledWindow child scrolling - approximate via label focus
-		if (_currentPosition >= 0 && _currentPosition < _itemLabels.Count)
+		if (_currentPosition >= 0 && _currentPosition < _itemWidgets.Count)
 		{
-			_itemLabels[_currentPosition].GrabFocus();
+			_itemWidgets[_currentPosition].GrabFocus();
 		}
 	}
 }

@@ -4,6 +4,8 @@ namespace Platform.Maui.Linux.Gtk4.Handlers;
 
 public class SearchBarHandler : GtkViewHandler<ISearchBar, Gtk.SearchEntry>
 {
+	int _maxLength = int.MaxValue;
+
 	public static new IPropertyMapper<ISearchBar, SearchBarHandler> Mapper =
 		new PropertyMapper<ISearchBar, SearchBarHandler>(ViewMapper)
 		{
@@ -45,8 +47,18 @@ public class SearchBarHandler : GtkViewHandler<ISearchBar, Gtk.SearchEntry>
 
 	void OnSearchChanged(Gtk.SearchEntry sender, EventArgs args)
 	{
-		if (VirtualView != null)
-			VirtualView.Text = sender.GetText();
+		if (VirtualView == null) return;
+
+		// Enforce max length
+		var text = sender.GetText() ?? "";
+		if (text.Length > _maxLength)
+		{
+			var clamped = text[.._maxLength];
+			sender.SetText(clamped);
+			return; // Will re-fire OnSearchChanged with clamped text
+		}
+
+		VirtualView.Text = text;
 	}
 
 	public static void MapText(SearchBarHandler handler, ISearchBar searchBar)
@@ -84,14 +96,14 @@ public class SearchBarHandler : GtkViewHandler<ISearchBar, Gtk.SearchEntry>
 	public static void MapHorizontalTextAlignment(SearchBarHandler handler, ISearchBar searchBar)
 	{
 		if (handler.PlatformView == null) return;
-		var align = searchBar.HorizontalTextAlignment switch
+		// GTK4 SearchEntry implements Gtk.Editable; use xalign (0=left, 0.5=center, 1=right)
+		float xalign = searchBar.HorizontalTextAlignment switch
 		{
-			TextAlignment.Start => "left",
-			TextAlignment.Center => "center",
-			TextAlignment.End => "right",
-			_ => "left"
+			TextAlignment.Center => 0.5f,
+			TextAlignment.End => 1.0f,
+			_ => 0.0f
 		};
-		handler.ApplyCss(handler.PlatformView, $"text {{ text-align: {align}; }}");
+		((Gtk.Editable)handler.PlatformView).SetAlignment(xalign);
 	}
 
 	public static void MapIsReadOnly(SearchBarHandler handler, ISearchBar searchBar)
@@ -101,10 +113,11 @@ public class SearchBarHandler : GtkViewHandler<ISearchBar, Gtk.SearchEntry>
 
 	public static void MapMaxLength(SearchBarHandler handler, ISearchBar searchBar)
 	{
-		// GTK4 SearchEntry doesn't expose SetMaxLength; enforce via MaxWidthChars as a hint.
+		// GTK4 SearchEntry doesn't expose SetMaxLength directly.
+		// Enforce by clamping text in the OnSearchChanged handler.
+		// Store the max length so we can check it there.
 		if (handler.PlatformView == null) return;
-		if (searchBar.MaxLength > 0)
-			handler.PlatformView.SetMaxWidthChars(searchBar.MaxLength);
+		handler._maxLength = searchBar.MaxLength > 0 ? searchBar.MaxLength : int.MaxValue;
 	}
 
 	public static void MapPlaceholderColor(SearchBarHandler handler, ISearchBar searchBar)

@@ -162,5 +162,8 @@ public class CarouselIndicatorPage : ContentPage
 		};
 	}
 
-	record CarouselItem(string Title, string Description, Color Color);
+	record CarouselItem(string Title, string Description, Color Color)
+	{
+		public override string ToString() => $"{Title}\n{Description}";
+	}
 }

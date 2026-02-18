@@ -6,16 +6,17 @@ using Microsoft.Maui.Handlers;
 namespace Platform.Maui.Linux.Gtk4.Handlers;
 
 /// <summary>
-/// CarouselView handler. Renders items in a horizontal (or vertical) scrollable
-/// container with snap-to-item behavior. Backed by Gtk.ScrolledWindow + Gtk.Box.
+/// CarouselView handler using Gtk.Stack for one-item-at-a-time display
+/// with animated slide transitions. Navigation via swipe gesture,
+/// programmatic Position changes, or Prev/Next buttons.
 /// </summary>
-public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
+public class CarouselViewHandler : GtkViewHandler<IView, Gtk.Box>
 {
-	Gtk.Box? _itemsBox;
-	readonly List<Gtk.Widget> _itemWidgets = new();
+	Gtk.Stack? _stack;
+	readonly List<string> _childNames = new();
+	readonly List<object> _dataItems = new();
 	int _currentPosition;
 	bool _isVertical;
-	Gtk.Adjustment? _scrollAdj;
 
 	public static new IPropertyMapper<IView, CarouselViewHandler> Mapper =
 		new PropertyMapper<IView, CarouselViewHandler>(ViewHandler.ViewMapper)
@@ -33,56 +34,38 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 	public CarouselViewHandler() : base(Mapper) { }
 
-	protected override Gtk.ScrolledWindow CreatePlatformView()
+	protected override Gtk.Box CreatePlatformView()
 	{
-		var sw = Gtk.ScrolledWindow.New();
-		sw.SetVexpand(true);
-		sw.SetHexpand(true);
-		sw.SetSizeRequest(-1, 150);
-		// Hide scrollbar — navigation is via buttons/swipe/snap only
-		sw.SetPolicy(Gtk.PolicyType.External, Gtk.PolicyType.Never);
+		var outer = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+		outer.SetVexpand(true);
+		outer.SetHexpand(true);
 
-		_itemsBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 0);
-		// Do NOT use SetHomogeneous — we size each card to the full viewport
-		sw.SetChild(_itemsBox);
+		_stack = Gtk.Stack.New();
+		_stack.SetTransitionType(Gtk.StackTransitionType.SlideLeft);
+		_stack.SetTransitionDuration(250);
+		_stack.SetVexpand(true);
+		_stack.SetHexpand(true);
 
-		return sw;
+		outer.Append(_stack);
+		return outer;
 	}
 
-	protected override void ConnectHandler(Gtk.ScrolledWindow platformView)
+	protected override void ConnectHandler(Gtk.Box platformView)
 	{
 		base.ConnectHandler(platformView);
 
-		// Hook scroll adjustment for snap-to-item on scroll end
-		_scrollAdj = _isVertical ? platformView.GetVadjustment() : platformView.GetHadjustment();
-		if (_scrollAdj != null)
-			_scrollAdj.OnNotify += OnScrollChanged;
-
-		// Add swipe gesture for snap navigation
+		// Add swipe gesture for navigation
 		var swipe = Gtk.GestureSwipe.New();
 		swipe.OnSwipe += OnSwipe;
 		platformView.AddController(swipe);
 
-		// Populate on connect since ItemsSource may already be set
 		if (VirtualView is CarouselView cv)
 			PopulateItems(cv);
 	}
 
-	protected override void DisconnectHandler(Gtk.ScrolledWindow platformView)
-	{
-		if (_animTimerId != 0)
-		{
-			GLib.Functions.SourceRemove(_animTimerId);
-			_animTimerId = 0;
-		}
-		if (_scrollAdj != null)
-			_scrollAdj.OnNotify -= OnScrollChanged;
-		base.DisconnectHandler(platformView);
-	}
-
 	void OnSwipe(Gtk.GestureSwipe sender, Gtk.GestureSwipe.SwipeSignalArgs args)
 	{
-		if (_itemWidgets.Count == 0 || VirtualView is not CarouselView cv) return;
+		if (_childNames.Count == 0 || VirtualView is not CarouselView cv) return;
 
 		int newPos;
 		if (_isVertical)
@@ -91,52 +74,24 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			newPos = args.VelocityX < 0 ? _currentPosition + 1 : _currentPosition - 1;
 
 		if (cv.Loop)
-			newPos = ((newPos % _itemWidgets.Count) + _itemWidgets.Count) % _itemWidgets.Count;
+			newPos = ((newPos % _childNames.Count) + _childNames.Count) % _childNames.Count;
 		else
-			newPos = Math.Clamp(newPos, 0, _itemWidgets.Count - 1);
+			newPos = Math.Clamp(newPos, 0, _childNames.Count - 1);
 
 		if (newPos != _currentPosition)
 		{
+			// Set transition direction based on navigation
+			if (_stack != null)
+			{
+				bool forward = newPos > _currentPosition;
+				_stack.SetTransitionType(_isVertical
+					? (forward ? Gtk.StackTransitionType.SlideUp : Gtk.StackTransitionType.SlideDown)
+					: (forward ? Gtk.StackTransitionType.SlideLeft : Gtk.StackTransitionType.SlideRight));
+			}
 			_currentPosition = newPos;
 			cv.Position = newPos;
-			ScrollToPosition();
+			ShowCurrentPage();
 		}
-	}
-
-	uint _snapTimerId;
-	void OnScrollChanged(GObject.Object sender, GObject.Object.NotifySignalArgs args)
-	{
-		if (args.Pspec.GetName() != "value") return;
-		// Debounce: snap after scrolling stops
-		if (_snapTimerId != 0) return; // already scheduled
-		_snapTimerId = GLib.Functions.TimeoutAdd(0, 300, () =>
-		{
-			_snapTimerId = 0;
-			SnapToNearest();
-			return false;
-		});
-	}
-
-	void SnapToNearest()
-	{
-		if (_itemWidgets.Count == 0 || _scrollAdj == null) return;
-
-		double scrollPos = _scrollAdj.GetValue();
-		double itemSize = _isVertical
-			? (_itemWidgets[0].GetAllocatedHeight())
-			: (_itemWidgets[0].GetAllocatedWidth());
-		if (itemSize <= 0) return;
-
-		int nearest = (int)Math.Round(scrollPos / itemSize);
-		nearest = Math.Clamp(nearest, 0, _itemWidgets.Count - 1);
-
-		if (nearest != _currentPosition)
-		{
-			_currentPosition = nearest;
-			if (VirtualView is CarouselView cv)
-				cv.Position = nearest;
-		}
-		ScrollToPosition();
 	}
 
 	public static void MapItemsSource(CarouselViewHandler handler, IView view)
@@ -148,63 +103,64 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 	public static void MapPosition(CarouselViewHandler handler, IView view)
 	{
 		if (view is not CarouselView cv) return;
-		handler._currentPosition = cv.Position;
-		handler.ScrollToPosition();
+		int newPos = cv.Position;
+		if (newPos != handler._currentPosition && handler._stack != null)
+		{
+			bool forward = newPos > handler._currentPosition;
+			handler._stack.SetTransitionType(handler._isVertical
+				? (forward ? Gtk.StackTransitionType.SlideUp : Gtk.StackTransitionType.SlideDown)
+				: (forward ? Gtk.StackTransitionType.SlideLeft : Gtk.StackTransitionType.SlideRight));
+		}
+		handler._currentPosition = newPos;
+		handler.ShowCurrentPage();
 	}
 
-	public static void MapCurrentItem(CarouselViewHandler handler, IView view)
-	{
-		// Sync'd through Position
-	}
+	public static void MapCurrentItem(CarouselViewHandler handler, IView view) { }
 
 	public static void MapItemsLayout(CarouselViewHandler handler, IView view)
 	{
 		if (view is not CarouselView cv) return;
-		bool vertical = cv.ItemsLayout is LinearItemsLayout l && l.Orientation == ItemsLayoutOrientation.Vertical;
-		handler._isVertical = vertical;
-		handler._itemsBox?.SetOrientation(vertical ? Gtk.Orientation.Vertical : Gtk.Orientation.Horizontal);
-		handler.PlatformView.SetPolicy(
-			vertical ? Gtk.PolicyType.Never : Gtk.PolicyType.External,
-			vertical ? Gtk.PolicyType.External : Gtk.PolicyType.Never);
-		// Re-hook scroll adjustment for new orientation
-		if (handler._scrollAdj != null)
-			handler._scrollAdj.OnNotify -= handler.OnScrollChanged;
-		handler._scrollAdj = vertical ? handler.PlatformView.GetVadjustment() : handler.PlatformView.GetHadjustment();
-		if (handler._scrollAdj != null)
-			handler._scrollAdj.OnNotify += handler.OnScrollChanged;
+		handler._isVertical = cv.ItemsLayout is LinearItemsLayout l && l.Orientation == ItemsLayoutOrientation.Vertical;
 	}
 
 	public static void MapPeekAreaInsets(CarouselViewHandler handler, IView view)
 	{
-		if (view is not CarouselView cv) return;
+		if (view is not CarouselView cv || handler._stack == null) return;
 		var insets = cv.PeekAreaInsets;
-		handler._itemsBox?.SetMarginStart((int)insets.Left);
-		handler._itemsBox?.SetMarginEnd((int)insets.Right);
-		handler._itemsBox?.SetMarginTop((int)insets.Top);
-		handler._itemsBox?.SetMarginBottom((int)insets.Bottom);
+		handler._stack.SetMarginStart((int)insets.Left);
+		handler._stack.SetMarginEnd((int)insets.Right);
+		handler._stack.SetMarginTop((int)insets.Top);
+		handler._stack.SetMarginBottom((int)insets.Bottom);
 	}
 
-	public static void MapLoop(CarouselViewHandler handler, IView view) { /* stored on CarouselView, used by snap */ }
-	public static void MapIsBounceEnabled(CarouselViewHandler handler, IView view) { /* no-op */ }
-	public static void MapIsSwipeEnabled(CarouselViewHandler handler, IView view) { /* no-op */ }
+	public static void MapLoop(CarouselViewHandler handler, IView view) { }
+	public static void MapIsBounceEnabled(CarouselViewHandler handler, IView view) { }
+	public static void MapIsSwipeEnabled(CarouselViewHandler handler, IView view) { }
 
 	void PopulateItems(CarouselView cv)
 	{
-		if (_itemsBox == null) return;
+		if (_stack == null) return;
 
 		// Clear existing
-		foreach (var w in _itemWidgets)
-			_itemsBox.Remove(w);
-		_itemWidgets.Clear();
+		_childNames.Clear();
+		_dataItems.Clear();
+		while (_stack.GetFirstChild() is Gtk.Widget child)
+			_stack.Remove(child);
 
 		if (cv.ItemsSource is not IEnumerable items) return;
 
+		int idx = 0;
 		foreach (var item in items)
 		{
+			var name = $"page_{idx}";
+			_childNames.Add(name);
+			_dataItems.Add(item!);
+
 			var card = Gtk.Box.New(Gtk.Orientation.Vertical, 4);
 			card.SetVexpand(true);
+			card.SetHexpand(true);
 			card.SetHalign(Gtk.Align.Fill);
-			card.SetValign(Gtk.Align.Fill);
+			card.SetValign(Gtk.Align.Center);
 
 			var label = Gtk.Label.New(item?.ToString() ?? "");
 			label.SetWrap(true);
@@ -213,92 +169,18 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			label.SetHexpand(true);
 			card.Append(label);
 
-			_itemWidgets.Add(card);
-			_itemsBox.Append(card);
+			_stack.AddNamed(card, name);
+			idx++;
 		}
 
-		// Defer sizing until after GTK allocation pass
-		GLib.Functions.IdleAdd(0, () =>
-		{
-			ResizeCardsToViewport();
-			if (_currentPosition < _itemWidgets.Count)
-				ScrollToPosition(animate: false);
-			return false;
-		});
+		_currentPosition = Math.Clamp(cv.Position, 0, Math.Max(0, _childNames.Count - 1));
+		ShowCurrentPage();
 	}
 
-	void ResizeCardsToViewport()
+	void ShowCurrentPage()
 	{
-		if (_itemWidgets.Count == 0) return;
-
-		// Use the MAUI HeightRequest if set, otherwise the allocated size
-		int viewportWidth = PlatformView.GetAllocatedWidth();
-		int viewportHeight = PlatformView.GetAllocatedHeight();
-		if (viewportWidth <= 1) return; // Not allocated yet, will retry
-
-		foreach (var card in _itemWidgets)
-			card.SetSizeRequest(viewportWidth, Math.Max(viewportHeight, 100));
-	}
-
-	uint _animTimerId;
-
-	void ScrollToPosition(bool animate = true)
-	{
-		if (_currentPosition < 0 || _currentPosition >= _itemWidgets.Count || _scrollAdj == null)
-			return;
-
-		var target = _itemWidgets[_currentPosition];
-		double itemSize = _isVertical ? target.GetAllocatedHeight() : target.GetAllocatedWidth();
-		if (itemSize <= 0) { target.GrabFocus(); return; }
-
-		double targetScroll = _currentPosition * itemSize;
-
-		if (!animate)
-		{
-			_scrollAdj.SetValue(targetScroll);
-			return;
-		}
-
-		AnimateScrollTo(targetScroll);
-	}
-
-	void AnimateScrollTo(double target)
-	{
-		// Cancel any running animation
-		if (_animTimerId != 0)
-		{
-			GLib.Functions.SourceRemove(_animTimerId);
-			_animTimerId = 0;
-		}
-
-		if (_scrollAdj == null) return;
-
-		double start = _scrollAdj.GetValue();
-		double distance = target - start;
-		if (Math.Abs(distance) < 1)
-		{
-			_scrollAdj.SetValue(target);
-			return;
-		}
-
-		const int durationMs = 250;
-		const int stepMs = 16; // ~60fps
-		int elapsed = 0;
-
-		_animTimerId = GLib.Functions.TimeoutAdd(0, stepMs, () =>
-		{
-			elapsed += stepMs;
-			double t = Math.Min(1.0, (double)elapsed / durationMs);
-			// Ease-out cubic: 1 - (1-t)^3
-			double eased = 1.0 - Math.Pow(1.0 - t, 3);
-			_scrollAdj!.SetValue(start + distance * eased);
-
-			if (t >= 1.0)
-			{
-				_animTimerId = 0;
-				return false;
-			}
-			return true;
-		});
+		if (_stack == null || _childNames.Count == 0) return;
+		int pos = Math.Clamp(_currentPosition, 0, _childNames.Count - 1);
+		_stack.SetVisibleChildName(_childNames[pos]);
 	}
 }

@@ -27,6 +27,21 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			[nameof(IView.Clip)] = MapClip,
 			[nameof(IView.FlowDirection)] = MapFlowDirection,
 			[nameof(IView.ZIndex)] = MapZIndex,
+			// Transforms — needed for animations (TranslateTo, ScaleTo, RotateTo)
+			[nameof(IView.TranslationX)] = MapTransformProperty,
+			[nameof(IView.TranslationY)] = MapTransformProperty,
+			[nameof(IView.Scale)] = MapTransformProperty,
+			[nameof(IView.ScaleX)] = MapTransformProperty,
+			[nameof(IView.ScaleY)] = MapTransformProperty,
+			[nameof(IView.Rotation)] = MapTransformProperty,
+			[nameof(IView.RotationX)] = MapTransformProperty,
+			[nameof(IView.RotationY)] = MapTransformProperty,
+			[nameof(IView.AnchorX)] = MapTransformProperty,
+			[nameof(IView.AnchorY)] = MapTransformProperty,
+			// ToolTip
+			["ToolTipProperties.Text"] = MapToolTip,
+			// ContextFlyout
+			["ContextFlyout"] = MapContextFlyout,
 		};
 
 	protected GtkViewHandler(IPropertyMapper mapper, CommandMapper? commandMapper = null)
@@ -38,6 +53,7 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 	Gtk.GestureClick? _vsmClick;
 	Gtk.EventControllerFocus? _vsmFocus;
 	bool _isPointerOver;
+	Rect _lastArrangeRect;
 
 	protected override void ConnectHandler(TPlatformView platformView)
 	{
@@ -48,6 +64,7 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 
 	protected override void DisconnectHandler(TPlatformView platformView)
 	{
+		CleanupContextFlyout(platformView);
 		CleanupVisualStateTracking(platformView);
 		base.DisconnectHandler(platformView);
 	}
@@ -142,6 +159,7 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		if (platformView == null)
 			return;
 
+		_lastArrangeRect = rect;
 		platformView.SetSizeRequest((int)rect.Width, (int)rect.Height);
 
 		// Position the widget inside its parent GtkLayoutPanel (Gtk.Fixed)
@@ -500,6 +518,146 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			widget.InsertBefore(parent, insertBefore);
 		else
 			widget.InsertAfter(parent, null); // move to end (highest z)
+	}
+
+	/// <summary>
+	/// Re-applies Gsk.Transform when animation-driven transform properties change
+	/// (TranslationX/Y, Scale, Rotation, etc.).
+	/// </summary>
+	static void MapTransformProperty(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
+	{
+		var widget = handler.PlatformView;
+		if (widget == null) return;
+
+		if (widget.GetParent() is Platform.GtkLayoutPanel layoutPanel)
+		{
+			var rect = handler._lastArrangeRect;
+			if (rect.Width <= 0 || rect.Height <= 0) return;
+
+			bool hasTransform = view.Rotation != 0 ||
+				view.TranslationX != 0 || view.TranslationY != 0 ||
+				view.Scale != 1 || view.ScaleX != 1 || view.ScaleY != 1;
+
+			if (hasTransform)
+			{
+				layoutPanel.Move(widget, 0, 0);
+				handler.ApplyTransform(widget, layoutPanel, rect);
+			}
+			else
+			{
+				layoutPanel.SetChildTransform(widget, null);
+				layoutPanel.Move(widget, rect.X, rect.Y);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Maps ToolTipProperties.Text to Gtk.Widget.SetTooltipText().
+	/// </summary>
+	static void MapToolTip(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
+	{
+		var widget = handler.PlatformView;
+		if (widget == null) return;
+
+		string? tooltipText = null;
+		if (view is Microsoft.Maui.Controls.BindableObject bo)
+			tooltipText = Microsoft.Maui.Controls.ToolTipProperties.GetText(bo)?.ToString();
+
+		widget.SetTooltipText(string.IsNullOrEmpty(tooltipText) ? null : tooltipText);
+	}
+
+	Gtk.GestureClick? _contextGesture;
+	Gtk.PopoverMenu? _contextPopover;
+
+	/// <summary>
+	/// Maps FlyoutBase.ContextFlyout to a GTK4 right-click popup menu.
+	/// </summary>
+	static void MapContextFlyout(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
+	{
+		var widget = handler.PlatformView;
+		if (widget == null) return;
+
+		// Clean up previous context menu
+		handler.CleanupContextFlyout(widget);
+
+		Microsoft.Maui.Controls.FlyoutBase? flyout = null;
+		if (view is Microsoft.Maui.Controls.BindableObject bo)
+			flyout = Microsoft.Maui.Controls.FlyoutBase.GetContextFlyout(bo);
+
+		if (flyout is not Microsoft.Maui.Controls.MenuFlyout menuFlyout || menuFlyout.Count == 0)
+			return;
+
+		handler.SetupContextFlyout(widget, menuFlyout);
+	}
+
+	void SetupContextFlyout(Gtk.Widget widget, Microsoft.Maui.Controls.MenuFlyout menuFlyout)
+	{
+		var menu = Gio.Menu.New();
+		var actionGroup = Gio.SimpleActionGroup.New();
+		int idx = 0;
+
+		foreach (var item in menuFlyout)
+		{
+			if (item is Microsoft.Maui.Controls.MenuFlyoutSeparator)
+			{
+				// Start a new section after separator
+				var section = Gio.Menu.New();
+				menu.AppendSection(null, section);
+				menu = section;
+				continue;
+			}
+
+			if (item is Microsoft.Maui.Controls.MenuFlyoutItem mfi)
+			{
+				var actionName = $"ctx{idx++}";
+				var action = Gio.SimpleAction.New(actionName, null);
+				var captured = mfi;
+				action.OnActivate += (_, _) =>
+				{
+					if (captured.Command?.CanExecute(captured.CommandParameter) == true)
+						captured.Command.Execute(captured.CommandParameter);
+					((Microsoft.Maui.Controls.IMenuItemController)captured).Activate();
+				};
+				actionGroup.AddAction(action);
+				menu.Append(mfi.Text ?? "", $"ctx.{actionName}");
+			}
+		}
+
+		widget.InsertActionGroup("ctx", actionGroup);
+
+		var topMenu = Gio.Menu.New();
+		topMenu.AppendSection(null, menu);
+
+		_contextPopover = Gtk.PopoverMenu.NewFromModel(topMenu);
+		_contextPopover.SetParent(widget);
+		_contextPopover.SetHasArrow(false);
+
+		_contextGesture = Gtk.GestureClick.New();
+		_contextGesture.SetButton(3); // right-click
+		_contextGesture.OnPressed += (sender, args) =>
+		{
+			if (_contextPopover == null) return;
+
+			var rect = new Gdk.Rectangle { X = (int)args.X, Y = (int)args.Y, Width = 1, Height = 1 };
+			_contextPopover.SetPointingTo(rect);
+			_contextPopover.Popup();
+		};
+		widget.AddController(_contextGesture);
+	}
+
+	void CleanupContextFlyout(Gtk.Widget widget)
+	{
+		if (_contextGesture != null)
+		{
+			widget.RemoveController(_contextGesture);
+			_contextGesture = null;
+		}
+		if (_contextPopover != null)
+		{
+			_contextPopover.Unparent();
+			_contextPopover = null;
+		}
+		widget.InsertActionGroup("ctx", null);
 	}
 }
 

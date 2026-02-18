@@ -213,8 +213,8 @@ Every handler must support these properties mapped from the base `IView`:
 - [x] Semantic properties — `MapSemantics` sets accessibility description
 
 ### Interactivity Attachments
-- [ ] **ToolTip** — `ToolTipProperties.Text` mapped to `Gtk.Widget.SetTooltipText()`
-- [ ] **ContextFlyout** — `FlyoutBase.GetContextFlyout()` → popup menu on right-click via `Gtk.PopoverMenu`
+- [x] **ToolTip** — `ToolTipProperties.Text` mapped to `Gtk.Widget.SetTooltipText()`
+- [x] **ContextFlyout** — `FlyoutBase.GetContextFlyout()` → popup menu on right-click via `Gtk.PopoverMenu`
 
 ---
 
@@ -242,7 +242,7 @@ Every handler must support these properties mapped from the base `IView`:
 | ✅ **IEmbeddedFontLoader** | Done | `FileSystemEmbeddedFontLoader` extracts fonts from assembly resources |
 | ✅ **Font loading** | Done | Registered via `fc-config` / Fontconfig for system-wide availability |
 | ✅ **Font properties** | Done | FontSize, FontFamily, FontAttributes applied to Label, Button, Entry, Editor, etc. |
-| ❌ **IFontNamedSizeService** | Not implemented | `DependencyService` registration mapping `NamedSize` enum (Default, Micro, Small, Medium, Large, Body, Header, Title, Subtitle, Caption) to platform pixel values. Required for XAML `FontSize="Title"` etc. |
+| ✅ **IFontNamedSizeService** | Done | `GtkFontNamedSizeService` registered via `DependencyService`. Maps `NamedSize` enum (Default=14, Micro=10, Small=12, Medium=14, Large=18, Body=14, Header=24, Title=20, Subtitle=16, Caption=12) |
 
 ---
 
@@ -356,16 +356,16 @@ FormattedText requires Pango markup rendering for rich text:
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| ❌ **PlatformTicker** | Not implemented | MAUI animations require `ITicker` registration to drive animation frames. Without it, `TranslateTo`, `FadeTo`, etc. silently no-op. Implement via `GLib.Functions.TimeoutAdd` at ~60fps |
-| ❌ **TranslateTo** | Not implemented | Animate TranslationX/TranslationY — requires PlatformTicker |
-| ❌ **FadeTo** | Not implemented | Animate Opacity — requires PlatformTicker |
-| ❌ **ScaleTo** | Not implemented | Animate Scale/ScaleX/ScaleY — requires PlatformTicker |
-| ❌ **RotateTo** | Not implemented | Animate Rotation — requires PlatformTicker |
-| ❌ **LayoutTo** | Not implemented | Animate layout bounds — requires PlatformTicker |
-| ❌ **Easing functions** | Not implemented | Map MAUI Easing types to animation interpolation |
-| ❌ **Animation class** | Not implemented | `new Animation(...)` with child animations, `Commit()`, `AbortAnimation()` |
+| ✅ **PlatformTicker** | Done | `GtkPlatformTicker` implements `ITicker` using `GLib.Functions.TimeoutAdd` at ~60fps. Registered as singleton in DI |
+| ✅ **TranslateTo** | Done | Works via PlatformTicker + MapTransformProperty re-applying Gsk.Transform |
+| ✅ **FadeTo** | Done | Works via PlatformTicker + MapOpacity |
+| ✅ **ScaleTo** | Done | Works via PlatformTicker + MapTransformProperty |
+| ✅ **RotateTo** | Done | Works via PlatformTicker + MapTransformProperty |
+| ✅ **LayoutTo** | Done | Works via PlatformTicker (cross-platform MAUI logic) |
+| ✅ **Easing functions** | Done | Cross-platform MAUI Easing (CubicInOut, SpringOut, etc.) — no platform code needed |
+| ✅ **Animation class** | Done | Cross-platform MAUI Animation class — no platform code needed |
 
-> Note: All MAUI animations flow through `IAnimationManager` → `ITicker`. Implementing just the `PlatformTicker` (using `GLib.Functions.TimeoutAdd` at 16ms/~60fps) should enable all animation APIs to work automatically since the animation logic is cross-platform in MAUI Controls.
+> All MAUI animations flow through `IAnimationManager` → `ITicker`. The `GtkPlatformTicker` drives the animation loop, and transform property mappers (`MapTransformProperty`) re-apply `Gsk.Transform` on each frame.
 
 ---
 
@@ -397,23 +397,19 @@ FormattedText requires Pango markup rendering for rich text:
 | **Gesture Recognizers** | 5 | 5 | 100% |
 | **Graphics** | 4 | 4 | 100% |
 | **Shapes** | 7 | 7 | 100% |
-| **Font Services** | 5 | 6 | 83% |
+| **Font Services** | 6 | 6 | 100% |
 | **WebView** | 6 | 6 | 100% |
 | **MenuBar** | 4 | 4 | 100% |
 | **Essentials** | 19 (+ 2 partial) | 26 | 81% |
-| **Base View Properties** | 19 | 21 | 90% |
+| **Base View Properties** | 21 | 21 | 100% |
 | **FormattedText/Spans** | 9 | 9 | 100% |
 | **VisualStateManager** | 6 | 6 | 100% |
-| **Animations** | 0 | 8 | 0% |
+| **Animations** | 8 | 8 | 100% |
 | **ControlTemplate** | 0 | 4 | 0% |
 
 ### Key Gaps (Priority Order)
-1. **Animations / PlatformTicker** — All MAUI animations (TranslateTo, FadeTo, ScaleTo, RotateTo) require an `ITicker` implementation. Single registration enables all animation APIs
-2. **ControlTemplate / ContentPresenter** — May affect RadioButton content rendering and custom templated controls. Needs verification
-3. **ToolTip** — `ToolTipProperties.Text` not mapped to `Gtk.Widget.SetTooltipText()`
-4. **ContextFlyout** — Right-click popup menus not implemented
-5. **IFontNamedSizeService** — XAML `FontSize="Title"` etc. won't resolve without this service
-6. **CollectionView** — Missing `INotifyCollectionChanged` live updates, `RemainingItemsThreshold` for incremental loading
-7. **ScrollView** — Missing `ScrollToAsync`, `Scrolled` event
-8. **Geolocation** — Basic GeoClue integration only, no continuous tracking
-9. **Web Authenticator** — Basic OAuth flow via system browser only
+1. **ControlTemplate / ContentPresenter** — May affect RadioButton content rendering and custom templated controls. Needs verification
+2. **CollectionView** — Missing `INotifyCollectionChanged` live updates, `RemainingItemsThreshold` for incremental loading
+3. **ScrollView** — Missing `ScrollToAsync`, `Scrolled` event
+4. **Geolocation** — Basic GeoClue integration only, no continuous tracking
+5. **Web Authenticator** — Basic OAuth flow via system browser only

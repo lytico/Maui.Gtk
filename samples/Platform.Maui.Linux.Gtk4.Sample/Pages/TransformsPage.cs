@@ -262,6 +262,18 @@ class TransformsPage : ContentPage
 					new Label { Text = "ZIndex (draw order)", FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 12, 0, 0) },
 					BuildZIndexDemo(),
 					new Label { Text = "Blue (Z=1) → Coral (Z=2) → Green (Z=3, on top)", FontSize = 11, TextColor = Colors.Gray },
+
+					// --- Animations ---
+					new Label { Text = "Animations (PlatformTicker)", FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 16, 0, 0) },
+					BuildAnimationsDemo(),
+
+					// --- ToolTip ---
+					new Label { Text = "ToolTip", FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 16, 0, 0) },
+					BuildToolTipDemo(),
+
+					// --- ContextFlyout (right-click menu) ---
+					new Label { Text = "ContextFlyout (right-click)", FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 16, 0, 0) },
+					BuildContextFlyoutDemo(),
 				}
 			}
 		};
@@ -340,5 +352,140 @@ class TransformsPage : ContentPage
 		AbsoluteLayout.SetLayoutBounds(b3, new Rect(60, 20, 80, 80));
 
 		return layout;
+	}
+
+	static View BuildAnimationsDemo()
+	{
+		var animBox = new BoxView
+		{
+			Color = Colors.DodgerBlue,
+			WidthRequest = 80,
+			HeightRequest = 80,
+			CornerRadius = 8,
+		};
+
+		var statusLabel = new Label { Text = "Tap a button to animate", FontSize = 12, TextColor = Colors.Gray };
+
+		var translateBtn = new Button { Text = "TranslateTo", BackgroundColor = Colors.CornflowerBlue, TextColor = Colors.White };
+		translateBtn.Clicked += async (s, e) =>
+		{
+			statusLabel.Text = "TranslateTo(100, 0) ...";
+			await animBox.TranslateTo(100, 0, 500, Easing.CubicInOut);
+			await animBox.TranslateTo(0, 0, 500, Easing.CubicInOut);
+			statusLabel.Text = "TranslateTo done ✅";
+		};
+
+		var fadeBtn = new Button { Text = "FadeTo", BackgroundColor = Colors.Coral, TextColor = Colors.White };
+		fadeBtn.Clicked += async (s, e) =>
+		{
+			statusLabel.Text = "FadeTo(0.2) ...";
+			await animBox.FadeTo(0.2, 500);
+			await animBox.FadeTo(1.0, 500);
+			statusLabel.Text = "FadeTo done ✅";
+		};
+
+		var scaleBtn = new Button { Text = "ScaleTo", BackgroundColor = Colors.MediumSeaGreen, TextColor = Colors.White };
+		scaleBtn.Clicked += async (s, e) =>
+		{
+			statusLabel.Text = "ScaleTo(1.5) ...";
+			await animBox.ScaleTo(1.5, 400, Easing.SpringOut);
+			await animBox.ScaleTo(1.0, 400, Easing.SpringIn);
+			statusLabel.Text = "ScaleTo done ✅";
+		};
+
+		var rotateBtn = new Button { Text = "RotateTo", BackgroundColor = Colors.Orchid, TextColor = Colors.White };
+		rotateBtn.Clicked += async (s, e) =>
+		{
+			statusLabel.Text = "RotateTo(360) ...";
+			animBox.Rotation = 0;
+			await animBox.RotateTo(360, 800, Easing.CubicInOut);
+			animBox.Rotation = 0;
+			statusLabel.Text = "RotateTo done ✅";
+		};
+
+		var allBtn = new Button { Text = "All Combined", BackgroundColor = Colors.DeepPink, TextColor = Colors.White };
+		allBtn.Clicked += async (s, e) =>
+		{
+			statusLabel.Text = "All animations ...";
+			await Task.WhenAll(
+				animBox.TranslateTo(60, -20, 600, Easing.CubicInOut),
+				animBox.ScaleTo(1.3, 600, Easing.CubicInOut),
+				animBox.RotateTo(180, 600, Easing.CubicInOut),
+				animBox.FadeTo(0.5, 600)
+			);
+			await Task.WhenAll(
+				animBox.TranslateTo(0, 0, 600, Easing.CubicInOut),
+				animBox.ScaleTo(1.0, 600, Easing.CubicInOut),
+				animBox.RotateTo(360, 600, Easing.CubicInOut),
+				animBox.FadeTo(1.0, 600)
+			);
+			animBox.Rotation = 0;
+			statusLabel.Text = "All animations done ✅";
+		};
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				animBox,
+				new HorizontalStackLayout
+				{
+					Spacing = 8,
+					Children = { translateBtn, fadeBtn, scaleBtn, rotateBtn, allBtn }
+				},
+				statusLabel,
+			}
+		};
+	}
+
+	static View BuildToolTipDemo()
+	{
+		var btn1 = new Button { Text = "Hover me!", BackgroundColor = Colors.SteelBlue, TextColor = Colors.White };
+		ToolTipProperties.SetText(btn1, "This is a ToolTip on a Button");
+
+		var label1 = new Label { Text = "Label with tooltip", FontSize = 14, Padding = new Thickness(8, 4), BackgroundColor = Colors.LightGoldenrodYellow };
+		ToolTipProperties.SetText(label1, "ToolTip on a Label — hover to see");
+
+		var entry1 = new Entry { Placeholder = "Entry with tooltip" };
+		ToolTipProperties.SetText(entry1, "Enter some text here");
+
+		return new HorizontalStackLayout { Spacing = 12, Children = { btn1, label1, entry1 } };
+	}
+
+	static View BuildContextFlyoutDemo()
+	{
+		var resultLabel = new Label { Text = "Right-click the box below:", FontSize = 12, TextColor = Colors.Gray };
+
+		var box = new BoxView
+		{
+			Color = Colors.SlateBlue,
+			WidthRequest = 150,
+			HeightRequest = 80,
+			CornerRadius = 8,
+		};
+
+		var flyout = new MenuFlyout
+		{
+			new MenuFlyoutItem { Text = "Cut" },
+			new MenuFlyoutItem { Text = "Copy" },
+			new MenuFlyoutItem { Text = "Paste" },
+			new MenuFlyoutSeparator(),
+			new MenuFlyoutItem { Text = "Delete" },
+		};
+
+		foreach (var item in flyout.OfType<MenuFlyoutItem>())
+		{
+			var captured = item;
+			item.Clicked += (s, e) => resultLabel.Text = $"Selected: {captured.Text} ✅";
+		}
+
+		FlyoutBase.SetContextFlyout(box, flyout);
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children = { resultLabel, box, new Label { Text = "Right-click the purple box for a context menu", FontSize = 11, TextColor = Colors.Gray } }
+		};
 	}
 }

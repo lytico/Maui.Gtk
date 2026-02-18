@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui;
+using Microsoft.Maui.Animations;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Microsoft.Maui.Hosting;
@@ -113,6 +114,12 @@ public static partial class AppHostBuilderExtensions
 		builder.Services.AddSingleton<GtkFontManager>();
 		builder.Services.AddSingleton<IGtkFontManager>(svc => svc.GetRequiredService<GtkFontManager>());
 		builder.Services.AddSingleton<IFontManager>(svc => svc.GetRequiredService<GtkFontManager>());
+
+		// Animation ticker — drives all MAUI animations (TranslateTo, FadeTo, etc.)
+		builder.Services.AddSingleton<ITicker>(svc => new GtkPlatformTicker());
+
+		// Named font sizes (FontSize="Title", etc.)
+		Microsoft.Maui.Controls.DependencyService.Register<Microsoft.Maui.Controls.Internals.IFontNamedSizeService, GtkFontNamedSizeService>();
 
 		builder.ConfigureMauiHandlers(handlers =>
 		{

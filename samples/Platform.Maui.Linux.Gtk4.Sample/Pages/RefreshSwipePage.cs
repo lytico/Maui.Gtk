@@ -113,6 +113,8 @@ public class RefreshSwipePage : ContentPage
 					BuildPointerGestureDemo(),
 					new BoxView { HeightRequest = 16 },
 					BuildSwipeGestureDemo(),
+					new BoxView { HeightRequest = 16 },
+					BuildPinchGestureDemo(),
 				}
 			}
 		};
@@ -241,6 +243,58 @@ public class RefreshSwipePage : ContentPage
 				directionLabel,
 				resultLabel,
 				swipeBox,
+			}
+		};
+	}
+
+	static View BuildPinchGestureDemo()
+	{
+		var scaleLabel = new Label { Text = "Scale: 1.00x", FontSize = 14 };
+		var statusLabel = new Label { Text = "Use trackpad pinch or Ctrl+scroll to zoom", FontSize = 12, TextColor = Colors.Gray };
+
+		var target = new BoxView
+		{
+			Color = Colors.MediumSlateBlue,
+			WidthRequest = 100,
+			HeightRequest = 100,
+			HorizontalOptions = LayoutOptions.Center,
+		};
+
+		double currentScale = 1.0;
+		var pinch = new PinchGestureRecognizer();
+		pinch.PinchUpdated += (s, e) =>
+		{
+			switch (e.Status)
+			{
+				case GestureStatus.Started:
+					statusLabel.Text = "Pinching...";
+					break;
+				case GestureStatus.Running:
+					currentScale = e.Scale;
+					target.Scale = Math.Clamp(currentScale, 0.3, 3.0);
+					scaleLabel.Text = $"Scale: {target.Scale:F2}x";
+					break;
+				case GestureStatus.Completed:
+					statusLabel.Text = $"Pinch complete at {target.Scale:F2}x";
+					break;
+				case GestureStatus.Canceled:
+					statusLabel.Text = "Pinch canceled";
+					target.Scale = 1.0;
+					scaleLabel.Text = "Scale: 1.00x";
+					break;
+			}
+		};
+		target.GestureRecognizers.Add(pinch);
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "Pinch Gesture", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				scaleLabel,
+				statusLabel,
+				target,
 			}
 		};
 	}

@@ -33,6 +33,9 @@ break;
 case Microsoft.Maui.Controls.SwipeGestureRecognizer swipeRecognizer:
 AttachSwipeGesture(widget, swipeRecognizer);
 break;
+case Microsoft.Maui.Controls.PinchGestureRecognizer pinchRecognizer:
+AttachPinchGesture(widget, pinchRecognizer);
+break;
 }
 }
 }
@@ -151,6 +154,35 @@ direction = vy > 0 ? SwipeDirection.Down : SwipeDirection.Up;
 if (recognizer.Direction.HasFlag(direction))
 recognizer.SendSwiped(mauiView, direction);
 };
+widget.AddController(gesture);
+}
+
+private static void AttachPinchGesture(Gtk.Widget widget, Microsoft.Maui.Controls.PinchGestureRecognizer recognizer)
+{
+var gesture = Gtk.GestureZoom.New();
+var controller = (Microsoft.Maui.Controls.IPinchGestureController)recognizer;
+double startScale = 1.0;
+var sender = recognizer.Parent as Microsoft.Maui.Controls.Element ?? recognizer;
+
+gesture.OnBegin += (_, _) =>
+{
+startScale = gesture.GetScaleDelta();
+if (startScale <= 0) startScale = 1.0;
+controller.SendPinchStarted(sender, new Point(0, 0));
+};
+gesture.OnScaleChanged += (_, args) =>
+{
+controller.SendPinch(sender, args.Scale / startScale, new Point(0, 0));
+};
+gesture.OnEnd += (_, _) =>
+{
+controller.SendPinchEnded(sender);
+};
+gesture.OnCancel += (_, _) =>
+{
+controller.SendPinchCanceled(sender);
+};
+
 widget.AddController(gesture);
 }
 }

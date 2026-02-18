@@ -145,7 +145,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | ✅ **TapGestureRecognizer** | Done | `Gtk.GestureClick` — single/double tap, Command, Tapped event |
 | ✅ **PanGestureRecognizer** | Done | `Gtk.GestureDrag` — PanUpdated with StatusType, TotalX/TotalY |
 | ✅ **SwipeGestureRecognizer** | Done | `Gtk.GestureSwipe` — velocity-based direction detection (Left/Right/Up/Down) |
-| ❌ **PinchGestureRecognizer** | Missing | Pinch zoom not implemented |
+| ✅ **PinchGestureRecognizer** | Done | `Gtk.GestureZoom` — scale delta tracking via `IPinchGestureController` |
 | ✅ **PointerGestureRecognizer** | Done | `Gtk.EventControllerMotion` + `Gtk.GestureClick` — Enter/Move/Exit/Press/Release + Commands |
 
 ---
@@ -359,7 +359,7 @@ FormattedText requires Pango markup rendering for rich text:
 | **Collection Controls** | 4 (+ 3 partial) | 7 | 57-100% |
 | **Navigation** | 5 | 5 | 100% |
 | **Alerts & Dialogs** | 4 | 4 | 100% |
-| **Gesture Recognizers** | 4 | 5 | 80% |
+| **Gesture Recognizers** | 5 | 5 | 100% |
 | **Graphics** | 4 | 4 | 100% |
 | **Shapes** | 7 | 7 | 100% |
 | **Font Services** | 5 | 5 | 100% |
@@ -371,7 +371,6 @@ FormattedText requires Pango markup rendering for rich text:
 | **VisualStateManager** | 6 | 6 | 100% |
 
 ### Key Gaps (Priority Order)
-1. **PinchGestureRecognizer** — Pinch zoom not implemented (uncommon on desktop)
-2. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)
-3. **CollectionView** — Grouping and virtualization not yet implemented
-4. **CarouselView** — Snap navigation, Loop, PeekAreaInsets not yet implemented
+1. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)
+2. **CollectionView** — Virtualization not yet implemented
+3. **CarouselView** — Snap navigation, Loop, PeekAreaInsets not yet implemented

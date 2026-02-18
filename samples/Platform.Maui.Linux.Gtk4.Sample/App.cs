@@ -26,6 +26,7 @@ class MainShell : FlyoutPage
 		("📐 Flex & Absolute", () => new LayoutsAdvancedPage()),
 		("🔤 FormattedText", () => new FormattedTextPage()),
 		("🔷 Shapes", () => new ShapesPage()),
+		("🔄 Transforms & Effects", () => new TransformsPage()),
 		("💬 Alerts & Dialogs", () => new AlertsPage()),
 		("📋 Collection View", () => new CollectionViewPage()),
 		("✏️ Text Input Styling", () => new TextInputStylingPage()),

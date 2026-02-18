@@ -7,6 +7,10 @@ internal static class GtkImageSourceLoader
 {
 	static readonly HttpClient HttpClient = new();
 
+	[System.Runtime.InteropServices.DllImport("libcairo.so.2")]
+	static extern int cairo_surface_write_to_png(nint surface,
+		[System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPUTF8Str)] string filename);
+
 	public static async Task<Gdk.Texture?> LoadTextureAsync(IImageSource? source, CancellationToken cancellationToken)
 	{
 		if (source == null)
@@ -29,21 +33,18 @@ internal static class GtkImageSourceLoader
 			return null;
 
 		var size = fontSource.Font.Size > 0 ? fontSource.Font.Size : 24;
-		var pixelSize = (int)(size * 1.4); // account for glyph metrics
-		int surfaceSize = Math.Max(pixelSize + 4, 16); // padding for descenders
+		var pixelSize = (int)(size * 1.4);
+		int surfaceSize = Math.Max(pixelSize + 4, 16);
 
-		// Create Cairo surface and render the glyph via Pango
 		var surface = new Cairo.ImageSurface(Cairo.Format.Argb32, surfaceSize, surfaceSize);
 		var cr = new Cairo.Context(surface);
 
-		// Set the glyph color
 		var color = fontSource.Color;
 		if (color != null)
 			Cairo.Internal.Context.SetSourceRgba(cr.Handle, color.Red, color.Green, color.Blue, color.Alpha);
 		else
 			Cairo.Internal.Context.SetSourceRgba(cr.Handle, 0, 0, 0, 1);
 
-		// Create Pango layout with the font
 		var layout = PangoCairo.Functions.CreateLayout(cr);
 		var fontDesc = Pango.FontDescription.New();
 
@@ -55,33 +56,32 @@ internal static class GtkImageSourceLoader
 		layout.SetFontDescription(fontDesc);
 		layout.SetText(glyph, -1);
 
-		// Center the glyph in the surface
 		layout.GetPixelSize(out int textW, out int textH);
 		double offsetX = (surfaceSize - textW) / 2.0;
 		double offsetY = (surfaceSize - textH) / 2.0;
 		Cairo.Internal.Context.MoveTo(cr.Handle, offsetX, offsetY);
 
 		PangoCairo.Functions.ShowLayout(cr, layout);
-
-		// Flush surface and read pixel data
 		Cairo.Internal.Surface.Flush(surface.Handle);
 
-		var data = surface.GetData();
-		if (data.IsEmpty)
+		// Render to PNG and load as Gdk.Texture (MemoryTextureBuilder has
+		// issues in GirCore 0.7.0, so we use cairo_surface_write_to_png)
+		var tmpPath = Path.Combine(Path.GetTempPath(), $"maui_font_{Guid.NewGuid():N}.png");
+		try
+		{
+			cairo_surface_write_to_png(surface.Handle.DangerousGetHandle(), tmpPath);
+			cr.Dispose();
+			surface.Dispose();
+			return Gdk.Texture.NewFromFilename(tmpPath);
+		}
+		catch
+		{
 			return null;
-
-		// Cairo ARGB32 = Gdk A8R8G8B8 premultiplied (native byte order)
-		var glibBytes = GLib.Bytes.New(data);
-		int stride = surface.Stride;
-
-		var builder = Gdk.MemoryTextureBuilder.New();
-		builder.SetWidth(surfaceSize);
-		builder.SetHeight(surfaceSize);
-		builder.SetFormat(Gdk.MemoryFormat.A8r8g8b8Premultiplied);
-		builder.SetBytes(glibBytes);
-		builder.SetStride((uint)stride);
-
-		return builder.Build();
+		}
+		finally
+		{
+			try { File.Delete(tmpPath); } catch { }
+		}
 	}
 
 	static Task<Gdk.Texture?> LoadFromFileAsync(IFileImageSource fileSource, CancellationToken cancellationToken)

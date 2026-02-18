@@ -101,7 +101,10 @@ public class RefreshSwipePage : ContentPage
 
 	void LoadItems()
 	{
-		_itemsStack.Children.Clear();
+		// Remove children in reverse to avoid index-out-of-range during layout updates
+		for (int i = _itemsStack.Children.Count - 1; i >= 0; i--)
+			_itemsStack.Children.RemoveAt(i);
+
 		var rng = new Random();
 		for (int i = 1; i <= 15; i++)
 		{

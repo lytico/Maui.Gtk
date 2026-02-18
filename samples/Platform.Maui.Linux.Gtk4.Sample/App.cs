@@ -23,6 +23,7 @@ class MainShell : FlyoutPage
 		("🎛️ Controls", () => new ControlsPage()),
 		("📅 Pickers & Search", () => new PickersPage()),
 		("📐 Layouts", () => new LayoutsPage()),
+		("📐 Flex & Absolute", () => new LayoutsAdvancedPage()),
 		("💬 Alerts & Dialogs", () => new AlertsPage()),
 		("📋 Collection View", () => new CollectionViewPage()),
 		("✏️ Text Input Styling", () => new TextInputStylingPage()),

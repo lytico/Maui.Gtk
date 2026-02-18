@@ -58,8 +58,8 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | ✅ **VerticalStackLayout** | Done | `GtkLayoutPanel` with vertical `CrossPlatformMeasure`/`CrossPlatformArrange` |
 | ✅ **HorizontalStackLayout** | Done | `GtkLayoutPanel` with horizontal layout |
 | ✅ **Grid** | Done | Row/column definitions (Absolute, Star, Auto), spans, spacing |
-| ❌ **FlexLayout** | Missing | No handler — needs `Gtk.FlowBox` or custom layout |
-| ❌ **AbsoluteLayout** | Missing | No handler — needs custom `Gtk.Fixed`-based positioning |
+| ✅ **FlexLayout** | Done | Handled by generic `LayoutHandler` — MAUI cross-platform layout engine does measure/arrange |
+| ✅ **AbsoluteLayout** | Done | Handled by generic `LayoutHandler` — absolute and proportional positioning |
 | ✅ **ScrollView** | Done | `Gtk.ScrolledWindow` with orientation support |
 | ✅ **ContentView** | Done | Simple content wrapper |
 | ✅ **Border** | Done | Stroke, StrokeThickness, StrokeShape, padding, content via Cairo/CSS |
@@ -353,7 +353,7 @@ FormattedText requires Pango markup rendering for rich text:
 |----------|-------------|-------|----------|
 | **Core Infrastructure** | 10 | 10 | 100% |
 | **Pages** | 5 | 5 | 100% |
-| **Layouts** | 7 | 9 | 78% |
+| **Layouts** | 9 | 9 | 100% |
 | **Basic Controls** | 14 | 14 | 100% |
 | **Input Controls** | 4 | 4 | 100% |
 | **Collection Controls** | 4 (+ 3 partial) | 7 | 57-100% |
@@ -373,9 +373,8 @@ FormattedText requires Pango markup rendering for rich text:
 ### Key Gaps (Priority Order)
 1. **FormattedText/Spans** — Pango markup support for Label (straightforward)
 2. **Transforms** — TranslationX/Y, Rotation, Scale via GTK CSS transforms
-3. **FlexLayout / AbsoluteLayout** — Missing layout handlers
-4. **Shape rendering** — Handlers registered but Cairo geometry incomplete
-5. **CollectionView ItemTemplate** — Currently uses `ToString()`, needs DataTemplate rendering
-6. **Gesture recognizers** — Swipe and Pinch missing
-7. **Shadow / Clip** — Not mapped
-8. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing
+3. **Shape rendering** — Handlers registered but Cairo geometry incomplete
+4. **CollectionView ItemTemplate** — Currently uses `ToString()`, needs DataTemplate rendering
+5. **Gesture recognizers** — Swipe and Pinch missing
+6. **Shadow / Clip** — Not mapped
+7. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing

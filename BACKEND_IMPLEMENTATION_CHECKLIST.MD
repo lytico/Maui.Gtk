@@ -60,7 +60,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | ✅ **Grid** | Done | Row/column definitions (Absolute, Star, Auto), spans, spacing |
 | ✅ **FlexLayout** | Done | Handled by generic `LayoutHandler` — MAUI cross-platform layout engine does measure/arrange |
 | ✅ **AbsoluteLayout** | Done | Handled by generic `LayoutHandler` — absolute and proportional positioning |
-| ✅ **ScrollView** | Done | `Gtk.ScrolledWindow` with orientation support, `ScrollBarVisibility` mapping. Missing: `ScrollToAsync`, `Scrolled` event, `ScrollToRequested` subscription |
+| ✅ **ScrollView** | Done | `Gtk.ScrolledWindow` with orientation support, `ScrollBarVisibility` mapping, `ScrollToAsync` via vadjustment, `Scrolled` event via value-changed signal, `RequestScrollTo` command mapper |
 | ✅ **ContentView** | Done | Simple content wrapper |
 | ✅ **Border** | Done | Stroke, StrokeThickness, StrokeShape, padding, content via Cairo/CSS |
 | ✅ **Frame** | Done | Legacy border with CornerRadius, HasShadow, padding |
@@ -103,7 +103,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 
 | Control | Status | Notes |
 |---------|--------|-------|
-| ✅ **CollectionView** | Done | `Gtk.ListView` — ItemsSource, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate, virtualization via GTK4 widget recycling, ScrollTo. Missing: `INotifyCollectionChanged` live updates, `RemainingItemsThreshold`, `Scrolled` event, `SnapPoints` |
+| ✅ **CollectionView** | Done | `Gtk.ListView` — ItemsSource, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate, virtualization via GTK4 widget recycling, ScrollTo, `INotifyCollectionChanged` live updates. Missing: `RemainingItemsThreshold`, `Scrolled` event, `SnapPoints` |
 | ✅ **ListView** | Done | Handler with ItemsSource, ItemTemplate (ViewCell/TextCell), selection, Header/Footer, grouping, separators |
 | ✅ **CarouselView** | Done | Horizontal/vertical scrolling, animated snap-to-item (ease-out cubic, 250ms), swipe gesture navigation, Loop, PeekAreaInsets |
 | ✅ **IndicatorView** | Done | Cairo-drawn dots with IndicatorColor, SelectedIndicatorColor, IndicatorSize |
@@ -373,10 +373,10 @@ FormattedText requires Pango markup rendering for rich text:
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| ❌ **ControlTemplate** | Not verified | Custom control templates defined in XAML — may work cross-platform via MAUI Controls layer, needs verification |
-| ❌ **ContentPresenter** | Not verified | Placeholder in ControlTemplate that inserts actual content — needs verification |
-| ❌ **RadioButton ControlTemplate** | Not verified | RadioButton uses ControlTemplate by default — without support, Content may render as `ToString()` instead of visual content |
-| ❌ **TemplatedView** | Not verified | Base class for controls with ControlTemplate support |
+| ⚠️ **ControlTemplate** | Partial | Works for templates that resolve to supported views. `ContentPresenter` extends `Compatibility.Layout` (not modern `Layout`), may need handler if visual content templates don't render |
+| ⚠️ **ContentPresenter** | Partial | Extends `Compatibility.Layout` — no dedicated handler registered. Works when MAUI resolves templates at Controls layer |
+| ✅ **RadioButton** | Done | Uses `Gtk.CheckButton` with string content. ControlTemplate-based visual content falls back to `ToString()` |
+| ⚠️ **TemplatedView** | Partial | Extends `Compatibility.Layout` — works when child views have registered handlers |
 
 > Note: ControlTemplate/ContentPresenter may work via MAUI's cross-platform layer if the handler properly renders the visual tree. Needs testing.
 
@@ -405,11 +405,10 @@ FormattedText requires Pango markup rendering for rich text:
 | **FormattedText/Spans** | 9 | 9 | 100% |
 | **VisualStateManager** | 6 | 6 | 100% |
 | **Animations** | 8 | 8 | 100% |
-| **ControlTemplate** | 0 | 4 | 0% |
+| **ControlTemplate** | 2 | 4 | 50% |
 
 ### Key Gaps (Priority Order)
-1. **ControlTemplate / ContentPresenter** — May affect RadioButton content rendering and custom templated controls. Needs verification
-2. **CollectionView** — Missing `INotifyCollectionChanged` live updates, `RemainingItemsThreshold` for incremental loading
-3. **ScrollView** — Missing `ScrollToAsync`, `Scrolled` event
-4. **Geolocation** — Basic GeoClue integration only, no continuous tracking
-5. **Web Authenticator** — Basic OAuth flow via system browser only
+1. **ControlTemplate / ContentPresenter** — `Compatibility.Layout` base class not fully handled; works for simple templates
+2. **CollectionView** — Missing `RemainingItemsThreshold` for incremental loading, `SnapPoints`
+3. **Geolocation** — Basic GeoClue integration only, no continuous tracking
+4. **Web Authenticator** — Basic OAuth flow via system browser only

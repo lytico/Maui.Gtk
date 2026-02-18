@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Specialized;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Handlers;
@@ -23,6 +24,7 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 	readonly List<Gtk.Widget> _templateWidgets = [];
 	readonly HashSet<int> _groupHeaderIndices = [];
 	bool _updatingSelection;
+	INotifyCollectionChanged? _observedCollection;
 
 	public static new IPropertyMapper<IView, CollectionViewHandler> Mapper =
 		new PropertyMapper<IView, CollectionViewHandler>(ViewHandler.ViewMapper)
@@ -538,6 +540,8 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		if (VirtualView is CollectionView cv)
 			cv.ScrollToRequested -= OnScrollToRequested;
 
+		UnhookCollectionChanged();
+
 		base.DisconnectHandler(platformView);
 	}
 
@@ -704,6 +708,33 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 		handler.UpdateDisplayedChild(collectionView);
 		MapSelectedItem(handler, view);
+
+		// Subscribe to INotifyCollectionChanged for live updates
+		handler.UnhookCollectionChanged();
+		if (collectionView.ItemsSource is INotifyCollectionChanged incc)
+		{
+			handler._observedCollection = incc;
+			incc.CollectionChanged += handler.OnCollectionChanged;
+		}
+	}
+
+	void UnhookCollectionChanged()
+	{
+		if (_observedCollection != null)
+		{
+			_observedCollection.CollectionChanged -= OnCollectionChanged;
+			_observedCollection = null;
+		}
+	}
+
+	void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+	{
+		if (VirtualView is not CollectionView collectionView)
+			return;
+
+		// For simplicity and correctness with grouped/template scenarios,
+		// do a full reload on any change. The batch StringList.New() makes this fast.
+		MapItemsSource(this, collectionView);
 	}
 
 	public static void MapSelectionMode(CollectionViewHandler handler, IView view)

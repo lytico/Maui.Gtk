@@ -9,7 +9,6 @@ public class CollectionViewPage : ContentPage
 	{
 		Title = "CollectionView";
 
-		var tabs = new HorizontalStackLayout { Spacing = 0 };
 		var contentArea = new VerticalStackLayout();
 
 		var pages = new (string title, Func<View> builder)[]
@@ -22,41 +21,24 @@ public class CollectionViewPage : ContentPage
 			("10K Virtual", BuildVirtualizedDemo),
 		};
 
-		Button? activeTab = null;
-		foreach (var (title, builder) in pages)
+		var picker = new Picker
 		{
-			var btn = new Button
-			{
-				Text = title,
-				FontSize = 13,
-				BackgroundColor = Colors.Transparent,
-				TextColor = Colors.Gray,
-				Padding = new Thickness(16, 8),
-			};
-			var capturedBuilder = builder;
-			btn.Clicked += (s, e) =>
-			{
-				if (activeTab != null)
-				{
-					activeTab.TextColor = Colors.Gray;
-					activeTab.BackgroundColor = Colors.Transparent;
-				}
-				btn.TextColor = Colors.Black;
-				btn.BackgroundColor = Colors.LightSkyBlue;
-				activeTab = btn;
+			Title = "Select example",
+			FontSize = 14,
+			HorizontalOptions = LayoutOptions.Start,
+		};
+		foreach (var (title, _) in pages)
+			picker.Items.Add(title);
 
-				contentArea.Children.Clear();
-				contentArea.Children.Add(capturedBuilder());
-			};
-			tabs.Children.Add(btn);
-		}
+		picker.SelectedIndexChanged += (s, e) =>
+		{
+			if (picker.SelectedIndex < 0) return;
+			contentArea.Children.Clear();
+			contentArea.Children.Add(pages[picker.SelectedIndex].builder());
+		};
 
-		// Activate first tab
-		var firstBtn = (Button)tabs.Children[0];
-		firstBtn.TextColor = Colors.Black;
-		firstBtn.BackgroundColor = Colors.LightSkyBlue;
-		activeTab = firstBtn;
-		contentArea.Children.Add(pages[0].builder());
+		// Activate first example
+		picker.SelectedIndex = 0;
 
 		Content = new VerticalStackLayout
 		{
@@ -66,8 +48,7 @@ public class CollectionViewPage : ContentPage
 			{
 				new Label { Text = "CollectionView", FontSize = 24, FontAttributes = FontAttributes.Bold },
 				new BoxView { HeightRequest = 2, Color = Colors.DodgerBlue },
-				tabs,
-				new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+				picker,
 				contentArea,
 			}
 		};

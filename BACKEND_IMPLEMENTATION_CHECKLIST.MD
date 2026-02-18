@@ -144,9 +144,9 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 |---------|--------|-------|
 | ✅ **TapGestureRecognizer** | Done | `Gtk.GestureClick` — single/double tap, Command, Tapped event |
 | ✅ **PanGestureRecognizer** | Done | `Gtk.GestureDrag` — PanUpdated with StatusType, TotalX/TotalY |
-| ❌ **SwipeGestureRecognizer** | Missing | Directional swipe detection not implemented |
+| ✅ **SwipeGestureRecognizer** | Done | `Gtk.GestureSwipe` — velocity-based direction detection (Left/Right/Up/Down) |
 | ❌ **PinchGestureRecognizer** | Missing | Pinch zoom not implemented |
-| ⚠️ **PointerGestureRecognizer** | Partial | `Gtk.EventControllerMotion` — PointerEntered/Exited. Missing: PointerMoved, Command |
+| ✅ **PointerGestureRecognizer** | Done | `Gtk.EventControllerMotion` + `Gtk.GestureClick` — Enter/Move/Exit/Press/Release + Commands |
 
 ---
 
@@ -158,7 +158,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | ✅ **GraphicsView** | Done | Cairo-backed IDrawable rendering via `Gtk.DrawingArea` |
 | ✅ **Canvas Operations** | Done | DrawLine, DrawRect, DrawEllipse, DrawPath, DrawString, FillRect, FillEllipse, FillPath |
 | ✅ **Canvas State** | Done | SaveState, RestoreState, Translate, Rotate, Scale |
-| ⚠️ **Brushes** | Partial | SolidColorBrush supported. Gradients not implemented |
+| ✅ **Brushes** | Done | SolidColorBrush, LinearGradientBrush (CSS linear-gradient), RadialGradientBrush (CSS radial-gradient) |
 
 ### Shapes
 | Shape | Status | Notes |
@@ -371,6 +371,7 @@ FormattedText requires Pango markup rendering for rich text:
 | **VisualStateManager** | 0 | 6 | 0% |
 
 ### Key Gaps (Priority Order)
-1. **Gesture recognizers** — Swipe and Pinch missing
+1. **PinchGestureRecognizer** — Pinch zoom not implemented
 2. **VisualStateManager** — GTK handles most states natively, but MAUI VSM integration missing
-3. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)
+3. **Shell GoToAsync** — Route-based navigation not implemented
+4. **ListView / TableView** — Missing handlers (CollectionView serves as alternative)

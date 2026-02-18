@@ -24,6 +24,7 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 	Gtk.Label? _footerLabel;
 	readonly List<object?> _items = [];
 	readonly List<Gtk.Widget> _templateWidgets = [];
+	readonly HashSet<int> _groupHeaderIndices = [];
 	bool _updatingSelection;
 
 	public static new IPropertyMapper<IView, CollectionViewHandler> Mapper =
@@ -143,7 +144,17 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			var listItem = (Gtk.ListItem)args.Object;
 			var label = (Gtk.Label)listItem.GetChild()!;
 			var item = (Gtk.StringObject)listItem.GetItem()!;
+			var idx = (int)listItem.GetPosition();
+
 			label.SetText(item.GetString());
+
+			// Style group headers differently
+			if (_groupHeaderIndices.Contains(idx))
+			{
+				var cssProvider = Gtk.CssProvider.New();
+				cssProvider.LoadFromString("label { font-weight: bold; font-size: 13px; }");
+				label.GetStyleContext().AddProvider(cssProvider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
+			}
 		};
 		return factory;
 	}
@@ -175,7 +186,20 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			if (idx < 0 || idx >= _items.Count) return;
 			var dataItem = _items[idx];
 
-			if (VirtualView is not CollectionView collectionView || collectionView.ItemTemplate == null)
+			if (VirtualView is not CollectionView collectionView)
+				return;
+
+			// Check if this is a group header
+			if (_groupHeaderIndices.Contains(idx))
+			{
+				var headerWidget = BuildGroupHeader(collectionView, dataItem);
+				_templateWidgets.Add(headerWidget);
+				box.SetSizeRequest(-1, 36);
+				box.Append(headerWidget);
+				return;
+			}
+
+			if (collectionView.ItemTemplate == null)
 				return;
 
 			try
@@ -211,6 +235,46 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			}
 		};
 		return factory;
+	}
+
+	Gtk.Widget BuildGroupHeader(CollectionView collectionView, object? groupData)
+	{
+		// Try GroupHeaderTemplate first
+		if (collectionView.GroupHeaderTemplate != null)
+		{
+			try
+			{
+				var content = collectionView.GroupHeaderTemplate.CreateContent();
+				if (content is View mauiView)
+				{
+					mauiView.BindingContext = groupData;
+					var widthConstraint = _listView?.GetAllocatedWidth() ?? 400;
+					if (widthConstraint <= 0) widthConstraint = 400;
+					var (widget, _) = BuildNativeFromTemplate(mauiView, widthConstraint);
+					return widget;
+				}
+			}
+			catch { }
+		}
+
+		// Default group header: bold label with separator
+		var headerBox = Gtk.Box.New(Gtk.Orientation.Vertical, 2);
+		headerBox.SetHexpand(true);
+
+		var label = Gtk.Label.New(groupData?.ToString() ?? "Group");
+		label.SetHalign(Gtk.Align.Start);
+		label.SetMarginStart(12);
+		label.SetMarginTop(8);
+		label.SetMarginBottom(4);
+		var cssProvider = Gtk.CssProvider.New();
+		cssProvider.LoadFromString("label { font-weight: bold; font-size: 13px; color: @theme_selected_bg_color; }");
+		label.GetStyleContext().AddProvider(cssProvider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
+		headerBox.Append(label);
+
+		var sep = Gtk.Separator.New(Gtk.Orientation.Horizontal);
+		headerBox.Append(sep);
+
+		return headerBox;
 	}
 
 	/// <summary>
@@ -561,15 +625,41 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			return;
 
 		handler._items.Clear();
+		handler._groupHeaderIndices.Clear();
 		while (handler._model.GetNItems() > 0)
 			handler._model.Remove(0);
 
 		if (collectionView.ItemsSource != null)
 		{
-			foreach (var item in collectionView.ItemsSource)
+			if (collectionView.IsGrouped)
 			{
-				handler._items.Add(item);
-				handler._model.Append(item?.ToString() ?? string.Empty);
+				// Each item in ItemsSource is a group (IEnumerable) with the group itself as header
+				foreach (var group in collectionView.ItemsSource)
+				{
+					// Add group header
+					int headerIdx = handler._items.Count;
+					handler._groupHeaderIndices.Add(headerIdx);
+					handler._items.Add(group);
+					handler._model.Append(group?.ToString() ?? "Group");
+
+					// Add group items
+					if (group is IEnumerable groupItems)
+					{
+						foreach (var item in groupItems)
+						{
+							handler._items.Add(item);
+							handler._model.Append(item?.ToString() ?? string.Empty);
+						}
+					}
+				}
+			}
+			else
+			{
+				foreach (var item in collectionView.ItemsSource)
+				{
+					handler._items.Add(item);
+					handler._model.Append(item?.ToString() ?? string.Empty);
+				}
 			}
 		}
 
@@ -738,7 +828,11 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 	public static void MapItemSizingStrategy(CollectionViewHandler handler, IView view) { }
 	public static void MapItemsUpdatingScrollMode(CollectionViewHandler handler, IView view) { }
-	public static void MapIsGrouped(CollectionViewHandler handler, IView view) { }
+	public static void MapIsGrouped(CollectionViewHandler handler, IView view)
+	{
+		// Grouping affects how ItemsSource is flattened — re-map items
+		MapItemsSource(handler, view);
+	}
 	public static void MapCanReorderItems(CollectionViewHandler handler, IView view) { }
 	public static void MapAccessibility(CollectionViewHandler handler, IView view) { }
 

@@ -103,7 +103,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 
 | Control | Status | Notes |
 |---------|--------|-------|
-| ⚠️ **CollectionView** | Partial | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering). Missing: grouping, virtualization |
+| ⚠️ **CollectionView** | Partial | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate. Missing: virtualization |
 | ❌ **ListView** | Missing | No handler — use CollectionView as alternative |
 | ⚠️ **CarouselView** | Partial | Horizontal/vertical scrolling with `Gtk.ScrolledWindow`. Missing: snap navigation, Loop, PeekAreaInsets |
 | ✅ **IndicatorView** | Done | Cairo-drawn dots with IndicatorColor, SelectedIndicatorColor, IndicatorSize |

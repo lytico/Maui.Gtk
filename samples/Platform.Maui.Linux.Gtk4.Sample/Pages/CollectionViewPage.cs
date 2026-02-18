@@ -18,6 +18,7 @@ public class CollectionViewPage : ContentPage
 			("Templated", BuildTemplatedList),
 			("Multi-Select", BuildMultiSelectList),
 			("CollectionView", BuildCollectionViewDemo),
+			("Grouped", BuildGroupedDemo),
 		};
 
 		Button? activeTab = null;
@@ -442,6 +443,76 @@ public class CollectionViewPage : ContentPage
 		};
 	}
 
+	// --- Tab 5: Grouped CollectionView ---
+
+	View BuildGroupedDemo()
+	{
+		var groups = new List<AnimalGroup>
+		{
+			new("🐱 Cats", ["Tabby", "Siamese", "Persian", "Maine Coon", "Bengal"]),
+			new("🐶 Dogs", ["Labrador", "Poodle", "Bulldog", "Beagle", "Husky"]),
+			new("🐦 Birds", ["Parrot", "Eagle", "Sparrow", "Penguin"]),
+			new("🐠 Fish", ["Goldfish", "Clownfish", "Salmon"]),
+		};
+
+		var cv = new CollectionView
+		{
+			ItemsSource = groups,
+			IsGrouped = true,
+			Header = "🐾 Grouped Animals",
+			Footer = $"{groups.Sum(g => g.Count)} animals in {groups.Count} groups",
+			HeightRequest = 400,
+			SelectionMode = SelectionMode.Single,
+			GroupHeaderTemplate = new DataTemplate(() =>
+			{
+				var label = new Label
+				{
+					FontSize = 15,
+					FontAttributes = FontAttributes.Bold,
+					TextColor = Colors.Teal,
+				};
+				label.SetBinding(Label.TextProperty, "Name");
+				return new VerticalStackLayout
+				{
+					Padding = new Thickness(8, 10, 8, 4),
+					Children = { label },
+				};
+			}),
+			ItemTemplate = new DataTemplate(() =>
+			{
+				var label = new Label { FontSize = 14 };
+				label.SetBinding(Label.TextProperty, ".");
+				return new VerticalStackLayout
+				{
+					Padding = new Thickness(24, 4),
+					Children = { label },
+				};
+			}),
+		};
+
+		var selectedLabel = new Label { Text = "Select an animal", FontSize = 14, TextColor = Colors.Gray };
+		cv.SelectionChanged += (s, e) =>
+		{
+			if (e.CurrentSelection.FirstOrDefault() is string animal)
+			{
+				selectedLabel.Text = $"Selected: {animal}";
+				selectedLabel.TextColor = Colors.Teal;
+			}
+		};
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "Grouped CollectionView", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "IsGrouped=true with GroupHeaderTemplate + ItemTemplate", FontSize = 12, TextColor = Colors.Gray },
+				selectedLabel,
+				cv,
+			}
+		};
+	}
+
 	static string GetDescription(int i) => (i % 5) switch
 	{
 		0 => "🔴 Important task",
@@ -450,4 +521,18 @@ public class CollectionViewPage : ContentPage
 		3 => "🟡 Pending review",
 		_ => "⚪ Backlog item",
 	};
+}
+
+/// <summary>
+/// A grouped list of animals for CollectionView grouping demo.
+/// Implements IList&lt;string&gt; so it works as both the group header and the group items.
+/// </summary>
+class AnimalGroup : List<string>
+{
+	public string Name { get; }
+	public AnimalGroup(string name, IEnumerable<string> items) : base(items)
+	{
+		Name = name;
+	}
+	public override string ToString() => Name;
 }

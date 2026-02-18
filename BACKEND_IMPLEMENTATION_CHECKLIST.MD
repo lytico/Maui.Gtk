@@ -60,7 +60,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | ✅ **Grid** | Done | Row/column definitions (Absolute, Star, Auto), spans, spacing |
 | ✅ **FlexLayout** | Done | Handled by generic `LayoutHandler` — MAUI cross-platform layout engine does measure/arrange |
 | ✅ **AbsoluteLayout** | Done | Handled by generic `LayoutHandler` — absolute and proportional positioning |
-| ✅ **ScrollView** | Done | `Gtk.ScrolledWindow` with orientation support |
+| ✅ **ScrollView** | Done | `Gtk.ScrolledWindow` with orientation support, `ScrollBarVisibility` mapping. Missing: `ScrollToAsync`, `Scrolled` event, `ScrollToRequested` subscription |
 | ✅ **ContentView** | Done | Simple content wrapper |
 | ✅ **Border** | Done | Stroke, StrokeThickness, StrokeShape, padding, content via Cairo/CSS |
 | ✅ **Frame** | Done | Legacy border with CornerRadius, HasShadow, padding |
@@ -103,7 +103,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 
 | Control | Status | Notes |
 |---------|--------|-------|
-| ✅ **CollectionView** | Done | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate, virtualization via GTK4 widget recycling (OnSetup/OnBind/OnUnbind/OnTeardown) |
+| ✅ **CollectionView** | Done | `Gtk.ListView` — ItemsSource, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate, virtualization via GTK4 widget recycling, ScrollTo. Missing: `INotifyCollectionChanged` live updates, `RemainingItemsThreshold`, `Scrolled` event, `SnapPoints` |
 | ✅ **ListView** | Done | Handler with ItemsSource, ItemTemplate (ViewCell/TextCell), selection, Header/Footer, grouping, separators |
 | ✅ **CarouselView** | Done | Horizontal/vertical scrolling, animated snap-to-item (ease-out cubic, 250ms), swipe gesture navigation, Loop, PeekAreaInsets |
 | ✅ **IndicatorView** | Done | Cairo-drawn dots with IndicatorColor, SelectedIndicatorColor, IndicatorSize |
@@ -212,8 +212,9 @@ Every handler must support these properties mapped from the base `IView`:
 - [x] AutomationId — `MapAutomationId` sets accessible name
 - [x] Semantic properties — `MapSemantics` sets accessibility description
 
-### Transitions/Animation
-- [x] GTK CSS transitions — CSS `transition` on background-color, opacity, box-shadow, border-radius, color (200ms ease)
+### Interactivity Attachments
+- [ ] **ToolTip** — `ToolTipProperties.Text` mapped to `Gtk.Widget.SetTooltipText()`
+- [ ] **ContextFlyout** — `FlyoutBase.GetContextFlyout()` → popup menu on right-click via `Gtk.PopoverMenu`
 
 ---
 
@@ -241,6 +242,7 @@ Every handler must support these properties mapped from the base `IView`:
 | ✅ **IEmbeddedFontLoader** | Done | `FileSystemEmbeddedFontLoader` extracts fonts from assembly resources |
 | ✅ **Font loading** | Done | Registered via `fc-config` / Fontconfig for system-wide availability |
 | ✅ **Font properties** | Done | FontSize, FontFamily, FontAttributes applied to Label, Button, Entry, Editor, etc. |
+| ❌ **IFontNamedSizeService** | Not implemented | `DependencyService` registration mapping `NamedSize` enum (Default, Micro, Small, Medium, Large, Body, Header, Title, Subtitle, Caption) to platform pixel values. Required for XAML `FontSize="Title"` etc. |
 
 ---
 
@@ -334,6 +336,9 @@ FormattedText requires Pango markup rendering for rich text:
 
 > `MenuBar` rendered via `GtkMenuBarManager` — integrates with `Gtk.Window` action groups. NavigationPage propagates `Page.MenuBarItems` to the window on navigation.
 
+### Transitions/Animation
+- [x] GTK CSS transitions — CSS `transition` on background-color, opacity, box-shadow, border-radius, color (200ms ease)
+
 ---
 
 ## 20. Lifecycle Events
@@ -344,6 +349,36 @@ FormattedText requires Pango markup rendering for rich text:
 | ✅ **OnMauiApplicationCreated** | Done | Access to `Gtk.Application` instance |
 | ✅ **App icon** | Done | Hicolor icon theme integration via MauiIcon build targets |
 | ✅ **Desktop entry** | Done | `.desktop` file generation via `GtkDesktopIntegration` |
+
+---
+
+## 21. Animations
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| ❌ **PlatformTicker** | Not implemented | MAUI animations require `ITicker` registration to drive animation frames. Without it, `TranslateTo`, `FadeTo`, etc. silently no-op. Implement via `GLib.Functions.TimeoutAdd` at ~60fps |
+| ❌ **TranslateTo** | Not implemented | Animate TranslationX/TranslationY — requires PlatformTicker |
+| ❌ **FadeTo** | Not implemented | Animate Opacity — requires PlatformTicker |
+| ❌ **ScaleTo** | Not implemented | Animate Scale/ScaleX/ScaleY — requires PlatformTicker |
+| ❌ **RotateTo** | Not implemented | Animate Rotation — requires PlatformTicker |
+| ❌ **LayoutTo** | Not implemented | Animate layout bounds — requires PlatformTicker |
+| ❌ **Easing functions** | Not implemented | Map MAUI Easing types to animation interpolation |
+| ❌ **Animation class** | Not implemented | `new Animation(...)` with child animations, `Commit()`, `AbortAnimation()` |
+
+> Note: All MAUI animations flow through `IAnimationManager` → `ITicker`. Implementing just the `PlatformTicker` (using `GLib.Functions.TimeoutAdd` at 16ms/~60fps) should enable all animation APIs to work automatically since the animation logic is cross-platform in MAUI Controls.
+
+---
+
+## 22. ControlTemplate & ContentPresenter
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| ❌ **ControlTemplate** | Not verified | Custom control templates defined in XAML — may work cross-platform via MAUI Controls layer, needs verification |
+| ❌ **ContentPresenter** | Not verified | Placeholder in ControlTemplate that inserts actual content — needs verification |
+| ❌ **RadioButton ControlTemplate** | Not verified | RadioButton uses ControlTemplate by default — without support, Content may render as `ToString()` instead of visual content |
+| ❌ **TemplatedView** | Not verified | Base class for controls with ControlTemplate support |
+
+> Note: ControlTemplate/ContentPresenter may work via MAUI's cross-platform layer if the handler properly renders the visual tree. Needs testing.
 
 ---
 
@@ -362,14 +397,23 @@ FormattedText requires Pango markup rendering for rich text:
 | **Gesture Recognizers** | 5 | 5 | 100% |
 | **Graphics** | 4 | 4 | 100% |
 | **Shapes** | 7 | 7 | 100% |
-| **Font Services** | 5 | 5 | 100% |
+| **Font Services** | 5 | 6 | 83% |
 | **WebView** | 6 | 6 | 100% |
 | **MenuBar** | 4 | 4 | 100% |
 | **Essentials** | 19 (+ 2 partial) | 26 | 81% |
-| **Base View Properties** | 19 | 19 | 100% |
+| **Base View Properties** | 19 | 21 | 90% |
 | **FormattedText/Spans** | 9 | 9 | 100% |
 | **VisualStateManager** | 6 | 6 | 100% |
+| **Animations** | 0 | 8 | 0% |
+| **ControlTemplate** | 0 | 4 | 0% |
 
 ### Key Gaps (Priority Order)
-1. **Geolocation** — Basic GeoClue integration only, no continuous tracking
-2. **Web Authenticator** — Basic OAuth flow via system browser only
+1. **Animations / PlatformTicker** — All MAUI animations (TranslateTo, FadeTo, ScaleTo, RotateTo) require an `ITicker` implementation. Single registration enables all animation APIs
+2. **ControlTemplate / ContentPresenter** — May affect RadioButton content rendering and custom templated controls. Needs verification
+3. **ToolTip** — `ToolTipProperties.Text` not mapped to `Gtk.Widget.SetTooltipText()`
+4. **ContextFlyout** — Right-click popup menus not implemented
+5. **IFontNamedSizeService** — XAML `FontSize="Title"` etc. won't resolve without this service
+6. **CollectionView** — Missing `INotifyCollectionChanged` live updates, `RemainingItemsThreshold` for incremental loading
+7. **ScrollView** — Missing `ScrollToAsync`, `Scrolled` event
+8. **Geolocation** — Basic GeoClue integration only, no continuous tracking
+9. **Web Authenticator** — Basic OAuth flow via system browser only

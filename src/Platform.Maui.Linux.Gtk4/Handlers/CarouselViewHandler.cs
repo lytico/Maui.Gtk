@@ -39,7 +39,8 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		sw.SetVexpand(true);
 		sw.SetHexpand(true);
 		sw.SetSizeRequest(-1, 150);
-		sw.SetPolicy(Gtk.PolicyType.Automatic, Gtk.PolicyType.Never);
+		// Hide scrollbar — navigation is via buttons/swipe/snap only
+		sw.SetPolicy(Gtk.PolicyType.External, Gtk.PolicyType.Never);
 
 		_itemsBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 0);
 		_itemsBox.SetHomogeneous(true);
@@ -62,6 +63,9 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		swipe.OnSwipe += OnSwipe;
 		platformView.AddController(swipe);
 
+		// Resize cards when viewport changes
+		platformView.OnNotify += OnViewportNotify;
+
 		// Populate on connect since ItemsSource may already be set
 		if (VirtualView is CarouselView cv)
 			PopulateItems(cv);
@@ -76,7 +80,17 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		}
 		if (_scrollAdj != null)
 			_scrollAdj.OnNotify -= OnScrollChanged;
+		platformView.OnNotify -= OnViewportNotify;
 		base.DisconnectHandler(platformView);
+	}
+
+	void OnViewportNotify(GObject.Object sender, GObject.Object.NotifySignalArgs args)
+	{
+		if (args.Pspec.GetName() == "default-width" || args.Pspec.GetName() == "default-height")
+		{
+			ResizeCardsToViewport();
+			ScrollToPosition(animate: false);
+		}
 	}
 
 	void OnSwipe(Gtk.GestureSwipe sender, Gtk.GestureSwipe.SwipeSignalArgs args)
@@ -163,8 +177,8 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		handler._isVertical = vertical;
 		handler._itemsBox?.SetOrientation(vertical ? Gtk.Orientation.Vertical : Gtk.Orientation.Horizontal);
 		handler.PlatformView.SetPolicy(
-			vertical ? Gtk.PolicyType.Never : Gtk.PolicyType.Automatic,
-			vertical ? Gtk.PolicyType.Automatic : Gtk.PolicyType.Never);
+			vertical ? Gtk.PolicyType.Never : Gtk.PolicyType.External,
+			vertical ? Gtk.PolicyType.External : Gtk.PolicyType.Never);
 		// Re-hook scroll adjustment for new orientation
 		if (handler._scrollAdj != null)
 			handler._scrollAdj.OnNotify -= handler.OnScrollChanged;
@@ -201,12 +215,9 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		foreach (var item in items)
 		{
 			var card = Gtk.Box.New(Gtk.Orientation.Vertical, 4);
-			card.SetHexpand(true);
 			card.SetVexpand(true);
 			card.SetHalign(Gtk.Align.Fill);
-			card.SetValign(Gtk.Align.Center);
-			// Give each card a minimum width so they're visible
-			card.SetSizeRequest(250, 150);
+			card.SetValign(Gtk.Align.Fill);
 
 			var label = Gtk.Label.New(item?.ToString() ?? "");
 			label.SetWrap(true);
@@ -219,8 +230,22 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			_itemsBox.Append(card);
 		}
 
+		// Size cards to fill viewport after layout
+		ResizeCardsToViewport();
+
 		if (_currentPosition < _itemWidgets.Count)
 			ScrollToPosition(animate: false);
+	}
+
+	void ResizeCardsToViewport()
+	{
+		int viewportWidth = PlatformView.GetAllocatedWidth();
+		int viewportHeight = PlatformView.GetAllocatedHeight();
+		if (viewportWidth <= 0) viewportWidth = 400;
+		if (viewportHeight <= 0) viewportHeight = 150;
+
+		foreach (var card in _itemWidgets)
+			card.SetSizeRequest(viewportWidth, viewportHeight);
 	}
 
 	uint _animTimerId;

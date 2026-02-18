@@ -150,6 +150,58 @@ class TransformsPage : ContentPage
 							MakeBox(Colors.RoyalBlue, "BotRight", rotation: 30, anchorX: 1, anchorY: 1),
 						}
 					},
+
+					// --- Clip ---
+					new Label { Text = "Clip (Geometry Clipping)", FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 12, 0, 0) },
+					new HorizontalStackLayout
+					{
+						Spacing = 20,
+						Children =
+						{
+							new BoxView
+							{
+								Color = Colors.CornflowerBlue,
+								WidthRequest = 80, HeightRequest = 80,
+								Clip = new Microsoft.Maui.Controls.Shapes.RoundRectangleGeometry
+								{
+									CornerRadius = new CornerRadius(16),
+									Rect = new Rect(0, 0, 80, 80),
+								},
+							},
+							new BoxView
+							{
+								Color = Colors.Coral,
+								WidthRequest = 80, HeightRequest = 80,
+								Clip = new Microsoft.Maui.Controls.Shapes.RoundRectangleGeometry
+								{
+									CornerRadius = new CornerRadius(40),
+									Rect = new Rect(0, 0, 80, 80),
+								},
+							},
+							new BoxView
+							{
+								Color = Colors.MediumSeaGreen,
+								WidthRequest = 80, HeightRequest = 80,
+								Clip = new Microsoft.Maui.Controls.Shapes.EllipseGeometry
+								{
+									Center = new Point(40, 40),
+									RadiusX = 40,
+									RadiusY = 40,
+								},
+							},
+							new BoxView
+							{
+								Color = Colors.Orchid,
+								WidthRequest = 80, HeightRequest = 80,
+								Clip = new Microsoft.Maui.Controls.Shapes.RoundRectangleGeometry
+								{
+									CornerRadius = new CornerRadius(20, 0, 20, 0),
+									Rect = new Rect(0, 0, 80, 80),
+								},
+							},
+						}
+					},
+					new Label { Text = "Round 16px / Circle / Ellipse / Diagonal corners", FontSize = 11, TextColor = Colors.Gray },
 				}
 			}
 		};

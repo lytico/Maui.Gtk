@@ -24,6 +24,8 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			[nameof(IView.AutomationId)] = MapAutomationId,
 			[nameof(IView.Shadow)] = MapShadow,
 			[nameof(IView.InputTransparent)] = MapInputTransparent,
+			[nameof(IView.Clip)] = MapClip,
+			[nameof(IView.FlowDirection)] = MapFlowDirection,
 		};
 
 	protected GtkViewHandler(IPropertyMapper mapper, CommandMapper? commandMapper = null)
@@ -271,6 +273,52 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 	static void MapInputTransparent(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
 	{
 		handler.PlatformView?.SetCanTarget(!view.InputTransparent);
+	}
+
+	static void MapClip(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
+	{
+		var widget = handler.PlatformView;
+		if (widget == null) return;
+
+		var clip = view.Clip;
+		if (clip == null)
+		{
+			widget.SetOverflow(Gtk.Overflow.Visible);
+			handler.ApplyCss(widget, "border-radius: 0;");
+			return;
+		}
+
+		widget.SetOverflow(Gtk.Overflow.Hidden);
+
+		// Try to extract border-radius from the geometry for common cases
+		if (view is Microsoft.Maui.Controls.VisualElement ve && ve.Clip is Microsoft.Maui.Controls.Shapes.RoundRectangleGeometry rrg)
+		{
+			var cr = rrg.CornerRadius;
+			handler.ApplyCss(widget,
+				$"border-radius: {(int)cr.TopLeft}px {(int)cr.TopRight}px {(int)cr.BottomRight}px {(int)cr.BottomLeft}px;");
+		}
+		else if (view is Microsoft.Maui.Controls.VisualElement ve2 && ve2.Clip is Microsoft.Maui.Controls.Shapes.EllipseGeometry)
+		{
+			handler.ApplyCss(widget, "border-radius: 50%;");
+		}
+		else
+		{
+			// For other geometry types, use overflow:hidden which clips to widget bounds
+			handler.ApplyCss(widget, "border-radius: 0;");
+		}
+	}
+
+	static void MapFlowDirection(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
+	{
+		if (handler.PlatformView == null) return;
+
+		var dir = view.FlowDirection switch
+		{
+			FlowDirection.RightToLeft => Gtk.TextDirection.Rtl,
+			FlowDirection.LeftToRight => Gtk.TextDirection.Ltr,
+			_ => Gtk.TextDirection.None, // inherit from parent
+		};
+		handler.PlatformView.SetDirection(dir);
 	}
 }
 

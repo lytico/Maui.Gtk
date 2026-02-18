@@ -22,7 +22,7 @@ public class FlyoutPageHandler : GtkViewHandler<IFlyoutView, Gtk.Paned>
 	protected override Gtk.Paned CreatePlatformView()
 	{
 		var paned = Gtk.Paned.New(Gtk.Orientation.Horizontal);
-		paned.SetPosition(250);
+		paned.SetPosition(300);
 		paned.SetVexpand(true);
 		paned.SetHexpand(true);
 		paned.SetResizeStartChild(false);

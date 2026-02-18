@@ -87,9 +87,12 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 		_selectionModel = Gtk.NoSelection.New(_model);
 		_listView = Gtk.ListView.New(_selectionModel, factory);
+		_listView.AddCssClass("navigation-sidebar");
+		_listView.SetVexpand(true);
 
 		// Outer box to hold header, list, and footer
 		_outerBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+		_outerBox.SetVexpand(true);
 		_headerLabel = Gtk.Label.New(string.Empty);
 		_headerLabel.SetVisible(false);
 		_headerLabel.SetHalign(Gtk.Align.Start);
@@ -116,6 +119,24 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 	{
 		base.ConnectHandler(platformView);
 		HookSelectionChanged();
+	}
+
+	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
+	{
+		var size = base.GetDesiredSize(widthConstraint, heightConstraint);
+
+		// Scrollable views should fill available space rather than reporting
+		// their natural (often zero) height, so the MAUI layout allocates
+		// the full area to them.
+		if (VirtualView is Microsoft.Maui.Controls.View v &&
+			v.VerticalOptions.Alignment == Microsoft.Maui.Controls.LayoutAlignment.Fill &&
+			size.Height < heightConstraint &&
+			!double.IsInfinity(heightConstraint))
+		{
+			size = new Size(size.Width, heightConstraint);
+		}
+
+		return size;
 	}
 
 	void HookSelectionChanged()

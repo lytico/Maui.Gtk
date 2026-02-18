@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using Platform.Maui.Linux.Gtk4.Sample.Pages;
@@ -18,7 +19,7 @@ class MainShell : FlyoutPage
 	[
 		("🏠 Home", () => new HomePage()),
 		("🧩 XAML Runtime", () => new XamlRuntimePage()),
-		("🖼️ Resource Image + Font + Icon", () => new ResourceAssetsPage()),
+		("🖼️ Image / Font / Icon", () => new ResourceAssetsPage()),
 		("🎛️ Controls", () => new ControlsPage()),
 		("📅 Pickers & Search", () => new PickersPage()),
 		("📐 Layouts", () => new LayoutsPage()),
@@ -40,86 +41,42 @@ class MainShell : FlyoutPage
 		("🐚 Shell Navigation", () => new ShellDemoPage()),
 	];
 
-	Label? _selectedLabel;
-
 	public MainShell()
 	{
 		Title = "Platform.Maui.Linux.Gtk4 GTK4 Demo";
 
-		var menuStack = new VerticalStackLayout { Spacing = 0 };
-
-		// Header
-		menuStack.Children.Add(new VerticalStackLayout
+		// Menu items as a CollectionView — uses native Gtk.ListView
+		// with navigation-sidebar styling for proper hover/selection
+		var menuItems = _pages.Select(p => p.name).ToList();
+		var menuList = new CollectionView
 		{
-			Padding = new Thickness(16, 20, 16, 12),
-			Spacing = 2,
-			Children =
-			{
-				new Label
-				{
-					Text = "🐧 Platform.Maui.Linux.Gtk4",
-					FontSize = 18,
-					FontAttributes = FontAttributes.Bold,
-					TextColor = Colors.DodgerBlue,
-				},
-				new Label
-				{
-					Text = "GTK4 Demo App",
-					FontSize = 12,
-					TextColor = Colors.Gray,
-				},
-			}
-		});
+			ItemsSource = menuItems,
+			SelectionMode = SelectionMode.Single,
+			SelectedItem = menuItems[0],
+			VerticalOptions = LayoutOptions.Fill,
+			Header = "GTK4 Demo",
+		};
 
-		bool first = true;
-		foreach (var (name, factory) in _pages)
+		menuList.SelectionChanged += (s, e) =>
 		{
-			var label = new Label
+			if (e.CurrentSelection.FirstOrDefault() is string selected)
 			{
-				Text = name,
-				FontSize = 14,
-				Padding = new Thickness(16, 10),
-			};
-
-			var tapGesture = new TapGestureRecognizer();
-			var capturedFactory = factory;
-			var capturedLabel = label;
-			tapGesture.Tapped += (s, e) =>
-			{
-				// Update selection highlight
-				if (_selectedLabel != null)
+				var match = _pages.FirstOrDefault(p => p.name == selected);
+				if (match.factory != null)
 				{
-					_selectedLabel.BackgroundColor = Colors.Transparent;
-					_selectedLabel.FontAttributes = FontAttributes.None;
+					var page = match.factory();
+					if (page is ContentPage cp)
+						Detail = new NavigationPage(cp);
+					else
+						Detail = page;
 				}
-				capturedLabel.BackgroundColor = Color.FromRgba(0.3, 0.5, 0.8, 0.25);
-				capturedLabel.FontAttributes = FontAttributes.Bold;
-				_selectedLabel = capturedLabel;
-
-				var page = capturedFactory();
-				if (page is ContentPage cp)
-					Detail = new NavigationPage(cp);
-				else
-					Detail = page;
-			};
-			label.GestureRecognizers.Add(tapGesture);
-
-			// Select the first item (Home) by default
-			if (first)
-			{
-				label.BackgroundColor = Color.FromRgba(0.3, 0.5, 0.8, 0.25);
-				label.FontAttributes = FontAttributes.Bold;
-				_selectedLabel = label;
-				first = false;
 			}
-
-			menuStack.Children.Add(label);
-		}
+		};
 
 		Flyout = new ContentPage
 		{
 			Title = "Menu",
-			Content = new ScrollView { Content = menuStack },
+			Content = menuList,
 		};
 
 		Detail = new NavigationPage(new HomePage());

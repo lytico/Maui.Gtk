@@ -37,7 +37,6 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 	{
 		_ = handler.MauiContext ?? throw new InvalidOperationException("MauiContext not set.");
 
-		// Find the ScrolledWindow inside our Box
 		var box = handler.PlatformView;
 		var scrolled = box.GetFirstChild() as Gtk.ScrolledWindow;
 		if (scrolled == null)
@@ -48,7 +47,19 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 			var platformContent = (Gtk.Widget)page.PresentedContent.ToPlatform(handler.MauiContext);
 			platformContent.SetVexpand(true);
 			platformContent.SetHexpand(true);
-			scrolled.SetChild(platformContent);
+
+			if (platformContent is Gtk.ScrolledWindow)
+			{
+				// Content is already scrollable — bypass the page's ScrolledWindow
+				// to avoid nested scroll containers that collapse to zero height
+				scrolled.SetVisible(false);
+				if (platformContent.GetParent() == null)
+					box.Append(platformContent);
+			}
+			else
+			{
+				scrolled.SetChild(platformContent);
+			}
 		}
 
 		// Propagate layout dirty to ancestor layout panels

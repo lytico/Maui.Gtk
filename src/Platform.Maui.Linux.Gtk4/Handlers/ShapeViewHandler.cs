@@ -105,25 +105,25 @@ public class ShapeViewHandler : GtkViewHandler<IShapeView, Gtk.DrawingArea>
 
 	void BuildShapePath(Cairo.Context cr, int width, int height, double halfStroke)
 	{
-		var shape = VirtualView?.Shape;
-		if (shape == null)
+		if (VirtualView == null)
 		{
-			// No shape — fill rectangle as fallback
 			cr.Rectangle(halfStroke, halfStroke, width - halfStroke * 2, height - halfStroke * 2);
 			return;
 		}
 
-		switch (shape)
+		double x = halfStroke, y = halfStroke;
+		double w = width - halfStroke * 2, h = height - halfStroke * 2;
+
+		// Check the VirtualView type (the MAUI control) rather than IShapeView.Shape
+		// (which returns IShape geometry objects like RoundedRectangle)
+		switch (VirtualView)
 		{
 			case Microsoft.Maui.Controls.Shapes.Rectangle rect:
-				DrawRoundedRectangle(cr, halfStroke, halfStroke,
-					width - halfStroke * 2, height - halfStroke * 2,
-					rect.RadiusX, rect.RadiusY);
+				DrawRoundedRectangle(cr, x, y, w, h, rect.RadiusX, rect.RadiusY);
 				break;
 
 			case Microsoft.Maui.Controls.Shapes.Ellipse:
-				DrawEllipse(cr, width / 2.0, height / 2.0,
-					(width - halfStroke * 2) / 2.0, (height - halfStroke * 2) / 2.0);
+				DrawEllipse(cr, width / 2.0, height / 2.0, w / 2.0, h / 2.0);
 				break;
 
 			case Microsoft.Maui.Controls.Shapes.Line line:
@@ -145,7 +145,17 @@ public class ShapeViewHandler : GtkViewHandler<IShapeView, Gtk.DrawingArea>
 				break;
 
 			default:
-				cr.Rectangle(halfStroke, halfStroke, width - halfStroke * 2, height - halfStroke * 2);
+				// Fallback: try using IShape.PathForBounds if available
+				var shape = VirtualView.Shape;
+				if (shape != null)
+				{
+					var pathF = shape.PathForBounds(new RectF((float)x, (float)y, (float)w, (float)h));
+					DrawPathF(cr, pathF);
+				}
+				else
+				{
+					cr.Rectangle(x, y, w, h);
+				}
 				break;
 		}
 	}
@@ -291,8 +301,48 @@ public class ShapeViewHandler : GtkViewHandler<IShapeView, Gtk.DrawingArea>
 	static void DrawArcSegment(Cairo.Context cr, ArcSegment arc)
 	{
 		// Simplified arc: draw a line to the endpoint
-		// Full SVG arc implementation is complex; this handles the common case
 		cr.LineTo(arc.Point.X, arc.Point.Y);
+	}
+
+	static void DrawPathF(Cairo.Context cr, PathF? path)
+	{
+		if (path == null) return;
+
+		for (int i = 0; i < path.OperationCount; i++)
+		{
+			var type = path.GetSegmentType(i);
+			var points = path.GetPointsForSegment(i);
+
+			switch (type)
+			{
+				case PathOperation.Move:
+					if (points.Length > 0)
+						cr.MoveTo(points[0].X, points[0].Y);
+					break;
+				case PathOperation.Line:
+					if (points.Length > 0)
+						cr.LineTo(points[0].X, points[0].Y);
+					break;
+				case PathOperation.Cubic:
+					if (points.Length >= 3)
+						cr.CurveTo(points[0].X, points[0].Y, points[1].X, points[1].Y, points[2].X, points[2].Y);
+					break;
+				case PathOperation.Quad:
+					if (points.Length >= 2)
+					{
+						cr.GetCurrentPoint(out var cx, out var cy);
+						var c1x = cx + 2.0 / 3.0 * (points[0].X - cx);
+						var c1y = cy + 2.0 / 3.0 * (points[0].Y - cy);
+						var c2x = points[1].X + 2.0 / 3.0 * (points[0].X - points[1].X);
+						var c2y = points[1].Y + 2.0 / 3.0 * (points[0].Y - points[1].Y);
+						cr.CurveTo(c1x, c1y, c2x, c2y, points[1].X, points[1].Y);
+					}
+					break;
+				case PathOperation.Close:
+					cr.ClosePath();
+					break;
+			}
+		}
 	}
 
 	public static void MapShape(ShapeViewHandler handler, IShapeView view) => handler.PlatformView?.QueueDraw();

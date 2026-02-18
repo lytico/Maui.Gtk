@@ -257,6 +257,11 @@ class TransformsPage : ContentPage
 						}
 					},
 					new Label { Text = "Linear diagonal / 3-stop horizontal / Radial / Rounded pill", FontSize = 11, TextColor = Colors.Gray },
+
+					// --- ZIndex ---
+					new Label { Text = "ZIndex (draw order)", FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 12, 0, 0) },
+					BuildZIndexDemo(),
+					new Label { Text = "Blue (Z=1) → Coral (Z=2) → Green (Z=3, on top)", FontSize = 11, TextColor = Colors.Gray },
 				}
 			}
 		};
@@ -317,5 +322,23 @@ class TransformsPage : ContentPage
 				},
 			}
 		};
+	}
+
+	static View BuildZIndexDemo()
+	{
+		var layout = new AbsoluteLayout { HeightRequest = 110 };
+
+		var b1 = new BoxView { Color = Colors.CornflowerBlue, WidthRequest = 80, HeightRequest = 80, ZIndex = 1 };
+		var b2 = new BoxView { Color = Colors.Coral, WidthRequest = 80, HeightRequest = 80, ZIndex = 2 };
+		var b3 = new BoxView { Color = Colors.MediumSeaGreen, WidthRequest = 80, HeightRequest = 80, ZIndex = 3 };
+
+		layout.Children.Add(b1);
+		AbsoluteLayout.SetLayoutBounds(b1, new Rect(0, 0, 80, 80));
+		layout.Children.Add(b2);
+		AbsoluteLayout.SetLayoutBounds(b2, new Rect(30, 10, 80, 80));
+		layout.Children.Add(b3);
+		AbsoluteLayout.SetLayoutBounds(b3, new Rect(60, 20, 80, 80));
+
+		return layout;
 	}
 }

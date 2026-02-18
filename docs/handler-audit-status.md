@@ -7,8 +7,8 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 
 ## Audit Snapshot
 - Handlers reviewed: **34**
-- Handlers with mapper/command parity gaps vs MAUI reference handlers: **5**
-- Missing mapper keys identified: **41**
+- Handlers with mapper/command parity gaps vs MAUI reference handlers: **2**
+- Missing mapper keys identified: **29**
 - Missing command keys identified: **0**
 
 ## Status Legend
@@ -44,9 +44,9 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 - [x] **LayoutHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done)_
 
 ### P3 - Advanced shape/border/window parity
-- [ ] **BorderHandler** — missing mapper keys: `5`, missing command keys: `0` _(Status: Not started)_
-- [ ] **ShapeViewHandler** — missing mapper keys: `5`, missing command keys: `0` _(Status: Not started)_
-- [ ] **WindowHandler** — missing mapper keys: `4`, missing command keys: `0` _(Status: Not started)_
+- [x] **BorderHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done — dash/cap/join are CSS no-ops)_
+- [x] **ShapeViewHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done — Cairo stroke properties wired)_
+- [x] **WindowHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done — X/Y no-op on Wayland)_
 
 ## Mapped-But-Empty Implementations (partial wiring)
 - [x] `CheckBoxHandler.MapForeground` _(Status: Done)_
@@ -67,11 +67,11 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 
 ### BorderHandler
 - Reference handler: `Microsoft.Maui.Handlers.BorderHandler`
-- Missing mapper keys (5):
-  - `StrokeDashOffset`, `StrokeDashPattern`, `StrokeLineCap`, `StrokeLineJoin`, `StrokeMiterLimit`
+- Missing mapper keys (0):
+  - _(none — StrokeDashOffset, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, StrokeMiterLimit all wired as no-ops; CSS borders don't support these)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ### ButtonHandler
 - Reference handler: `Microsoft.Maui.Handlers.ButtonHandler`
@@ -115,11 +115,11 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 
 ### GraphicsViewHandler
 - Reference handler: `Microsoft.Maui.Handlers.GraphicsViewHandler`
-- Missing mapper keys (1):
-  - `Drawable`
+- Missing mapper keys (0):
+  - _(none — Drawable wired)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ### ImageButtonHandler
 - Reference handler: `Microsoft.Maui.Handlers.ImageButtonHandler`
@@ -147,11 +147,11 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 
 ### PageHandler
 - Reference handler: `Microsoft.Maui.Handlers.PageHandler`
-- Missing mapper keys (1):
-  - `Title`
+- Missing mapper keys (0):
+  - _(none — Title wired)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ### PickerHandler
 - Reference handler: `Microsoft.Maui.Handlers.PickerHandler`
@@ -187,11 +187,11 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 
 ### ShapeViewHandler
 - Reference handler: `Microsoft.Maui.Handlers.ShapeViewHandler`
-- Missing mapper keys (5):
-  - `StrokeDashOffset`, `StrokeDashPattern`, `StrokeLineCap`, `StrokeLineJoin`, `StrokeMiterLimit`
+- Missing mapper keys (0):
+  - _(none — StrokeDashOffset, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, StrokeMiterLimit all wired with Cairo stroke rendering)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ### SliderHandler
 - Reference handler: `Microsoft.Maui.Handlers.SliderHandler`
@@ -219,11 +219,11 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 
 ### WindowHandler
 - Reference handler: `Microsoft.Maui.Handlers.WindowHandler`
-- Missing mapper keys (4):
-  - `Height`, `Width`, `X`, `Y`
+- Missing mapper keys (0):
+  - _(none — Width/Height wired via SetDefaultSize; X/Y are no-ops on Wayland)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ## Handlers with No Mapper/Command Gaps (current parity baseline)
 - `ApplicationHandler`

@@ -18,6 +18,11 @@ public class ShapeViewHandler : GtkViewHandler<IShapeView, Gtk.DrawingArea>
 			[nameof(IShapeView.Stroke)] = MapStroke,
 			[nameof(IShapeView.StrokeThickness)] = MapStrokeThickness,
 			[nameof(IShapeView.Aspect)] = MapAspect,
+			[nameof(IShapeView.StrokeDashOffset)] = MapStrokeDash,
+			[nameof(IShapeView.StrokeDashPattern)] = MapStrokeDash,
+			[nameof(IShapeView.StrokeLineCap)] = MapStrokeLineCap,
+			[nameof(IShapeView.StrokeLineJoin)] = MapStrokeLineJoin,
+			[nameof(IShapeView.StrokeMiterLimit)] = MapStrokeMiterLimit,
 		};
 
 	public ShapeViewHandler() : base(Mapper) { }
@@ -49,6 +54,34 @@ public class ShapeViewHandler : GtkViewHandler<IShapeView, Gtk.DrawingArea>
 			var c = strokePaint.Color;
 			cr.SetSourceRgba(c.Red, c.Green, c.Blue, c.Alpha);
 			cr.LineWidth = VirtualView.StrokeThickness;
+
+			// Apply dash pattern
+			if (VirtualView.StrokeDashPattern is { Length: > 0 } dashPattern)
+			{
+				var dashes = new double[dashPattern.Length];
+				for (int i = 0; i < dashPattern.Length; i++)
+					dashes[i] = dashPattern[i] * VirtualView.StrokeThickness;
+				cr.SetDash(dashes, VirtualView.StrokeDashOffset * VirtualView.StrokeThickness);
+			}
+
+			// Apply line cap
+			cr.LineCap = VirtualView.StrokeLineCap switch
+			{
+				LineCap.Round => Cairo.LineCap.Round,
+				LineCap.Square => Cairo.LineCap.Square,
+				_ => Cairo.LineCap.Butt
+			};
+
+			// Apply line join
+			cr.LineJoin = VirtualView.StrokeLineJoin switch
+			{
+				LineJoin.Round => Cairo.LineJoin.Round,
+				LineJoin.Bevel => Cairo.LineJoin.Bevel,
+				_ => Cairo.LineJoin.Miter
+			};
+
+			cr.MiterLimit = VirtualView.StrokeMiterLimit;
+
 			cr.Rectangle(0, 0, width, height);
 			cr.Stroke();
 		}
@@ -59,4 +92,8 @@ public class ShapeViewHandler : GtkViewHandler<IShapeView, Gtk.DrawingArea>
 	public static void MapStroke(ShapeViewHandler handler, IShapeView view) => handler.PlatformView?.QueueDraw();
 	public static void MapStrokeThickness(ShapeViewHandler handler, IShapeView view) => handler.PlatformView?.QueueDraw();
 	public static void MapAspect(ShapeViewHandler handler, IShapeView view) { }
+	public static void MapStrokeDash(ShapeViewHandler handler, IShapeView view) => handler.PlatformView?.QueueDraw();
+	public static void MapStrokeLineCap(ShapeViewHandler handler, IShapeView view) => handler.PlatformView?.QueueDraw();
+	public static void MapStrokeLineJoin(ShapeViewHandler handler, IShapeView view) => handler.PlatformView?.QueueDraw();
+	public static void MapStrokeMiterLimit(ShapeViewHandler handler, IShapeView view) => handler.PlatformView?.QueueDraw();
 }

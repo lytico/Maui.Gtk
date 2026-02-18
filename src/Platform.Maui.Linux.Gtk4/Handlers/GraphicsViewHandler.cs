@@ -14,7 +14,10 @@ namespace Platform.Maui.Linux.Gtk4.Handlers;
 public class GraphicsViewHandler : GtkViewHandler<IGraphicsView, Gtk.DrawingArea>
 {
 	public static new IPropertyMapper<IGraphicsView, GraphicsViewHandler> Mapper =
-		new PropertyMapper<IGraphicsView, GraphicsViewHandler>(ViewHandler.ViewMapper);
+		new PropertyMapper<IGraphicsView, GraphicsViewHandler>(ViewHandler.ViewMapper)
+		{
+			[nameof(IGraphicsView.Drawable)] = MapDrawable,
+		};
 
 	public static CommandMapper<IGraphicsView, GraphicsViewHandler> GfxCommandMapper = new(ViewCommandMapper)
 	{
@@ -41,6 +44,11 @@ public class GraphicsViewHandler : GtkViewHandler<IGraphicsView, Gtk.DrawingArea
 	}
 
 	public static void MapInvalidate(GraphicsViewHandler handler, IGraphicsView view, object? arg)
+	{
+		handler.PlatformView?.QueueDraw();
+	}
+
+	public static void MapDrawable(GraphicsViewHandler handler, IGraphicsView view)
 	{
 		handler.PlatformView?.QueueDraw();
 	}

@@ -10,6 +10,7 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 		new PropertyMapper<IContentView, PageHandler>(ViewMapper)
 		{
 			[nameof(IContentView.Content)] = MapContent,
+			["Title"] = MapTitle,
 		};
 
 	public PageHandler() : base(Mapper)
@@ -77,5 +78,23 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 		// Propagate arrange to page content so nested layouts resize
 		if (VirtualView is ICrossPlatformLayout crossPlatform)
 			crossPlatform.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));
+	}
+
+	public static void MapTitle(PageHandler handler, IContentView page)
+	{
+		if (page is not Microsoft.Maui.Controls.Page mauiPage)
+			return;
+
+		// Walk up to find the GTK window and update its title
+		Gtk.Widget? current = handler.PlatformView;
+		while (current != null)
+		{
+			if (current is Gtk.Window window)
+			{
+				window.SetTitle(mauiPage.Title ?? string.Empty);
+				break;
+			}
+			current = current.GetParent();
+		}
 	}
 }

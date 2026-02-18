@@ -7,7 +7,8 @@ namespace Platform.Maui.Linux.Gtk4.Handlers;
 
 /// <summary>
 /// Basic CollectionView handler using Gtk.ListView and GTK selection models.
-/// Supports ItemsSource, selection mode/selection state, EmptyView and scrollbar visibility.
+/// Supports ItemsSource, selection mode/selection state, EmptyView, Header/Footer,
+/// scrollbar visibility, and basic ItemsLayout orientation.
 /// </summary>
 public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 {
@@ -15,6 +16,9 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 	Gtk.StringList? _model;
 	Gtk.SelectionModel? _selectionModel;
 	Gtk.Label? _emptyLabel;
+	Gtk.Box? _outerBox;
+	Gtk.Label? _headerLabel;
+	Gtk.Label? _footerLabel;
 	readonly List<object?> _items = [];
 	bool _updatingSelection;
 
@@ -26,8 +30,27 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			["SelectedItem"] = MapSelectedItem,
 			["SelectedItems"] = MapSelectedItems,
 			["EmptyView"] = MapEmptyView,
-			["HorizontalScrollBarVisibility"] = MapHorizontalScrollBarVisibility,
-			["VerticalScrollBarVisibility"] = MapVerticalScrollBarVisibility,
+			["EmptyViewTemplate"] = MapEmptyView,
+			["Header"] = MapHeader,
+			["HeaderTemplate"] = MapHeader,
+			["Footer"] = MapFooter,
+			["FooterTemplate"] = MapFooter,
+			["ItemsLayout"] = MapItemsLayout,
+			["ItemTemplate"] = MapItemTemplate,
+			["ItemSizingStrategy"] = MapItemSizingStrategy,
+			["ItemsUpdatingScrollMode"] = MapItemsUpdatingScrollMode,
+			["IsGrouped"] = MapIsGrouped,
+			["CanReorderItems"] = MapCanReorderItems,
+			["HorizontalScrollBarVisibility"] = MapScrollBarVisibility,
+			["VerticalScrollBarVisibility"] = MapScrollBarVisibility,
+			[nameof(IView.Background)] = MapBackgroundColor,
+			["BackgroundColor"] = MapBackgroundColor,
+			// Accessibility properties — registered as no-ops to prevent warnings
+			["IsInAccessibleTree"] = MapAccessibility,
+			["Description"] = MapAccessibility,
+			["HeadingLevel"] = MapAccessibility,
+			["Hint"] = MapAccessibility,
+			["ExcludedWithChildren"] = MapAccessibility,
 		};
 
 	public CollectionViewHandler() : base(Mapper) { }
@@ -64,7 +87,27 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 		_selectionModel = Gtk.NoSelection.New(_model);
 		_listView = Gtk.ListView.New(_selectionModel, factory);
-		scrolled.SetChild(_listView);
+
+		// Outer box to hold header, list, and footer
+		_outerBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+		_headerLabel = Gtk.Label.New(string.Empty);
+		_headerLabel.SetVisible(false);
+		_headerLabel.SetHalign(Gtk.Align.Start);
+		_headerLabel.SetMarginStart(12);
+		_headerLabel.SetMarginTop(8);
+		_headerLabel.SetMarginBottom(4);
+
+		_footerLabel = Gtk.Label.New(string.Empty);
+		_footerLabel.SetVisible(false);
+		_footerLabel.SetHalign(Gtk.Align.Start);
+		_footerLabel.SetMarginStart(12);
+		_footerLabel.SetMarginTop(4);
+		_footerLabel.SetMarginBottom(8);
+
+		_outerBox.Append(_headerLabel);
+		_outerBox.Append(_listView);
+		_outerBox.Append(_footerLabel);
+		scrolled.SetChild(_outerBox);
 
 		return scrolled;
 	}
@@ -236,7 +279,7 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			handler.UpdateDisplayedChild(collectionView);
 	}
 
-	public static void MapHorizontalScrollBarVisibility(CollectionViewHandler handler, IView view)
+	public static void MapScrollBarVisibility(CollectionViewHandler handler, IView view)
 	{
 		if (view is not CollectionView collectionView || handler.PlatformView == null)
 			return;
@@ -256,46 +299,107 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		handler.PlatformView.SetPolicy(h, v);
 	}
 
-	public static void MapVerticalScrollBarVisibility(CollectionViewHandler handler, IView view)
+	public static void MapHeader(CollectionViewHandler handler, IView view)
 	{
-		if (view is not CollectionView collectionView || handler.PlatformView == null)
+		if (view is not CollectionView collectionView || handler._headerLabel == null)
 			return;
 
-		var h = collectionView.HorizontalScrollBarVisibility switch
+		var headerText = collectionView.Header?.ToString();
+		if (!string.IsNullOrEmpty(headerText))
 		{
-			ScrollBarVisibility.Always => Gtk.PolicyType.Always,
-			ScrollBarVisibility.Never => Gtk.PolicyType.Never,
-			_ => Gtk.PolicyType.Automatic,
-		};
-		var v = collectionView.VerticalScrollBarVisibility switch
+			handler._headerLabel.SetText(headerText);
+			handler._headerLabel.SetVisible(true);
+		}
+		else
 		{
-			ScrollBarVisibility.Always => Gtk.PolicyType.Always,
-			ScrollBarVisibility.Never => Gtk.PolicyType.Never,
-			_ => Gtk.PolicyType.Automatic,
-		};
-		handler.PlatformView.SetPolicy(h, v);
+			handler._headerLabel.SetVisible(false);
+		}
 	}
+
+	public static void MapFooter(CollectionViewHandler handler, IView view)
+	{
+		if (view is not CollectionView collectionView || handler._footerLabel == null)
+			return;
+
+		var footerText = collectionView.Footer?.ToString();
+		if (!string.IsNullOrEmpty(footerText))
+		{
+			handler._footerLabel.SetText(footerText);
+			handler._footerLabel.SetVisible(true);
+		}
+		else
+		{
+			handler._footerLabel.SetVisible(false);
+		}
+	}
+
+	public static void MapItemsLayout(CollectionViewHandler handler, IView view)
+	{
+		if (view is not CollectionView collectionView || handler._listView == null)
+			return;
+
+		// GTK ListView is always vertical; orientation awareness is a best-effort hint.
+		if (collectionView.ItemsLayout is LinearItemsLayout linear &&
+			linear.Orientation == ItemsLayoutOrientation.Horizontal)
+		{
+			handler._listView.SetOrientation(Gtk.Orientation.Horizontal);
+		}
+		else
+		{
+			handler._listView.SetOrientation(Gtk.Orientation.Vertical);
+		}
+	}
+
+	public static void MapBackgroundColor(CollectionViewHandler handler, IView view)
+	{
+		if (view is CollectionView cv && cv.BackgroundColor != null)
+			handler.ApplyCss(handler.PlatformView, $"background-color: {ToGtkColor(cv.BackgroundColor)};");
+	}
+
+	public static void MapItemTemplate(CollectionViewHandler handler, IView view)
+	{
+		// Full DataTemplate rendering requires MAUI view instantiation and recycling;
+		// currently items display via ToString(). Re-populate to pick up any template change.
+		MapItemsSource(handler, view);
+	}
+
+	public static void MapItemSizingStrategy(CollectionViewHandler handler, IView view) { }
+	public static void MapItemsUpdatingScrollMode(CollectionViewHandler handler, IView view) { }
+	public static void MapIsGrouped(CollectionViewHandler handler, IView view) { }
+	public static void MapCanReorderItems(CollectionViewHandler handler, IView view) { }
+	public static void MapAccessibility(CollectionViewHandler handler, IView view) { }
 
 	void UpdateDisplayedChild(CollectionView collectionView)
 	{
-		if (PlatformView == null || _listView == null)
+		if (PlatformView == null || _listView == null || _outerBox == null)
 			return;
 
 		var hasItems = _items.Count > 0;
 		if (hasItems || collectionView.EmptyView == null)
 		{
-			if (PlatformView.GetChild() != _listView)
-				PlatformView.SetChild(_listView);
+			_listView.SetVisible(true);
+			_emptyLabel?.SetVisible(false);
 			return;
 		}
 
-		_emptyLabel ??= Gtk.Label.New(string.Empty);
-		_emptyLabel.SetHalign(Gtk.Align.Center);
-		_emptyLabel.SetValign(Gtk.Align.Center);
-		_emptyLabel.SetWrap(true);
-		_emptyLabel.SetJustify(Gtk.Justification.Center);
+		// Show empty view
+		if (_emptyLabel == null)
+		{
+			_emptyLabel = Gtk.Label.New(string.Empty);
+			_emptyLabel.SetHalign(Gtk.Align.Center);
+			_emptyLabel.SetValign(Gtk.Align.Center);
+			_emptyLabel.SetWrap(true);
+			_emptyLabel.SetJustify(Gtk.Justification.Center);
+			_emptyLabel.SetVexpand(true);
+			// Insert before footer
+			if (_footerLabel != null)
+				_outerBox.InsertChildAfter(_emptyLabel, _listView);
+			else
+				_outerBox.Append(_emptyLabel);
+		}
+
 		_emptyLabel.SetText(collectionView.EmptyView?.ToString() ?? string.Empty);
-		if (PlatformView.GetChild() != _emptyLabel)
-			PlatformView.SetChild(_emptyLabel);
+		_emptyLabel.SetVisible(true);
+		_listView.SetVisible(false);
 	}
 }

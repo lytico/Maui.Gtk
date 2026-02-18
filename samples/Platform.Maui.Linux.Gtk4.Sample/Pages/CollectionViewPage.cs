@@ -17,6 +17,7 @@ public class CollectionViewPage : ContentPage
 			("Simple List", BuildSimpleList),
 			("Templated", BuildTemplatedList),
 			("Multi-Select", BuildMultiSelectList),
+			("CollectionView", BuildCollectionViewDemo),
 		};
 
 		Button? activeTab = null;
@@ -339,6 +340,81 @@ public class CollectionViewPage : ContentPage
 				new BoxView { HeightRequest = 1, Color = Colors.LightGray },
 				new ScrollView { HeightRequest = 320, Content = stack },
 				deleteBtn,
+			}
+		};
+	}
+
+	// --- Tab 4: Actual CollectionView control demo ---
+
+	View BuildCollectionViewDemo()
+	{
+		var fruits = new List<string>
+		{
+			"🍎 Apple", "🍌 Banana", "🍒 Cherry", "🍇 Grapes", "🥝 Kiwi",
+			"🍋 Lemon", "🥭 Mango", "🍊 Orange", "🍑 Peach", "🍓 Strawberry",
+			"🍉 Watermelon", "🍍 Pineapple", "🫐 Blueberry", "🍐 Pear",
+		};
+
+		var selectedLabel = new Label
+		{
+			Text = "No selection",
+			FontSize = 14,
+			TextColor = Colors.Gray,
+		};
+
+		var cv = new CollectionView
+		{
+			ItemsSource = fruits,
+			Header = "🛒 Fruit Market",
+			Footer = $"{fruits.Count} fruits available",
+			EmptyView = "No fruits found!",
+			SelectionMode = SelectionMode.Single,
+			HeightRequest = 350,
+		};
+
+		cv.SelectionChanged += (s, e) =>
+		{
+			if (e.CurrentSelection.Count > 0)
+			{
+				selectedLabel.Text = $"Selected: {e.CurrentSelection[0]}";
+				selectedLabel.TextColor = Colors.DodgerBlue;
+			}
+			else
+			{
+				selectedLabel.Text = "No selection";
+				selectedLabel.TextColor = Colors.Gray;
+			}
+		};
+
+		var modeLabel = new Label { Text = "Selection: Single", FontSize = 12, TextColor = Colors.Gray };
+		var modeBtn = new Button { Text = "Toggle Selection Mode", FontSize = 13 };
+		modeBtn.Clicked += (s, e) =>
+		{
+			cv.SelectionMode = cv.SelectionMode switch
+			{
+				SelectionMode.None => SelectionMode.Single,
+				SelectionMode.Single => SelectionMode.Multiple,
+				_ => SelectionMode.None,
+			};
+			modeLabel.Text = $"Selection: {cv.SelectionMode}";
+		};
+
+		var clearBtn = new Button { Text = "Clear Items (show EmptyView)", FontSize = 13 };
+		var restoreBtn = new Button { Text = "Restore Items", FontSize = 13 };
+		clearBtn.Clicked += (s, e) => cv.ItemsSource = Array.Empty<string>();
+		restoreBtn.Clicked += (s, e) => cv.ItemsSource = fruits;
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "Native CollectionView", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "Uses the GTK ListView-backed handler with header, footer, selection and empty view.", FontSize = 12, TextColor = Colors.Gray },
+				selectedLabel,
+				cv,
+				modeLabel,
+				new HorizontalStackLayout { Spacing = 8, Children = { modeBtn, clearBtn, restoreBtn } },
 			}
 		};
 	}

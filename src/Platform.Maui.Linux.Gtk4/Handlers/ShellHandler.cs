@@ -80,12 +80,9 @@ public partial class ShellHandler : GtkViewHandler<Shell, Gtk.Box>
 		_flyoutListBox = Gtk.ListBox.New();
 		_flyoutListBox.SetVexpand(true);
 		_flyoutListBox.SetSelectionMode(Gtk.SelectionMode.Single);
+		_flyoutListBox.AddCssClass("navigation-sidebar");
 		_flyoutListBox.OnRowSelected += OnFlyoutRowSelected;
-
-		var scrolled = Gtk.ScrolledWindow.New();
-		scrolled.SetVexpand(true);
-		scrolled.SetChild(_flyoutListBox);
-		_flyoutBox.Append(scrolled);
+		_flyoutBox.Append(_flyoutListBox);
 
 		_flyoutFooterLabel = Gtk.Label.New("");
 		_flyoutFooterLabel.SetVisible(false);
@@ -93,6 +90,7 @@ public partial class ShellHandler : GtkViewHandler<Shell, Gtk.Box>
 		_flyoutFooterLabel.SetMarginBottom(12);
 		_flyoutFooterLabel.SetMarginStart(12);
 		_flyoutFooterLabel.SetXalign(0);
+		_flyoutFooterLabel.AddCssClass("dim-label");
 		_flyoutBox.Append(_flyoutFooterLabel);
 
 		_paned.SetStartChild(_flyoutBox);
@@ -111,6 +109,21 @@ public partial class ShellHandler : GtkViewHandler<Shell, Gtk.Box>
 	protected override void ConnectHandler(Gtk.Box platformView)
 	{
 		base.ConnectHandler(platformView);
+
+		// Add a CSS class to scope the paned background fix to Shell only
+		if (_paned != null)
+		{
+			_paned.AddCssClass("maui-shell-paned");
+			var display = Gdk.Display.GetDefault();
+			if (display != null)
+			{
+				var provider = Gtk.CssProvider.New();
+				provider.LoadFromString(
+					"paned.maui-shell-paned > * { background: none; background-image: none; }");
+				Gtk.StyleContext.AddProviderForDisplay(display, provider,
+					Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
+			}
+		}
 
 		if (VirtualView != null)
 		{

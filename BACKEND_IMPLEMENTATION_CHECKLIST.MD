@@ -105,7 +105,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 |---------|--------|-------|
 | ⚠️ **CollectionView** | Partial | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate. Missing: virtualization |
 | ✅ **ListView** | Done | Handler with ItemsSource, ItemTemplate (ViewCell/TextCell), selection, Header/Footer, grouping, separators |
-| ⚠️ **CarouselView** | Partial | Horizontal/vertical scrolling with `Gtk.ScrolledWindow`. Missing: snap navigation, Loop, PeekAreaInsets |
+| ⚠️ **CarouselView** | Partial | Horizontal/vertical scrolling, snap-to-item via scroll debounce, swipe gesture navigation, Loop, PeekAreaInsets. Missing: animated snap |
 | ✅ **IndicatorView** | Done | Cairo-drawn dots with IndicatorColor, SelectedIndicatorColor, IndicatorSize |
 | ✅ **TableView** | Done | Handler with TableRoot/TableSection, TextCell, SwitchCell, EntryCell, ViewCell rendering |
 | ⚠️ **SwipeView** | Partial | Passthrough container — swipe-to-reveal not implemented (desktop pattern) |
@@ -213,7 +213,7 @@ Every handler must support these properties mapped from the base `IView`:
 - [x] Semantic properties — `MapSemantics` sets accessibility description
 
 ### Transitions/Animation
-- [ ] GTK CSS transitions — Not implemented
+- [x] GTK CSS transitions — CSS `transition` on background-color, opacity, box-shadow, border-radius, color (200ms ease)
 
 ---
 
@@ -265,7 +265,7 @@ Every handler must support these properties mapped from the base `IView`:
 | ✅ **Preferences** | `IPreferences` | Done | JSON file-based key-value storage |
 | ✅ **Secure Storage** | `ISecureStorage` | Done | Encrypted file storage with DPAPI-like protection |
 | ✅ **Screenshot** | `IScreenshot` | Done | `Gtk.WidgetPaintable` screenshot capture |
-| ❌ **Semantic Screen Reader** | `ISemanticScreenReader` | Missing | No AT-SPI integration yet |
+| ✅ **Semantic Screen Reader** | `ISemanticScreenReader` | Done | AT-SPI via `spd-say` (speech-dispatcher) for screen reader announcements |
 | ✅ **Share** | `IShare` | Done | XDG portal share |
 | ✅ **Text-to-Speech** | `ITextToSpeech` | Done | `espeak-ng` integration |
 | ✅ **Version Tracking** | `IVersionTracking` | Done | File-based version history |
@@ -365,11 +365,11 @@ FormattedText requires Pango markup rendering for rich text:
 | **Font Services** | 5 | 5 | 100% |
 | **WebView** | 6 | 6 | 100% |
 | **MenuBar** | 4 | 4 | 100% |
-| **Essentials** | 18 (+ 2 partial) | 26 | 77% |
-| **Base View Properties** | 18 | 22 | 82% |
+| **Essentials** | 19 (+ 2 partial) | 26 | 81% |
+| **Base View Properties** | 19 | 19 | 100% |
 | **FormattedText/Spans** | 9 | 9 | 100% |
 | **VisualStateManager** | 6 | 6 | 100% |
 
 ### Key Gaps (Priority Order)
 1. **CollectionView** — Virtualization not yet implemented
-2. **CarouselView** — Snap navigation, Loop, PeekAreaInsets not yet implemented
+2. **CarouselView** — Animated snap transitions not yet implemented

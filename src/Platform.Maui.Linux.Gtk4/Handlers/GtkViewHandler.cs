@@ -43,6 +43,7 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 	{
 		base.ConnectHandler(platformView);
 		SetupVisualStateTracking(platformView);
+		ApplyTransitionCss(platformView);
 	}
 
 	protected override void DisconnectHandler(TPlatformView platformView)
@@ -122,6 +123,17 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "PointerOver");
 		else
 			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "Normal");
+	}
+
+	/// <summary>
+	/// Applies CSS transitions for smooth property changes (background-color, opacity, box-shadow).
+	/// This enables VSM state transitions and property animations to animate smoothly.
+	/// </summary>
+	void ApplyTransitionCss(Gtk.Widget widget)
+	{
+		var provider = Gtk.CssProvider.New();
+		provider.LoadFromString("* { transition: background-color 200ms ease, opacity 200ms ease, box-shadow 200ms ease, border-radius 200ms ease, color 200ms ease; }");
+		widget.GetStyleContext().AddProvider(provider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION - 1);
 	}
 
 	public override void PlatformArrange(Rect rect)

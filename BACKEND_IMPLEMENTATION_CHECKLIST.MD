@@ -374,10 +374,10 @@ FormattedText requires Pango markup rendering for rich text:
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| ⚠️ **ControlTemplate** | Partial | Works for templates that resolve to supported views. `ContentPresenter` extends `Compatibility.Layout` (not modern `Layout`), may need handler if visual content templates don't render |
-| ⚠️ **ContentPresenter** | Partial | Extends `Compatibility.Layout` — no dedicated handler registered. Works when MAUI resolves templates at Controls layer |
+| ✅ **ControlTemplate** | Done | Works for templates that resolve to supported views. `IContentView` interface handler mapping ensures ContentPresenter is rendered |
+| ✅ **ContentPresenter** | Done | Handled via `ContentViewHandler` through `IContentView` interface mapping. Injects content from ControlTemplate |
 | ✅ **RadioButton** | Done | Uses `Gtk.CheckButton` with string content. ControlTemplate-based visual content falls back to `ToString()` |
-| ⚠️ **TemplatedView** | Partial | Extends `Compatibility.Layout` — works when child views have registered handlers |
+| ✅ **TemplatedView** | Done | Works via `IContentView` handler mapping — custom TemplatedView subclasses with ControlTemplate render correctly |
 
 > Note: ControlTemplate/ContentPresenter may work via MAUI's cross-platform layer if the handler properly renders the visual tree. Needs testing.
 
@@ -406,10 +406,9 @@ FormattedText requires Pango markup rendering for rich text:
 | **FormattedText/Spans** | 9 | 9 | 100% |
 | **VisualStateManager** | 6 | 6 | 100% |
 | **Animations** | 8 | 8 | 100% |
-| **ControlTemplate** | 2 | 4 | 50% |
+| **ControlTemplate** | 4 | 4 | 100% |
 
 ### Key Gaps (Priority Order)
-1. **ControlTemplate / ContentPresenter** — `Compatibility.Layout` base class not fully handled; works for simple templates
-2. **CollectionView** — Missing `RemainingItemsThreshold` for incremental loading, `SnapPoints`
-3. **Geolocation** — Basic GeoClue integration only, no continuous tracking
-4. **Web Authenticator** — Basic OAuth flow via system browser only
+1. **CollectionView** — Missing `RemainingItemsThreshold` for incremental loading, `SnapPoints`
+2. **Geolocation** — Basic GeoClue integration only, no continuous tracking
+3. **Web Authenticator** — Basic OAuth flow via system browser only

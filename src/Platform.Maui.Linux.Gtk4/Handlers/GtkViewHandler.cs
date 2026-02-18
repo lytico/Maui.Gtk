@@ -22,16 +22,6 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			[nameof(IView.IsEnabled)] = MapIsEnabled,
 			[nameof(IView.Semantics)] = MapSemantics,
 			[nameof(IView.AutomationId)] = MapAutomationId,
-			[nameof(IView.TranslationX)] = MapTransform,
-			[nameof(IView.TranslationY)] = MapTransform,
-			[nameof(IView.Rotation)] = MapTransform,
-			[nameof(IView.RotationX)] = MapTransform,
-			[nameof(IView.RotationY)] = MapTransform,
-			[nameof(IView.Scale)] = MapTransform,
-			[nameof(IView.ScaleX)] = MapTransform,
-			[nameof(IView.ScaleY)] = MapTransform,
-			[nameof(IView.AnchorX)] = MapTransform,
-			[nameof(IView.AnchorY)] = MapTransform,
 			[nameof(IView.Shadow)] = MapShadow,
 			[nameof(IView.InputTransparent)] = MapInputTransparent,
 		};
@@ -52,8 +42,70 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		// Position the widget inside its parent GtkLayoutPanel (Gtk.Fixed)
 		if (platformView.GetParent() is Platform.GtkLayoutPanel layoutPanel)
 		{
-			layoutPanel.Move(platformView, rect.X, rect.Y);
+			// Check if visual transforms are needed
+			bool hasTransform = VirtualView != null && (
+				VirtualView.Rotation != 0 ||
+				VirtualView.TranslationX != 0 || VirtualView.TranslationY != 0 ||
+				VirtualView.Scale != 1 || VirtualView.ScaleX != 1 || VirtualView.ScaleY != 1);
+
+			if (hasTransform)
+			{
+				// When using SetChildTransform, the transform replaces the
+				// allocation position. Include Move offset in the transform.
+				layoutPanel.Move(platformView, 0, 0);
+				ApplyTransform(platformView, layoutPanel, rect);
+			}
+			else
+			{
+				layoutPanel.Move(platformView, rect.X, rect.Y);
+			}
 		}
+	}
+
+	void ApplyTransform(Gtk.Widget widget, Gtk.Fixed fixedParent, Rect rect)
+	{
+		if (VirtualView == null) return;
+
+		var view = VirtualView;
+		double sx = view.Scale * view.ScaleX;
+		double sy = view.Scale * view.ScaleY;
+		bool hasScale = sx != 1.0 || sy != 1.0;
+		bool hasRotation = view.Rotation != 0;
+
+		var transform = Gsk.Transform.New();
+
+		// Start with the layout position + user translation
+		float tx = (float)(rect.X + view.TranslationX);
+		float ty = (float)(rect.Y + view.TranslationY);
+		if (tx != 0 || ty != 0)
+		{
+			var pt = Graphene.Point.Alloc();
+			pt.Init(tx, ty);
+			transform = transform.Translate(pt);
+		}
+
+		// Move to anchor, apply rotation/scale, move back
+		if (hasRotation || hasScale)
+		{
+			float anchorX = (float)(view.AnchorX * rect.Width);
+			float anchorY = (float)(view.AnchorY * rect.Height);
+
+			var anchorPt = Graphene.Point.Alloc();
+			anchorPt.Init(anchorX, anchorY);
+			transform = transform.Translate(anchorPt);
+
+			if (hasRotation)
+				transform = transform.Rotate((float)view.Rotation);
+
+			if (hasScale)
+				transform = transform.Scale((float)sx, (float)sy);
+
+			var negPt = Graphene.Point.Alloc();
+			negPt.Init(-anchorX, -anchorY);
+			transform = transform.Translate(negPt);
+		}
+
+		fixedParent.SetChildTransform(widget, transform);
 	}
 
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
@@ -195,42 +247,6 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 	protected static string ToGtkColor(Color color)
 	{
 		return $"rgba({(int)(color.Red * 255)},{(int)(color.Green * 255)},{(int)(color.Blue * 255)},{color.Alpha})";
-	}
-
-	static void MapTransform(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)
-	{
-		var widget = handler.PlatformView;
-		if (widget == null) return;
-
-		var transforms = new System.Text.StringBuilder();
-
-		// Translation
-		if (view.TranslationX != 0 || view.TranslationY != 0)
-			transforms.Append($"translate({view.TranslationX:F1}px, {view.TranslationY:F1}px) ");
-
-		// Scale (MAUI Scale applies uniformly, ScaleX/ScaleY individually)
-		double sx = view.Scale * view.ScaleX;
-		double sy = view.Scale * view.ScaleY;
-		if (sx != 1.0 || sy != 1.0)
-			transforms.Append($"scale({sx:F3}, {sy:F3}) ");
-
-		// Rotation (Z-axis)
-		if (view.Rotation != 0)
-			transforms.Append($"rotate({view.Rotation:F1}deg) ");
-
-		// RotationX/RotationY (3D perspective transforms)
-		if (view.RotationX != 0)
-			transforms.Append($"rotateX({view.RotationX:F1}deg) ");
-		if (view.RotationY != 0)
-			transforms.Append($"rotateY({view.RotationY:F1}deg) ");
-
-		var transformStr = transforms.ToString().Trim();
-		var originCss = $"transform-origin: {view.AnchorX * 100:F0}% {view.AnchorY * 100:F0}%;";
-
-		if (string.IsNullOrEmpty(transformStr))
-			handler.ApplyCss(widget, $"transform: none; {originCss}");
-		else
-			handler.ApplyCss(widget, $"transform: {transformStr}; {originCss}");
 	}
 
 	static void MapShadow(GtkViewHandler<TVirtualView, TPlatformView> handler, IView view)

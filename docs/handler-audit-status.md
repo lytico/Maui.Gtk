@@ -1,14 +1,14 @@
 # Handler Property Wiring Audit Tracker
 
-Last updated: 2026-02-13 (CollectionView compile fix applied)
+Last updated: 2026-02-18 (P1 text input parity: Entry, Editor, SearchBar)
 
 ## Purpose
 Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Linux.Gtk4/Handlers`, including visual controls and container/navigation handlers.
 
 ## Audit Snapshot
 - Handlers reviewed: **34**
-- Handlers with mapper/command parity gaps vs MAUI reference handlers: **18**
-- Missing mapper keys identified: **113**
+- Handlers with mapper/command parity gaps vs MAUI reference handlers: **16**
+- Missing mapper keys identified: **90**
 - Missing command keys identified: **0**
 
 ## Status Legend
@@ -24,9 +24,9 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 - [x] **ImageButtonHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done)_
 
 ### P1 - Input and text parity
-- [ ] **EntryHandler** — missing mapper keys: `10`, missing command keys: `0` _(Status: Not started)_
-- [ ] **EditorHandler** — missing mapper keys: `10`, missing command keys: `0` _(Status: Not started)_
-- [ ] **SearchBarHandler** — missing mapper keys: `13`, missing command keys: `0` _(Status: Not started)_
+- [x] **EntryHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done)_
+- [x] **EditorHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done)_
+- [ ] **SearchBarHandler** — missing mapper keys: `3`, missing command keys: `0` _(Status: In progress)_
 - [ ] **PickerHandler** — missing mapper keys: `7`, missing command keys: `0` _(Status: Not started)_
 - [ ] **DatePickerHandler** — missing mapper keys: `6`, missing command keys: `0` _(Status: In progress)_
 - [ ] **TimePickerHandler** — missing mapper keys: `4`, missing command keys: `0` _(Status: In progress)_
@@ -99,19 +99,19 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 
 ### EditorHandler
 - Reference handler: `Microsoft.Maui.Handlers.EditorHandler`
-- Missing mapper keys (10):
-  - `CharacterSpacing`, `CursorPosition`, `HorizontalTextAlignment`, `IsSpellCheckEnabled`, `IsTextPredictionEnabled`, `Keyboard`, `MaxLength`, `PlaceholderColor`, `SelectionLength`, `VerticalTextAlignment`
+- Missing mapper keys (0):
+  - _(none — CharacterSpacing, CursorPosition, HorizontalTextAlignment, MaxLength, SelectionLength, PlaceholderColor, VerticalTextAlignment, IsSpellCheckEnabled, IsTextPredictionEnabled, Keyboard all wired)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ### EntryHandler
 - Reference handler: `Microsoft.Maui.Handlers.EntryHandler`
-- Missing mapper keys (10):
-  - `CharacterSpacing`, `ClearButtonVisibility`, `CursorPosition`, `IsSpellCheckEnabled`, `IsTextPredictionEnabled`, `Keyboard`, `PlaceholderColor`, `ReturnType`, `SelectionLength`, `VerticalTextAlignment`
+- Missing mapper keys (0):
+  - _(none — CharacterSpacing, ClearButtonVisibility, CursorPosition, SelectionLength, ReturnType, VerticalTextAlignment, IsSpellCheckEnabled, IsTextPredictionEnabled, Keyboard all wired)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `Done`
 
 ### GraphicsViewHandler
 - Reference handler: `Microsoft.Maui.Handlers.GraphicsViewHandler`
@@ -179,11 +179,11 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 
 ### SearchBarHandler
 - Reference handler: `Microsoft.Maui.Handlers.SearchBarHandler`
-- Missing mapper keys (13):
-  - `CancelButtonColor`, `CharacterSpacing`, `Font`, `HorizontalTextAlignment`, `IsReadOnly`, `IsSpellCheckEnabled`, `IsTextPredictionEnabled`, `Keyboard`, `MaxLength`, `PlaceholderColor`, `ReturnType`, `SearchIconColor`, `VerticalTextAlignment`
+- Missing mapper keys (3):
+  - `ReturnType`, `SearchIconColor`, `Keyboard` _(not available on ISearchBar / GTK SearchEntry)_
 - Missing command keys (0):
   - _(none)_
-- Status: `Not started`
+- Status: `In progress` _(CharacterSpacing, HorizontalTextAlignment, IsReadOnly, MaxLength, PlaceholderColor, CancelButtonColor, VerticalTextAlignment, IsSpellCheckEnabled, IsTextPredictionEnabled wired)_
 
 ### ShapeViewHandler
 - Reference handler: `Microsoft.Maui.Handlers.ShapeViewHandler`

@@ -165,8 +165,8 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		factory.OnSetup += (_, args) =>
 		{
 			var listItem = (Gtk.ListItem)args.Object;
-			// Use a Gtk.Box as container — it respects SetSizeRequest for
-			// natural height, unlike Gtk.Fixed which always reports 0.
+			// Use a Gtk.Box as container — GTK4 recycles these across items.
+			// Only the container itself is kept; children are rebuilt on bind.
 			var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
 			box.SetHexpand(true);
 			box.SetVexpand(false);
@@ -178,9 +178,8 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			var listItem = (Gtk.ListItem)args.Object;
 			var box = (Gtk.Box)listItem.GetChild()!;
 
-			// Remove previous children
-			while (box.GetFirstChild() is Gtk.Widget child)
-				box.Remove(child);
+			// Clear previous children (widget recycling)
+			ClearBoxChildren(box);
 
 			var idx = (int)listItem.GetPosition();
 			if (idx < 0 || idx >= _items.Count) return;
@@ -193,7 +192,6 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			if (_groupHeaderIndices.Contains(idx))
 			{
 				var headerWidget = BuildGroupHeader(collectionView, dataItem);
-				_templateWidgets.Add(headerWidget);
 				box.SetSizeRequest(-1, 36);
 				box.Append(headerWidget);
 				return;
@@ -221,7 +219,6 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 				// Build native GTK widgets from the MAUI template view
 				var nativeWidget = BuildNativeFromTemplate(mauiView, widthConstraint);
-				_templateWidgets.Add(nativeWidget.widget);
 				box.SetSizeRequest(-1, nativeWidget.height);
 				box.Append(nativeWidget.widget);
 			}
@@ -234,7 +231,28 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 				Console.WriteLine($"[CollectionView] ItemTemplate error: {ex.Message}");
 			}
 		};
+		factory.OnUnbind += (_, args) =>
+		{
+			// Clean up children when item scrolls out of view — enables GC
+			var listItem = (Gtk.ListItem)args.Object;
+			if (listItem.GetChild() is Gtk.Box box)
+				ClearBoxChildren(box);
+		};
+		factory.OnTeardown += (_, args) =>
+		{
+			// Container is being destroyed — remove from retention list
+			var listItem = (Gtk.ListItem)args.Object;
+			var child = listItem.GetChild();
+			if (child != null)
+				_templateWidgets.Remove(child);
+		};
 		return factory;
+	}
+
+	static void ClearBoxChildren(Gtk.Box box)
+	{
+		while (box.GetFirstChild() is Gtk.Widget child)
+			box.Remove(child);
 	}
 
 	Gtk.Widget BuildGroupHeader(CollectionView collectionView, object? groupData)

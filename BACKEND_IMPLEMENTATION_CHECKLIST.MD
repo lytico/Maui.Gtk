@@ -103,7 +103,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 
 | Control | Status | Notes |
 |---------|--------|-------|
-| ⚠️ **CollectionView** | Partial | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate. Missing: virtualization |
+| ✅ **CollectionView** | Done | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate, virtualization via GTK4 widget recycling (OnSetup/OnBind/OnUnbind/OnTeardown) |
 | ✅ **ListView** | Done | Handler with ItemsSource, ItemTemplate (ViewCell/TextCell), selection, Header/Footer, grouping, separators |
 | ⚠️ **CarouselView** | Partial | Horizontal/vertical scrolling, snap-to-item via scroll debounce, swipe gesture navigation, Loop, PeekAreaInsets. Missing: animated snap |
 | ✅ **IndicatorView** | Done | Cairo-drawn dots with IndicatorColor, SelectedIndicatorColor, IndicatorSize |
@@ -356,7 +356,7 @@ FormattedText requires Pango markup rendering for rich text:
 | **Layouts** | 9 | 9 | 100% |
 | **Basic Controls** | 14 | 14 | 100% |
 | **Input Controls** | 4 | 4 | 100% |
-| **Collection Controls** | 6 (+ 1 partial) | 7 | 86-100% |
+| **Collection Controls** | 7 | 7 | 100% |
 | **Navigation** | 5 | 5 | 100% |
 | **Alerts & Dialogs** | 4 | 4 | 100% |
 | **Gesture Recognizers** | 5 | 5 | 100% |
@@ -371,5 +371,4 @@ FormattedText requires Pango markup rendering for rich text:
 | **VisualStateManager** | 6 | 6 | 100% |
 
 ### Key Gaps (Priority Order)
-1. **CollectionView** — Virtualization not yet implemented
-2. **CarouselView** — Animated snap transitions not yet implemented
+1. **CarouselView** — Animated snap transitions not yet implemented

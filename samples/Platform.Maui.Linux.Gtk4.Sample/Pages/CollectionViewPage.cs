@@ -19,6 +19,7 @@ public class CollectionViewPage : ContentPage
 			("Multi-Select", BuildMultiSelectList),
 			("CollectionView", BuildCollectionViewDemo),
 			("Grouped", BuildGroupedDemo),
+			("10K Virtual", BuildVirtualizedDemo),
 		};
 
 		Button? activeTab = null;
@@ -511,6 +512,113 @@ public class CollectionViewPage : ContentPage
 				cv,
 			}
 		};
+	}
+
+	// --- Tab 6: Virtualized 10K item list ---
+
+	View BuildVirtualizedDemo()
+	{
+		var sw = System.Diagnostics.Stopwatch.StartNew();
+		var items = Enumerable.Range(1, 10_000)
+			.Select(i => new LargeListItem(i, $"Item #{i}", $"Description for item {i}", GetItemColor(i)))
+			.ToList();
+		sw.Stop();
+
+		var infoLabel = new Label
+		{
+			Text = $"10,000 items generated in {sw.ElapsedMilliseconds}ms. Scroll to test virtualization.",
+			FontSize = 12,
+			TextColor = Colors.Gray,
+		};
+		var selectedLabel = new Label { Text = "No selection", FontSize = 14, TextColor = Colors.Gray };
+		var posLabel = new Label { Text = "Position: top", FontSize = 12, TextColor = Colors.DimGray };
+
+		var cv = new CollectionView
+		{
+			ItemsSource = items,
+			Header = $"📊 10,000 Items (Virtualized)",
+			Footer = $"Total: {items.Count:N0} items",
+			SelectionMode = SelectionMode.Single,
+			HeightRequest = 400,
+			ItemTemplate = new DataTemplate(() =>
+			{
+				var idLabel = new Label { FontSize = 11, TextColor = Colors.White, FontAttributes = FontAttributes.Bold };
+				idLabel.SetBinding(Label.TextProperty, "IdText");
+
+				var colorBox = new BoxView { WidthRequest = 32, HeightRequest = 32 };
+				colorBox.SetBinding(BoxView.ColorProperty, "Color");
+
+				var nameLabel = new Label { FontSize = 14, FontAttributes = FontAttributes.Bold };
+				nameLabel.SetBinding(Label.TextProperty, "Name");
+
+				var descLabel = new Label { FontSize = 11, TextColor = Colors.Gray };
+				descLabel.SetBinding(Label.TextProperty, "Description");
+
+				return new HorizontalStackLayout
+				{
+					Spacing = 10,
+					Padding = new Thickness(8, 4),
+					Children =
+					{
+						colorBox,
+						new VerticalStackLayout
+						{
+							Spacing = 1,
+							Children = { nameLabel, descLabel },
+						},
+					},
+				};
+			}),
+		};
+
+		cv.SelectionChanged += (s, e) =>
+		{
+			if (e.CurrentSelection.FirstOrDefault() is LargeListItem item)
+			{
+				selectedLabel.Text = $"Selected: {item.Name}";
+				selectedLabel.TextColor = item.Color;
+			}
+		};
+
+		// Jump buttons to test scroll
+		var jumpTop = new Button { Text = "Jump to #1", FontSize = 12, BackgroundColor = Colors.Gray, TextColor = Colors.White };
+		jumpTop.Clicked += (s, e) => { cv.ScrollTo(0); posLabel.Text = "Position: #1"; };
+
+		var jumpMid = new Button { Text = "Jump to #5000", FontSize = 12, BackgroundColor = Colors.Gray, TextColor = Colors.White };
+		jumpMid.Clicked += (s, e) => { cv.ScrollTo(4999); posLabel.Text = "Position: #5000"; };
+
+		var jumpEnd = new Button { Text = "Jump to #10000", FontSize = 12, BackgroundColor = Colors.Gray, TextColor = Colors.White };
+		jumpEnd.Clicked += (s, e) => { cv.ScrollTo(9999); posLabel.Text = "Position: #10000"; };
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "Virtualized CollectionView (10K items)", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				infoLabel,
+				selectedLabel,
+				posLabel,
+				new HorizontalStackLayout { Spacing = 8, Children = { jumpTop, jumpMid, jumpEnd } },
+				cv,
+			}
+		};
+	}
+
+	static Color GetItemColor(int i) => (i % 7) switch
+	{
+		0 => Colors.CornflowerBlue,
+		1 => Colors.Coral,
+		2 => Colors.MediumSeaGreen,
+		3 => Colors.MediumOrchid,
+		4 => Colors.SandyBrown,
+		5 => Colors.SlateBlue,
+		_ => Colors.Teal,
+	};
+
+	record LargeListItem(int Id, string Name, string Description, Color Color)
+	{
+		public string IdText => $"#{Id}";
 	}
 
 	static string GetDescription(int i) => (i % 5) switch

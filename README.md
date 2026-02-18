@@ -6,15 +6,52 @@ A community-driven .NET MAUI backend for Linux, powered by **GTK4**. Run your .N
 
 https://github.com/user-attachments/assets/039f1695-3cd0-4b0b-ad11-dce304d0cdce
 
+## Screenshots
+
+<table>
+<tr>
+<td><img src="docs/screenshots/home.png" alt="Home" width="400"/><br/><b>Home & Sidebar Navigation</b></td>
+<td><img src="docs/screenshots/controls.png" alt="Controls" width="400"/><br/><b>Interactive Controls</b></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/collectionview.png" alt="CollectionView" width="400"/><br/><b>CollectionView (Virtualized)</b></td>
+<td><img src="docs/screenshots/fontawesome.png" alt="FontAwesome Icons" width="400"/><br/><b>FontAwesome Icons</b></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/shapes.png" alt="Shapes" width="400"/><br/><b>Shapes & Graphics</b></td>
+<td><img src="docs/screenshots/layouts.png" alt="Layouts" width="400"/><br/><b>Layouts</b></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/controltemplate.png" alt="ControlTemplate" width="400"/><br/><b>ControlTemplate & ContentPresenter</b></td>
+<td><img src="docs/screenshots/pickers.png" alt="Pickers" width="400"/><br/><b>Pickers & Search</b></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/formattedtext.png" alt="FormattedText" width="400"/><br/><b>FormattedText & Spans</b></td>
+<td><img src="docs/screenshots/transforms.png" alt="Transforms" width="400"/><br/><b>Transforms & Effects</b></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/screenshots/graphics.png" alt="Graphics" width="400"/><br/><b>GraphicsView (Cairo)</b></td>
+</tr>
+</table>
+
 ## Features
 
-- **Native GTK4 rendering** — MAUI controls map to real GTK4 widgets.
+- **Native GTK4 rendering** — MAUI controls map to real GTK4 widgets (~95% handler coverage).
 - **Blazor Hybrid support** — Host Blazor components inside a native GTK window using WebKitGTK.
-- **Broad control coverage** — Label, Button, Entry, Editor, CheckBox, Switch, Slider, ProgressBar, ActivityIndicator, Image, Picker, DatePicker, TimePicker, Stepper, RadioButton, SearchBar, ScrollView, Border, Frame, ImageButton, WebView, CollectionView, GraphicsView, Shapes, and more.
-- **Layout support** — StackLayout, Grid, FlexLayout, AbsoluteLayout via a custom `GtkLayoutPanel`.
-- **Navigation** — NavigationPage, TabbedPage, and FlyoutPage handlers.
-- **Alerts & Dialogs** — DisplayAlert, DisplayActionSheet, and DisplayPromptAsync via native GTK4 windows.
-- **Essentials** — Clipboard, Preferences, DeviceInfo, AppInfo, Connectivity, and more.
+- **All basic controls** — Label, Button, Entry, Editor, CheckBox, Switch, Slider, Stepper, ProgressBar, ActivityIndicator, Image, ImageButton, BoxView, RadioButton.
+- **Input & selection** — Picker, DatePicker, TimePicker, SearchBar.
+- **Collection controls** — CollectionView (virtualized via GTK4 `Gtk.ListView`), ListView, TableView, CarouselView, SwipeView, RefreshView, IndicatorView.
+- **Layout support** — StackLayout, Grid, FlexLayout, AbsoluteLayout, ScrollView, ContentView, Border, Frame.
+- **Navigation** — NavigationPage, TabbedPage, FlyoutPage, Shell (flyout, tabs, route navigation).
+- **Alerts & Dialogs** — DisplayAlert, DisplayActionSheet, DisplayPromptAsync via native GTK4 windows.
+- **Gestures** — Tap, Pan, Swipe, Pinch, Pointer gesture recognizers.
+- **Graphics & Shapes** — GraphicsView via Cairo, all shape types (Rectangle, Ellipse, Line, Path, Polygon, Polyline).
+- **Font icons** — FontImageSource rendering via Cairo/Pango, embedded font registration with FontAwesome support.
+- **Animations** — TranslateTo, FadeTo, ScaleTo, RotateTo via `GtkPlatformTicker` + Gsk.Transform.
+- **ControlTemplate** — Full ContentPresenter and TemplatedView support.
+- **VisualStateManager** — Normal, PointerOver, Pressed, Disabled, Focused states.
+- **Transforms** — TranslationX/Y, Rotation, Scale via Gsk.Transform; Shadow, Clip, ZIndex.
+- **Essentials** — Clipboard, Preferences, DeviceInfo, AppInfo, Battery, Connectivity, FilePicker, and more.
 - **Cairo-based graphics** — `GraphicsView` draws via the Microsoft.Maui.Graphics Cairo backend.
 - **Theming** — Automatic light/dark theme detection through `GtkThemeManager`.
 

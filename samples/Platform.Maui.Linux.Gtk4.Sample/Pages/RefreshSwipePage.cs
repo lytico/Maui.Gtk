@@ -61,9 +61,35 @@ public class RefreshSwipePage : ContentPage
 			}),
 		};
 
-		// Wrap some items in SwipeView to verify passthrough rendering
+		// SwipeView with swipe-to-reveal actions
+		var swipeStatusLabel = new Label { Text = "← Swipe the item left or right to reveal actions", TextColor = Colors.Gray, FontSize = 12 };
+
 		var swipeDemo = new SwipeView
 		{
+			LeftItems = new SwipeItems
+			{
+				new SwipeItem
+				{
+					Text = "Archive",
+					BackgroundColor = Colors.MediumSeaGreen,
+					Command = new Command(() => swipeStatusLabel.Text = "✅ Archived!"),
+				},
+			},
+			RightItems = new SwipeItems
+			{
+				new SwipeItem
+				{
+					Text = "Delete",
+					BackgroundColor = Colors.Crimson,
+					Command = new Command(() => swipeStatusLabel.Text = "🗑️ Deleted!"),
+				},
+				new SwipeItem
+				{
+					Text = "Flag",
+					BackgroundColor = Colors.Orange,
+					Command = new Command(() => swipeStatusLabel.Text = "🚩 Flagged!"),
+				},
+			},
 			Content = new Frame
 			{
 				BackgroundColor = Colors.LightYellow,
@@ -75,14 +101,14 @@ public class RefreshSwipePage : ContentPage
 					{
 						new Label
 						{
-							Text = "SwipeView Container",
+							Text = "SwipeView — Swipe to Reveal",
 							FontAttributes = FontAttributes.Bold,
 							FontSize = 16,
 						},
 						new Label
 						{
-							Text = "On mobile, you could swipe to reveal actions. " +
-							       "On desktop Linux, the content renders normally as a passthrough.",
+							Text = "Drag left to see Delete/Flag buttons, " +
+							       "drag right to see Archive button.",
 							TextColor = Colors.DimGray,
 						},
 					}
@@ -109,6 +135,7 @@ public class RefreshSwipePage : ContentPage
 					refreshView,
 					new BoxView { HeightRequest = 16 },
 					swipeDemo,
+					swipeStatusLabel,
 					new BoxView { HeightRequest = 16 },
 					BuildPointerGestureDemo(),
 					new BoxView { HeightRequest = 16 },

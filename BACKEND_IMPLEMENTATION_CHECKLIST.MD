@@ -105,10 +105,10 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 |---------|--------|-------|
 | ✅ **CollectionView** | Done | `Gtk.ListView` — ItemsSource, Header/Footer, SelectionMode, SelectedItem, ItemTemplate/DataTemplateSelector (native GTK rendering), IsGrouped + GroupHeaderTemplate, virtualization via GTK4 widget recycling (OnSetup/OnBind/OnUnbind/OnTeardown) |
 | ✅ **ListView** | Done | Handler with ItemsSource, ItemTemplate (ViewCell/TextCell), selection, Header/Footer, grouping, separators |
-| ⚠️ **CarouselView** | Partial | Horizontal/vertical scrolling, snap-to-item via scroll debounce, swipe gesture navigation, Loop, PeekAreaInsets. Missing: animated snap |
+| ✅ **CarouselView** | Done | Horizontal/vertical scrolling, animated snap-to-item (ease-out cubic, 250ms), swipe gesture navigation, Loop, PeekAreaInsets |
 | ✅ **IndicatorView** | Done | Cairo-drawn dots with IndicatorColor, SelectedIndicatorColor, IndicatorSize |
 | ✅ **TableView** | Done | Handler with TableRoot/TableSection, TextCell, SwitchCell, EntryCell, ViewCell rendering |
-| ⚠️ **SwipeView** | Partial | Passthrough container — swipe-to-reveal not implemented (desktop pattern) |
+| ✅ **SwipeView** | Done | Swipe-to-reveal action buttons via Gtk.Fixed + GestureDrag, LeftItems/RightItems with styled buttons, auto-close on action invoke |
 | ✅ **RefreshView** | Done | Desktop-friendly: spinner + refresh button, IsRefreshing, RefreshColor, Command |
 
 ---
@@ -371,4 +371,5 @@ FormattedText requires Pango markup rendering for rich text:
 | **VisualStateManager** | 6 | 6 | 100% |
 
 ### Key Gaps (Priority Order)
-1. **CarouselView** — Animated snap transitions not yet implemented
+1. **Geolocation** — Basic GeoClue integration only, no continuous tracking
+2. **Web Authenticator** — Basic OAuth flow via system browser only

@@ -69,6 +69,11 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 	protected override void DisconnectHandler(Gtk.ScrolledWindow platformView)
 	{
+		if (_animTimerId != 0)
+		{
+			GLib.Functions.SourceRemove(_animTimerId);
+			_animTimerId = 0;
+		}
 		if (_scrollAdj != null)
 			_scrollAdj.OnNotify -= OnScrollChanged;
 		base.DisconnectHandler(platformView);
@@ -215,10 +220,12 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		}
 
 		if (_currentPosition < _itemWidgets.Count)
-			ScrollToPosition();
+			ScrollToPosition(animate: false);
 	}
 
-	void ScrollToPosition()
+	uint _animTimerId;
+
+	void ScrollToPosition(bool animate = true)
 	{
 		if (_currentPosition < 0 || _currentPosition >= _itemWidgets.Count || _scrollAdj == null)
 			return;
@@ -228,6 +235,53 @@ public class CarouselViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		if (itemSize <= 0) { target.GrabFocus(); return; }
 
 		double targetScroll = _currentPosition * itemSize;
-		_scrollAdj.SetValue(targetScroll);
+
+		if (!animate)
+		{
+			_scrollAdj.SetValue(targetScroll);
+			return;
+		}
+
+		AnimateScrollTo(targetScroll);
+	}
+
+	void AnimateScrollTo(double target)
+	{
+		// Cancel any running animation
+		if (_animTimerId != 0)
+		{
+			GLib.Functions.SourceRemove(_animTimerId);
+			_animTimerId = 0;
+		}
+
+		if (_scrollAdj == null) return;
+
+		double start = _scrollAdj.GetValue();
+		double distance = target - start;
+		if (Math.Abs(distance) < 1)
+		{
+			_scrollAdj.SetValue(target);
+			return;
+		}
+
+		const int durationMs = 250;
+		const int stepMs = 16; // ~60fps
+		int elapsed = 0;
+
+		_animTimerId = GLib.Functions.TimeoutAdd(0, stepMs, () =>
+		{
+			elapsed += stepMs;
+			double t = Math.Min(1.0, (double)elapsed / durationMs);
+			// Ease-out cubic: 1 - (1-t)^3
+			double eased = 1.0 - Math.Pow(1.0 - t, 3);
+			_scrollAdj!.SetValue(start + distance * eased);
+
+			if (t >= 1.0)
+			{
+				_animTimerId = 0;
+				return false;
+			}
+			return true;
+		});
 	}
 }

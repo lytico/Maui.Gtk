@@ -584,7 +584,17 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		if (index < 0 || index >= _items.Count)
 			return;
 
-		_listView.ScrollTo((uint)index, Gtk.ListScrollFlags.None, null);
+		// The ListView is inside a Box inside the ScrolledWindow, so
+		// Gtk.ListView.ScrollTo won't work (it needs to be the direct
+		// scrollable child). Instead, estimate position from the
+		// vadjustment range and scroll proportionally.
+		var vadj = PlatformView.GetVadjustment();
+		if (vadj == null || _items.Count <= 1)
+			return;
+
+		double fraction = (double)index / (_items.Count - 1);
+		double target = fraction * (vadj.GetUpper() - vadj.GetPageSize());
+		vadj.SetValue(Math.Clamp(target, vadj.GetLower(), vadj.GetUpper() - vadj.GetPageSize()));
 	}
 
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)

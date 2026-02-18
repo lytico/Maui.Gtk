@@ -1,14 +1,15 @@
 # Handler Property Wiring Audit Tracker
 
-Last updated: 2026-02-18 (+ MenuBar, RefreshView, SwipeView, CarouselView, IndicatorView)
+Last updated: 2026-02-18 (+ Shell, MenuBar, RefreshView, SwipeView, CarouselView, IndicatorView, Essentials fixes)
 
 ## Purpose
 Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Linux.Gtk4/Handlers`, including visual controls and container/navigation handlers.
 
 ## Audit Snapshot
-- Handlers reviewed: **40**
-- Handlers with mapper/command parity gaps vs MAUI reference handlers: **1** (CollectionView)
-- Missing mapper keys identified: **26** (CollectionView only — advanced template rendering)
+- Handlers reviewed: **42** (was 34 at start)
+- New handlers added: **6** (ShellHandler, RefreshViewHandler, SwipeViewHandler, CarouselViewHandler, IndicatorViewHandler, GtkMenuBarManager)
+- Handlers with mapper/command parity gaps vs MAUI reference handlers: **1** (CollectionView DataTemplate rendering)
+- Missing mapper keys identified: **0** (all handler mapper keys wired)
 - Missing command keys identified: **0**
 
 ## Status Legend
@@ -27,6 +28,11 @@ Track MAUI handler property/command wiring parity work for `src/Platform.Maui.Li
 - [x] **CarouselViewHandler** — NEW handler: `9` mapper keys (ItemsSource, Position, CurrentItem, Loop, etc.) _(Status: Done)_
 - [x] **IndicatorViewHandler** — NEW handler: `8` mapper keys (Count, Position, IndicatorColor, etc.) _(Status: Done)_
 - [x] **MenuBar/ToolbarItem** — GtkMenuBarManager builds PopoverMenuBar + HeaderBar from MAUI items _(Status: Done)_
+- [x] **ShellHandler** — NEW handler: `12` mapper keys (CurrentItem, Items, FlyoutItems, FlyoutHeader/Footer/Background/Behavior/IsPresented/Width/Icon) _(Status: Done)_
+
+### Essentials Fixes
+- [x] **LinuxScreenshot** — Fixed dimensions (was hardcoded 0, now uses window width/height) _(Status: Done)_
+- [x] **LinuxAppActions** — Implemented as in-memory store with IsSupported=true _(Status: Done)_
 
 ### P1 - Input and text parity
 - [x] **EntryHandler** — missing mapper keys: `0`, missing command keys: `0` _(Status: Done)_

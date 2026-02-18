@@ -12,6 +12,7 @@ public class RefreshSwipePage : ContentPage
 	readonly StackLayout _itemsStack;
 	readonly Label _statusLabel;
 	int _refreshCount;
+	bool _isRefreshing;
 
 	public RefreshSwipePage()
 	{
@@ -25,7 +26,7 @@ public class RefreshSwipePage : ContentPage
 			Margin = new Thickness(0, 8),
 		};
 
-		_itemsStack = new StackLayout { Spacing = 4 };
+		_itemsStack = new StackLayout { Spacing = 2 };
 		LoadItems();
 
 		var itemsScroll = new ScrollView
@@ -42,11 +43,21 @@ public class RefreshSwipePage : ContentPage
 			RefreshColor = Colors.DodgerBlue,
 			Command = new Command(async () =>
 			{
-				await Task.Delay(1200);
-				_refreshCount++;
-				LoadItems();
-				refreshView.IsRefreshing = false;
-				_statusLabel.Text = $"Refreshed {_refreshCount} time(s)";
+				// Guard against re-entrant refresh from rapid clicks
+				if (_isRefreshing) return;
+				_isRefreshing = true;
+				try
+				{
+					await Task.Delay(1200);
+					_refreshCount++;
+					LoadItems();
+					_statusLabel.Text = $"Refreshed {_refreshCount} time(s)";
+				}
+				finally
+				{
+					_isRefreshing = false;
+					refreshView.IsRefreshing = false;
+				}
 			}),
 		};
 
@@ -101,19 +112,26 @@ public class RefreshSwipePage : ContentPage
 
 	void LoadItems()
 	{
-		// Remove children in reverse to avoid index-out-of-range during layout updates
-		for (int i = _itemsStack.Children.Count - 1; i >= 0; i--)
-			_itemsStack.Children.RemoveAt(i);
-
 		var rng = new Random();
-		for (int i = 1; i <= 15; i++)
+
+		// Reuse existing labels to avoid GTK widget reparenting issues
+		for (int i = 0; i < 15; i++)
 		{
-			_itemsStack.Children.Add(new Label
+			var text = $"  Item {i + 1} (value: {rng.Next(100, 999)})";
+			if (i < _itemsStack.Children.Count && _itemsStack.Children[i] is Label existing)
 			{
-				Text = $"  Item {i} (value: {rng.Next(100, 999)})",
-				Padding = new Thickness(8, 4),
-				BackgroundColor = i % 2 == 0 ? Colors.WhiteSmoke : Colors.White,
-			});
+				existing.Text = text;
+			}
+			else
+			{
+				_itemsStack.Children.Add(new Label
+				{
+					Text = text,
+					TextColor = Colors.Black,
+					Padding = new Thickness(8, 6),
+					BackgroundColor = (i + 1) % 2 == 0 ? Color.FromRgba(0.93, 0.93, 0.93, 1) : Color.FromRgba(0.97, 0.97, 0.97, 1),
+				});
+			}
 		}
 	}
 }

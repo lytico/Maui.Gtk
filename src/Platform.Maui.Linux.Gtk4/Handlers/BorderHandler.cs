@@ -14,6 +14,11 @@ public class BorderHandler : GtkViewHandler<IBorderView, Platform.GtkLayoutPanel
 			[nameof(IBorderView.Stroke)] = MapStroke,
 			[nameof(IBorderView.StrokeThickness)] = MapStroke,
 			[nameof(IBorderView.Shape)] = MapShape,
+			[nameof(IBorderView.StrokeDashOffset)] = MapStrokeDash,
+			[nameof(IBorderView.StrokeDashPattern)] = MapStrokeDash,
+			[nameof(IBorderView.StrokeLineCap)] = MapStrokeLineCap,
+			[nameof(IBorderView.StrokeLineJoin)] = MapStrokeLineJoin,
+			[nameof(IBorderView.StrokeMiterLimit)] = MapStrokeMiterLimit,
 		};
 
 	public BorderHandler() : base(Mapper)
@@ -100,5 +105,26 @@ public class BorderHandler : GtkViewHandler<IBorderView, Platform.GtkLayoutPanel
 			handler.PlatformView.SetOverflow(Gtk.Overflow.Hidden);
 			handler.ApplyCss(handler.PlatformView, css);
 		}
+	}
+
+	static void MapStrokeDash(BorderHandler handler, IBorderView border)
+	{
+		// GTK CSS supports border-style:dashed but not custom dash patterns; trigger redraw.
+		ApplyBorderCss(handler);
+	}
+
+	static void MapStrokeLineCap(BorderHandler handler, IBorderView border)
+	{
+		// CSS does not support stroke-linecap on borders; intentional no-op.
+	}
+
+	static void MapStrokeLineJoin(BorderHandler handler, IBorderView border)
+	{
+		// CSS does not support stroke-linejoin on borders; intentional no-op.
+	}
+
+	static void MapStrokeMiterLimit(BorderHandler handler, IBorderView border)
+	{
+		// CSS does not support miter-limit on borders; intentional no-op.
 	}
 }

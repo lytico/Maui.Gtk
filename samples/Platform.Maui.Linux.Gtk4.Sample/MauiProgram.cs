@@ -1,3 +1,5 @@
+using MauiIcons.FontAwesome;
+using MauiIcons.FontAwesome.Solid;
 using Platform.Maui.Linux.Gtk4.Hosting;
 using Platform.Maui.Linux.Gtk4.Essentials.Hosting;
 using Platform.Maui.Linux.Gtk4.BlazorWebView;
@@ -22,7 +24,9 @@ public static class MauiProgram
 		var builder = MauiApp
 			.CreateBuilder()
 			.UseMauiAppLinuxGtk4<App>()
-			.AddLinuxGtk4Essentials();
+			.AddLinuxGtk4Essentials()
+			.UseFontAwesomeMauiIcons()
+			.UseFontAwesomeSolidMauiIcons();
 
 		builder.ConfigureFonts(fonts =>
 		{

@@ -13,6 +13,10 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 		{
 			[nameof(IWindow.Title)] = MapTitle,
 			[nameof(IWindow.Content)] = MapContent,
+			[nameof(IWindow.Width)] = MapWidth,
+			[nameof(IWindow.Height)] = MapHeight,
+			[nameof(IWindow.X)] = MapX,
+			[nameof(IWindow.Y)] = MapY,
 		};
 
 	public static CommandMapper<IWindow, WindowHandler> CommandMapper = new(ElementCommandMapper)
@@ -59,6 +63,12 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 			container.AddPage(platformContent);
 		}
 
+		// Apply MenuBar from the content page
+		if (handler.PlatformView != null && window.Content is Microsoft.Maui.Controls.Page page)
+		{
+			GtkMenuBarManager.ApplyToWindow(handler.PlatformView, page);
+		}
+
 		// Ensure AlertManager.Subscribe() is called so DI-registered
 		// IAlertManagerSubscription gets picked up for DisplayAlert etc.
 		if (window is Microsoft.Maui.Controls.Window mauiWindow)
@@ -74,5 +84,31 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 			}
 			catch { }
 		}
+	}
+
+	public static void MapWidth(WindowHandler handler, IWindow window)
+	{
+		if (handler.PlatformView == null || window.Width < 0) return;
+		handler.PlatformView.GetDefaultSize(out _, out var h);
+		handler.PlatformView.SetDefaultSize((int)window.Width, h > 0 ? h : 600);
+	}
+
+	public static void MapHeight(WindowHandler handler, IWindow window)
+	{
+		if (handler.PlatformView == null || window.Height < 0) return;
+		handler.PlatformView.GetDefaultSize(out var w, out _);
+		handler.PlatformView.SetDefaultSize(w > 0 ? w : 800, (int)window.Height);
+	}
+
+	public static void MapX(WindowHandler handler, IWindow window)
+	{
+		// GTK4 on Wayland does not support setting window position.
+		// On X11, this would require platform-specific code.
+	}
+
+	public static void MapY(WindowHandler handler, IWindow window)
+	{
+		// GTK4 on Wayland does not support setting window position.
+		// On X11, this would require platform-specific code.
 	}
 }

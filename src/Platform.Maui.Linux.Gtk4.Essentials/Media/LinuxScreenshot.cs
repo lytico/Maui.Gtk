@@ -39,7 +39,7 @@ public class LinuxScreenshot : IScreenshot
 			var tempPath = Path.Combine(Path.GetTempPath(), $"screenshot_{Guid.NewGuid()}.png");
 			texture.SaveToPng(tempPath);
 
-			return Task.FromResult<IScreenshotResult?>(new LinuxScreenshotResult(tempPath));
+			return Task.FromResult<IScreenshotResult?>(new LinuxScreenshotResult(tempPath, width, height));
 		}
 		catch
 		{
@@ -52,12 +52,11 @@ internal class LinuxScreenshotResult : IScreenshotResult
 {
 	private readonly string _filePath;
 
-	public LinuxScreenshotResult(string filePath)
+	public LinuxScreenshotResult(string filePath, int width, int height)
 	{
 		_filePath = filePath;
-		var info = new FileInfo(filePath);
-		Width = 0; // Actual dimensions unknown without decoding
-		Height = 0;
+		Width = width;
+		Height = height;
 	}
 
 	public int Width { get; }

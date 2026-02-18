@@ -10,11 +10,13 @@ namespace Platform.Maui.Linux.Gtk4.Platform;
 internal interface IGtkFontRegistry
 {
 	bool TryGetFontPath(string fontKey, out string fontPath);
+	IEnumerable<string> GetAllRegisteredKeys();
 }
 
 internal interface IGtkFontManager
 {
 	string BuildFontCss(Microsoft.Maui.Font font);
+	void EagerlyRegisterAllFonts();
 }
 
 internal sealed class GtkFontRegistrar : IFontRegistrar, IGtkFontRegistry
@@ -61,6 +63,8 @@ internal sealed class GtkFontRegistrar : IFontRegistrar, IGtkFontRegistry
 		fontPath = string.Empty;
 		return false;
 	}
+
+	public IEnumerable<string> GetAllRegisteredKeys() => _registeredFonts.Keys;
 
 	void RegisterCore(string filename, string? alias, Assembly? assembly)
 	{
@@ -213,6 +217,27 @@ internal sealed class GtkFontManager : IFontManager, IGtkFontManager
 
 	public double DefaultFontSize => 14;
 
+	/// <summary>
+	/// Eagerly extract, install, and register all known embedded fonts with
+	/// fontconfig/Pango so they are available before any widget is rendered.
+	/// </summary>
+	public void EagerlyRegisterAllFonts()
+	{
+		var anyRegistered = false;
+		foreach (var key in _fontRegistry.GetAllRegisteredKeys())
+		{
+			if (_fontRegistry.TryGetFontPath(key, out var fontPath) &&
+				!string.IsNullOrWhiteSpace(fontPath))
+			{
+				if (EnsureFontRegistered(fontPath))
+					anyRegistered = true;
+			}
+		}
+
+		if (anyRegistered)
+			FontConfigNative.NotifyFontMapChanged();
+	}
+
 	public string BuildFontCss(Microsoft.Maui.Font font)
 	{
 		if (font == Microsoft.Maui.Font.Default)
@@ -263,7 +288,9 @@ internal sealed class GtkFontManager : IFontManager, IGtkFontManager
 		if (!_fontRegistry.TryGetFontPath(fontFamily, out var fontPath))
 			return fontFamily;
 
-		EnsureFontRegistered(fontPath);
+		if (EnsureFontRegistered(fontPath))
+			FontConfigNative.NotifyFontMapChanged();
+
 		try
 		{
 			return TryReadFontFamilyName(fontPath) ?? Path.GetFileNameWithoutExtension(fontPath) ?? fontFamily;
@@ -284,13 +311,33 @@ internal sealed class GtkFontManager : IFontManager, IGtkFontManager
 		return Path.GetFileNameWithoutExtension(fontPath) ?? fontFamily;
 	}
 
-	void EnsureFontRegistered(string fontPath)
+	bool EnsureFontRegistered(string fontPath)
 	{
 		if (!File.Exists(fontPath) || !_registeredFontFiles.TryAdd(fontPath, 0))
-			return;
+			return false;
+
+		// Install to user font directory so fontconfig/Pango picks it up
+		// reliably (FcConfigAppFontAddFile may not propagate to GTK4's
+		// Pango context which caches fontconfig state at startup).
+		try
+		{
+			var userFontDir = Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+				"fonts");
+			Directory.CreateDirectory(userFontDir);
+			var destPath = Path.Combine(userFontDir, Path.GetFileName(fontPath));
+			if (!File.Exists(destPath))
+				File.Copy(fontPath, destPath, overwrite: false);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogDebug(ex, "Could not install font to user directory; falling back to FcConfigAppFontAddFile.");
+		}
 
 		if (!FontConfigNative.TryAddAppFont(fontPath))
 			_logger.LogWarning("Unable to register app font '{FontPath}' with fontconfig.", fontPath);
+
+		return true;
 	}
 
 	static string? TryReadFontFamilyName(string fontPath)
@@ -427,12 +474,18 @@ internal sealed class GtkFontManager : IFontManager, IGtkFontManager
 
 	static class FontConfigNative
 	{
-		[DllImport("fontconfig", EntryPoint = "FcConfigGetCurrent")]
+		[DllImport("libfontconfig.so.1", EntryPoint = "FcConfigGetCurrent")]
 		static extern IntPtr FcConfigGetCurrent();
 
-		[DllImport("fontconfig", EntryPoint = "FcConfigAppFontAddFile", CharSet = CharSet.Ansi)]
+		[DllImport("libfontconfig.so.1", EntryPoint = "FcConfigAppFontAddFile", CharSet = CharSet.Ansi)]
 		[return: MarshalAs(UnmanagedType.I1)]
 		static extern bool FcConfigAppFontAddFile(IntPtr config, string fileName);
+
+		[DllImport("libpangocairo-1.0.so.0", EntryPoint = "pango_cairo_font_map_get_default")]
+		static extern IntPtr PangoCairoFontMapGetDefault();
+
+		[DllImport("libpangoft2-1.0.so.0", EntryPoint = "pango_fc_font_map_config_changed")]
+		static extern void PangoFcFontMapConfigChanged(IntPtr fontMap);
 
 		public static bool TryAddAppFont(string fontFilePath)
 		{
@@ -441,6 +494,24 @@ internal sealed class GtkFontManager : IFontManager, IGtkFontManager
 				return false;
 
 			return FcConfigAppFontAddFile(config, fontFilePath);
+		}
+
+		/// <summary>
+		/// Notify Pango that fontconfig configuration has changed so it
+		/// rescans and picks up newly registered app fonts.
+		/// </summary>
+		public static void NotifyFontMapChanged()
+		{
+			try
+			{
+				var fontMap = PangoCairoFontMapGetDefault();
+				if (fontMap != IntPtr.Zero)
+					PangoFcFontMapConfigChanged(fontMap);
+			}
+			catch
+			{
+				// Best-effort; ignore if Pango libs are unavailable
+			}
 		}
 	}
 }

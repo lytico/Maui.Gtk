@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using Platform.Maui.Linux.Gtk4.Sample.Pages;
@@ -18,12 +19,22 @@ class MainShell : FlyoutPage
 	[
 		("🏠 Home", () => new HomePage()),
 		("🧩 XAML Runtime", () => new XamlRuntimePage()),
-		("🖼️ Resource Image + Font + Icon", () => new ResourceAssetsPage()),
+		("🖼️ Image / Font / Icon", () => new ResourceAssetsPage()),
+		("🔣 FontAwesome Icons", () => new FontAwesomePage()),
 		("🎛️ Controls", () => new ControlsPage()),
 		("📅 Pickers & Search", () => new PickersPage()),
 		("📐 Layouts", () => new LayoutsPage()),
+		("📐 Flex & Absolute", () => new LayoutsAdvancedPage()),
+		("🔤 FormattedText", () => new FormattedTextPage()),
+		("🔷 Shapes", () => new ShapesPage()),
+		("🔄 Transforms & Effects", () => new TransformsPage()),
 		("💬 Alerts & Dialogs", () => new AlertsPage()),
 		("📋 Collection View", () => new CollectionViewPage()),
+		("📜 ListView & TableView", () => new ListViewTableViewPage()),
+		("✏️ Text Input Styling", () => new TextInputStylingPage()),
+		("🍔 Menu & Toolbar", () => new MenuBarPage()),
+		("🔄 Refresh & Swipe", () => new RefreshSwipePage()),
+		("🎠 Carousel & Indicators", () => new CarouselIndicatorPage()),
 		("🎨 Graphics (Cairo)", () => new GraphicsPage()),
 		("📱 Device & App Info", () => new DeviceInfoPage()),
 		("🔋 Battery & Network", () => new BatteryNetworkPage()),
@@ -33,57 +44,46 @@ class MainShell : FlyoutPage
 		("🧭 Navigation", () => new NavigationPage(new NavigationDemoPage())),
 		("📑 TabbedPage", () => new TabbedPageDemo()),
 		("📂 FlyoutPage", () => new FlyoutPageDemo()),
+		("🐚 Shell Navigation", () => new ShellDemoPage()),
+		("🧬 ControlTemplate", () => new ControlTemplatePage()),
 	];
 
 	public MainShell()
 	{
 		Title = "Platform.Maui.Linux.Gtk4 GTK4 Demo";
 
-		var menuStack = new VerticalStackLayout { Spacing = 0 };
+		// Menu items as a CollectionView — uses native Gtk.ListView
+		// with navigation-sidebar styling for proper hover/selection
+		var menuItems = _pages.Select(p => p.name).ToList();
+		var menuList = new CollectionView
+		{
+			ItemsSource = menuItems,
+			SelectionMode = SelectionMode.Single,
+			SelectedItem = menuItems[0],
+			VerticalOptions = LayoutOptions.Fill,
+			Header = "GTK4 Demo",
+		};
 
-		menuStack.Children.Add(new Label
+		menuList.SelectionChanged += (s, e) =>
 		{
-			Text = "🐧 Platform.Maui.Linux.Gtk4",
-			FontSize = 20,
-			FontAttributes = FontAttributes.Bold,
-			TextColor = Colors.DodgerBlue,
-			Padding = new Thickness(16, 20, 16, 4),
-		});
-		menuStack.Children.Add(new Label
-		{
-			Text = "GTK4 Demo App",
-			FontSize = 12,
-			TextColor = Colors.Gray,
-			Padding = new Thickness(16, 0, 16, 12),
-		});
-		menuStack.Children.Add(new BoxView { HeightRequest = 1, Color = Colors.LightGray });
-
-		foreach (var (name, factory) in _pages)
-		{
-			var btn = new Button
+			if (e.CurrentSelection.FirstOrDefault() is string selected)
 			{
-				Text = name,
-				FontSize = 14,
-				HorizontalOptions = LayoutOptions.Fill,
-			};
-			var capturedFactory = factory;
-			btn.Clicked += (s, e) =>
-			{
-				var page = capturedFactory();
-				// Wrap non-NavigationPage detail pages in a NavigationPage
-				// so they get a nav bar with the hamburger toggle
-				if (page is ContentPage cp)
-					Detail = new NavigationPage(cp);
-				else
-					Detail = page;
-			};
-			menuStack.Children.Add(btn);
-		}
+				var match = _pages.FirstOrDefault(p => p.name == selected);
+				if (match.factory != null)
+				{
+					var page = match.factory();
+					if (page is ContentPage cp)
+						Detail = new NavigationPage(cp);
+					else
+						Detail = page;
+				}
+			}
+		};
 
 		Flyout = new ContentPage
 		{
 			Title = "Menu",
-			Content = new ScrollView { Content = menuStack },
+			Content = menuList,
 		};
 
 		Detail = new NavigationPage(new HomePage());

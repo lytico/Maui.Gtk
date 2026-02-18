@@ -12,6 +12,11 @@ public class RadioButtonHandler : GtkViewHandler<IRadioButton, Gtk.CheckButton>
 			[nameof(IRadioButton.IsChecked)] = MapIsChecked,
 			[nameof(IRadioButton.Content)] = MapContent,
 			[nameof(ITextStyle.Font)] = MapFont,
+			[nameof(ITextStyle.CharacterSpacing)] = MapCharacterSpacing,
+			[nameof(ITextStyle.TextColor)] = MapTextColor,
+			[nameof(IButtonStroke.CornerRadius)] = MapCornerRadius,
+			[nameof(IButtonStroke.StrokeColor)] = MapStrokeColor,
+			[nameof(IButtonStroke.StrokeThickness)] = MapStrokeThickness,
 		};
 
 	public RadioButtonHandler() : base(Mapper)
@@ -78,5 +83,36 @@ public class RadioButtonHandler : GtkViewHandler<IRadioButton, Gtk.CheckButton>
 		var css = handler.BuildFontCss(textStyle.Font);
 		if (!string.IsNullOrEmpty(css))
 			handler.ApplyCss(handler.PlatformView, css);
+	}
+
+	public static void MapCharacterSpacing(RadioButtonHandler handler, IRadioButton radioButton)
+	{
+		if (radioButton is ITextStyle textStyle)
+			handler.ApplyCss(handler.PlatformView, $"letter-spacing: {textStyle.CharacterSpacing}px;");
+	}
+
+	public static void MapTextColor(RadioButtonHandler handler, IRadioButton radioButton)
+	{
+		if (radioButton is ITextStyle textStyle && textStyle.TextColor != null)
+			handler.ApplyCss(handler.PlatformView, $"color: {ToGtkColor(textStyle.TextColor)};");
+	}
+
+	public static void MapCornerRadius(RadioButtonHandler handler, IRadioButton radioButton)
+	{
+		if (radioButton is IButtonStroke stroke && stroke.CornerRadius >= 0)
+			handler.ApplyCss(handler.PlatformView, $"border-radius: {stroke.CornerRadius}px;");
+	}
+
+	public static void MapStrokeColor(RadioButtonHandler handler, IRadioButton radioButton)
+	{
+		if (radioButton is IButtonStroke stroke && stroke.StrokeColor != null)
+			handler.ApplyCss(handler.PlatformView, $"border-color: {ToGtkColor(stroke.StrokeColor)};");
+	}
+
+	public static void MapStrokeThickness(RadioButtonHandler handler, IRadioButton radioButton)
+	{
+		if (radioButton is IButtonStroke stroke && stroke.StrokeThickness >= 0)
+			handler.ApplyCss(handler.PlatformView,
+				$"border-width: {stroke.StrokeThickness}px; border-style: solid;");
 	}
 }

@@ -10,6 +10,10 @@ public class SliderHandler : GtkViewHandler<ISlider, Gtk.Scale>
 			[nameof(ISlider.Minimum)] = MapMinimum,
 			[nameof(ISlider.Maximum)] = MapMaximum,
 			[nameof(ISlider.Value)] = MapValue,
+			[nameof(ISlider.MinimumTrackColor)] = MapMinimumTrackColor,
+			[nameof(ISlider.MaximumTrackColor)] = MapMaximumTrackColor,
+			[nameof(ISlider.ThumbColor)] = MapThumbColor,
+			[nameof(ISlider.ThumbImageSource)] = MapThumbImageSource,
 		};
 
 	public SliderHandler() : base(Mapper)
@@ -54,5 +58,31 @@ public class SliderHandler : GtkViewHandler<ISlider, Gtk.Scale>
 	public static void MapValue(SliderHandler handler, ISlider slider)
 	{
 		handler.PlatformView?.SetValue(slider.Value);
+	}
+
+	public static void MapMinimumTrackColor(SliderHandler handler, ISlider slider)
+	{
+		if (slider.MinimumTrackColor != null)
+			handler.ApplyCssWithSelector(handler.PlatformView, "* > trough > highlight",
+				$"background-color: {ToGtkColor(slider.MinimumTrackColor)};");
+	}
+
+	public static void MapMaximumTrackColor(SliderHandler handler, ISlider slider)
+	{
+		if (slider.MaximumTrackColor != null)
+			handler.ApplyCssWithSelector(handler.PlatformView, "* > trough",
+				$"background-color: {ToGtkColor(slider.MaximumTrackColor)};");
+	}
+
+	public static void MapThumbColor(SliderHandler handler, ISlider slider)
+	{
+		if (slider.ThumbColor != null)
+			handler.ApplyCssWithSelector(handler.PlatformView, "* > trough > slider",
+				$"background-color: {ToGtkColor(slider.ThumbColor)}; background-image: none;");
+	}
+
+	public static void MapThumbImageSource(SliderHandler handler, ISlider slider)
+	{
+		// Custom thumb images require async image loading infrastructure; not yet wired.
 	}
 }

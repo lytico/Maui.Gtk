@@ -11,6 +11,11 @@ public class PickerHandler : GtkViewHandler<IPicker, Gtk.DropDown>
 			[nameof(IPicker.SelectedIndex)] = MapSelectedIndex,
 			[nameof(IPicker.Items)] = MapItems,
 			[nameof(ITextStyle.Font)] = MapFont,
+			[nameof(IPicker.CharacterSpacing)] = MapCharacterSpacing,
+			[nameof(IPicker.HorizontalTextAlignment)] = MapHorizontalTextAlignment,
+			[nameof(IPicker.TextColor)] = MapTextColor,
+			[nameof(IPicker.TitleColor)] = MapTitleColor,
+			[nameof(ITextAlignment.VerticalTextAlignment)] = MapVerticalTextAlignment,
 		};
 
 	public PickerHandler() : base(Mapper)
@@ -67,5 +72,45 @@ public class PickerHandler : GtkViewHandler<IPicker, Gtk.DropDown>
 		var css = handler.BuildFontCss(textStyle.Font);
 		if (!string.IsNullOrEmpty(css))
 			handler.ApplyCss(handler.PlatformView, css);
+	}
+
+	public static void MapCharacterSpacing(PickerHandler handler, IPicker picker)
+	{
+		handler.ApplyCss(handler.PlatformView, $"letter-spacing: {picker.CharacterSpacing}px;");
+	}
+
+	public static void MapHorizontalTextAlignment(PickerHandler handler, IPicker picker)
+	{
+		var align = picker.HorizontalTextAlignment switch
+		{
+			TextAlignment.Start => "left",
+			TextAlignment.Center => "center",
+			TextAlignment.End => "right",
+			_ => "left"
+		};
+		handler.ApplyCss(handler.PlatformView, $"text-align: {align};");
+	}
+
+	public static void MapTextColor(PickerHandler handler, IPicker picker)
+	{
+		if (picker.TextColor != null)
+			handler.ApplyCss(handler.PlatformView, $"color: {ToGtkColor(picker.TextColor)};");
+	}
+
+	public static void MapTitleColor(PickerHandler handler, IPicker picker)
+	{
+		// GTK DropDown doesn't expose a separate title; no-op.
+	}
+
+	public static void MapVerticalTextAlignment(PickerHandler handler, IPicker picker)
+	{
+		if (handler.PlatformView == null || picker is not ITextAlignment ta) return;
+		handler.PlatformView.SetValign(ta.VerticalTextAlignment switch
+		{
+			TextAlignment.Start => Gtk.Align.Start,
+			TextAlignment.Center => Gtk.Align.Center,
+			TextAlignment.End => Gtk.Align.End,
+			_ => Gtk.Align.Center
+		});
 	}
 }

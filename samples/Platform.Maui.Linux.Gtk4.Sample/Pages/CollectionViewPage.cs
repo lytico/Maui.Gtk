@@ -9,7 +9,6 @@ public class CollectionViewPage : ContentPage
 	{
 		Title = "CollectionView";
 
-		var tabs = new HorizontalStackLayout { Spacing = 0 };
 		var contentArea = new VerticalStackLayout();
 
 		var pages = new (string title, Func<View> builder)[]
@@ -17,43 +16,29 @@ public class CollectionViewPage : ContentPage
 			("Simple List", BuildSimpleList),
 			("Templated", BuildTemplatedList),
 			("Multi-Select", BuildMultiSelectList),
+			("CollectionView", BuildCollectionViewDemo),
+			("Grouped", BuildGroupedDemo),
+			("10K Virtual", BuildVirtualizedDemo),
 		};
 
-		Button? activeTab = null;
-		foreach (var (title, builder) in pages)
+		var picker = new Picker
 		{
-			var btn = new Button
-			{
-				Text = title,
-				FontSize = 13,
-				BackgroundColor = Colors.Transparent,
-				TextColor = Colors.Gray,
-				Padding = new Thickness(16, 8),
-			};
-			var capturedBuilder = builder;
-			btn.Clicked += (s, e) =>
-			{
-				if (activeTab != null)
-				{
-					activeTab.TextColor = Colors.Gray;
-					activeTab.BackgroundColor = Colors.Transparent;
-				}
-				btn.TextColor = Colors.Black;
-				btn.BackgroundColor = Colors.LightSkyBlue;
-				activeTab = btn;
+			Title = "Select example",
+			FontSize = 14,
+			HorizontalOptions = LayoutOptions.Start,
+		};
+		foreach (var (title, _) in pages)
+			picker.Items.Add(title);
 
-				contentArea.Children.Clear();
-				contentArea.Children.Add(capturedBuilder());
-			};
-			tabs.Children.Add(btn);
-		}
+		picker.SelectedIndexChanged += (s, e) =>
+		{
+			if (picker.SelectedIndex < 0) return;
+			contentArea.Children.Clear();
+			contentArea.Children.Add(pages[picker.SelectedIndex].builder());
+		};
 
-		// Activate first tab
-		var firstBtn = (Button)tabs.Children[0];
-		firstBtn.TextColor = Colors.Black;
-		firstBtn.BackgroundColor = Colors.LightSkyBlue;
-		activeTab = firstBtn;
-		contentArea.Children.Add(pages[0].builder());
+		// Activate first example
+		picker.SelectedIndex = 0;
 
 		Content = new VerticalStackLayout
 		{
@@ -63,8 +48,7 @@ public class CollectionViewPage : ContentPage
 			{
 				new Label { Text = "CollectionView", FontSize = 24, FontAttributes = FontAttributes.Bold },
 				new BoxView { HeightRequest = 2, Color = Colors.DodgerBlue },
-				tabs,
-				new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+				picker,
 				contentArea,
 			}
 		};
@@ -343,6 +327,281 @@ public class CollectionViewPage : ContentPage
 		};
 	}
 
+	// --- Tab 4: Actual CollectionView control demo ---
+
+	View BuildCollectionViewDemo()
+	{
+		var contacts = new List<ContactItem>
+		{
+			new("Alice Johnson", "alice@example.com", "AJ", Colors.Coral),
+			new("Bob Smith", "bob@example.com", "BS", Colors.CornflowerBlue),
+			new("Carol White", "carol@example.com", "CW", Colors.MediumSeaGreen),
+			new("David Brown", "david@example.com", "DB", Colors.MediumOrchid),
+			new("Eve Davis", "eve@example.com", "ED", Colors.SandyBrown),
+			new("Frank Miller", "frank@example.com", "FM", Colors.SlateBlue),
+			new("Grace Lee", "grace@example.com", "GL", Colors.Teal),
+			new("Hank Wilson", "hank@example.com", "HW", Colors.IndianRed),
+		};
+
+		var selectedLabel = new Label
+		{
+			Text = "No selection",
+			FontSize = 14,
+			TextColor = Colors.Gray,
+		};
+
+		var cv = new CollectionView
+		{
+			ItemsSource = contacts,
+			Header = "📇 Contacts (ItemTemplate)",
+			Footer = $"{contacts.Count} contacts",
+			EmptyView = "No contacts found!",
+			SelectionMode = SelectionMode.Single,
+			HeightRequest = 400,
+			ItemTemplate = new DataTemplate(() =>
+			{
+				var avatar = new BoxView
+				{
+					WidthRequest = 36,
+					HeightRequest = 36,
+				};
+				avatar.SetBinding(BoxView.ColorProperty, "AvatarColor");
+
+				var nameLabel = new Label
+				{
+					FontSize = 14,
+					FontAttributes = FontAttributes.Bold,
+				};
+				nameLabel.SetBinding(Label.TextProperty, "Name");
+
+				var emailLabel = new Label
+				{
+					FontSize = 11,
+					TextColor = Colors.Gray,
+				};
+				emailLabel.SetBinding(Label.TextProperty, "Email");
+
+				return new HorizontalStackLayout
+				{
+					Spacing = 10,
+					Padding = new Thickness(8, 6),
+					Children =
+					{
+						avatar,
+						new VerticalStackLayout
+						{
+							Spacing = 2,
+							Children = { nameLabel, emailLabel },
+						},
+					},
+				};
+			}),
+		};
+
+		cv.SelectionChanged += (s, e) =>
+		{
+			if (e.CurrentSelection.FirstOrDefault() is ContactItem contact)
+			{
+				selectedLabel.Text = $"📧 {contact.Name} ({contact.Email})";
+				selectedLabel.TextColor = contact.AvatarColor;
+			}
+			else
+			{
+				selectedLabel.Text = "No selection";
+				selectedLabel.TextColor = Colors.Gray;
+			}
+		};
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "CollectionView + ItemTemplate", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "Uses DataTemplate with data bindings for each row.", FontSize = 12, TextColor = Colors.Gray },
+				selectedLabel,
+				cv,
+			}
+		};
+	}
+
+	// --- Tab 5: Grouped CollectionView ---
+
+	View BuildGroupedDemo()
+	{
+		var groups = new List<AnimalGroup>
+		{
+			new("🐱 Cats", ["Tabby", "Siamese", "Persian", "Maine Coon", "Bengal"]),
+			new("🐶 Dogs", ["Labrador", "Poodle", "Bulldog", "Beagle", "Husky"]),
+			new("🐦 Birds", ["Parrot", "Eagle", "Sparrow", "Penguin"]),
+			new("🐠 Fish", ["Goldfish", "Clownfish", "Salmon"]),
+		};
+
+		var cv = new CollectionView
+		{
+			ItemsSource = groups,
+			IsGrouped = true,
+			Header = "🐾 Grouped Animals",
+			Footer = $"{groups.Sum(g => g.Count)} animals in {groups.Count} groups",
+			HeightRequest = 400,
+			SelectionMode = SelectionMode.Single,
+			GroupHeaderTemplate = new DataTemplate(() =>
+			{
+				var label = new Label
+				{
+					FontSize = 15,
+					FontAttributes = FontAttributes.Bold,
+					TextColor = Colors.Teal,
+				};
+				label.SetBinding(Label.TextProperty, "Name");
+				return new VerticalStackLayout
+				{
+					Padding = new Thickness(8, 10, 8, 4),
+					Children = { label },
+				};
+			}),
+			ItemTemplate = new DataTemplate(() =>
+			{
+				var label = new Label { FontSize = 14 };
+				label.SetBinding(Label.TextProperty, ".");
+				return new VerticalStackLayout
+				{
+					Padding = new Thickness(24, 4),
+					Children = { label },
+				};
+			}),
+		};
+
+		var selectedLabel = new Label { Text = "Select an animal", FontSize = 14, TextColor = Colors.Gray };
+		cv.SelectionChanged += (s, e) =>
+		{
+			if (e.CurrentSelection.FirstOrDefault() is string animal)
+			{
+				selectedLabel.Text = $"Selected: {animal}";
+				selectedLabel.TextColor = Colors.Teal;
+			}
+		};
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "Grouped CollectionView", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "IsGrouped=true with GroupHeaderTemplate + ItemTemplate", FontSize = 12, TextColor = Colors.Gray },
+				selectedLabel,
+				cv,
+			}
+		};
+	}
+
+	// --- Tab 6: Virtualized 10K item list ---
+
+	View BuildVirtualizedDemo()
+	{
+		var sw = System.Diagnostics.Stopwatch.StartNew();
+		var items = Enumerable.Range(1, 10_000)
+			.Select(i => new LargeListItem(i, $"Item #{i}", $"Description for item {i}", GetItemColor(i)))
+			.ToList();
+		sw.Stop();
+
+		var infoLabel = new Label
+		{
+			Text = $"10,000 items generated in {sw.ElapsedMilliseconds}ms. Scroll to test virtualization.",
+			FontSize = 12,
+			TextColor = Colors.Gray,
+		};
+		var selectedLabel = new Label { Text = "No selection", FontSize = 14, TextColor = Colors.Gray };
+		var posLabel = new Label { Text = "Position: top", FontSize = 12, TextColor = Colors.DimGray };
+
+		var cv = new CollectionView
+		{
+			ItemsSource = items,
+			Header = $"📊 10,000 Items (Virtualized)",
+			Footer = $"Total: {items.Count:N0} items",
+			SelectionMode = SelectionMode.Single,
+			HeightRequest = 400,
+			ItemTemplate = new DataTemplate(() =>
+			{
+				var idLabel = new Label { FontSize = 11, TextColor = Colors.White, FontAttributes = FontAttributes.Bold };
+				idLabel.SetBinding(Label.TextProperty, "IdText");
+
+				var colorBox = new BoxView { WidthRequest = 32, HeightRequest = 32 };
+				colorBox.SetBinding(BoxView.ColorProperty, "Color");
+
+				var nameLabel = new Label { FontSize = 14, FontAttributes = FontAttributes.Bold };
+				nameLabel.SetBinding(Label.TextProperty, "Name");
+
+				var descLabel = new Label { FontSize = 11, TextColor = Colors.Gray };
+				descLabel.SetBinding(Label.TextProperty, "Description");
+
+				return new HorizontalStackLayout
+				{
+					Spacing = 10,
+					Padding = new Thickness(8, 4),
+					Children =
+					{
+						colorBox,
+						new VerticalStackLayout
+						{
+							Spacing = 1,
+							Children = { nameLabel, descLabel },
+						},
+					},
+				};
+			}),
+		};
+
+		cv.SelectionChanged += (s, e) =>
+		{
+			if (e.CurrentSelection.FirstOrDefault() is LargeListItem item)
+			{
+				selectedLabel.Text = $"Selected: {item.Name}";
+				selectedLabel.TextColor = item.Color;
+			}
+		};
+
+		// Jump buttons to test scroll
+		var jumpTop = new Button { Text = "Jump to #1", FontSize = 12, BackgroundColor = Colors.Gray, TextColor = Colors.White };
+		jumpTop.Clicked += (s, e) => { cv.ScrollTo(0); posLabel.Text = "Position: #1"; };
+
+		var jumpMid = new Button { Text = "Jump to #5000", FontSize = 12, BackgroundColor = Colors.Gray, TextColor = Colors.White };
+		jumpMid.Clicked += (s, e) => { cv.ScrollTo(4999); posLabel.Text = "Position: #5000"; };
+
+		var jumpEnd = new Button { Text = "Jump to #10000", FontSize = 12, BackgroundColor = Colors.Gray, TextColor = Colors.White };
+		jumpEnd.Clicked += (s, e) => { cv.ScrollTo(9999); posLabel.Text = "Position: #10000"; };
+
+		return new VerticalStackLayout
+		{
+			Spacing = 8,
+			Children =
+			{
+				new Label { Text = "Virtualized CollectionView (10K items)", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				infoLabel,
+				selectedLabel,
+				posLabel,
+				new HorizontalStackLayout { Spacing = 8, Children = { jumpTop, jumpMid, jumpEnd } },
+				cv,
+			}
+		};
+	}
+
+	static Color GetItemColor(int i) => (i % 7) switch
+	{
+		0 => Colors.CornflowerBlue,
+		1 => Colors.Coral,
+		2 => Colors.MediumSeaGreen,
+		3 => Colors.MediumOrchid,
+		4 => Colors.SandyBrown,
+		5 => Colors.SlateBlue,
+		_ => Colors.Teal,
+	};
+
+	record LargeListItem(int Id, string Name, string Description, Color Color)
+	{
+		public string IdText => $"#{Id}";
+	}
+
 	static string GetDescription(int i) => (i % 5) switch
 	{
 		0 => "🔴 Important task",
@@ -351,4 +610,18 @@ public class CollectionViewPage : ContentPage
 		3 => "🟡 Pending review",
 		_ => "⚪ Backlog item",
 	};
+}
+
+/// <summary>
+/// A grouped list of animals for CollectionView grouping demo.
+/// Implements IList&lt;string&gt; so it works as both the group header and the group items.
+/// </summary>
+class AnimalGroup : List<string>
+{
+	public string Name { get; }
+	public AnimalGroup(string name, IEnumerable<string> items) : base(items)
+	{
+		Name = name;
+	}
+	public override string ToString() => Name;
 }

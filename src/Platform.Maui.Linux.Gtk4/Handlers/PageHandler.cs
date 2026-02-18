@@ -10,6 +10,7 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 		new PropertyMapper<IContentView, PageHandler>(ViewMapper)
 		{
 			[nameof(IContentView.Content)] = MapContent,
+			["Title"] = MapTitle,
 		};
 
 	public PageHandler() : base(Mapper)
@@ -36,7 +37,6 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 	{
 		_ = handler.MauiContext ?? throw new InvalidOperationException("MauiContext not set.");
 
-		// Find the ScrolledWindow inside our Box
 		var box = handler.PlatformView;
 		var scrolled = box.GetFirstChild() as Gtk.ScrolledWindow;
 		if (scrolled == null)
@@ -47,7 +47,19 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 			var platformContent = (Gtk.Widget)page.PresentedContent.ToPlatform(handler.MauiContext);
 			platformContent.SetVexpand(true);
 			platformContent.SetHexpand(true);
-			scrolled.SetChild(platformContent);
+
+			if (platformContent is Gtk.ScrolledWindow)
+			{
+				// Content is already scrollable — bypass the page's ScrolledWindow
+				// to avoid nested scroll containers that collapse to zero height
+				scrolled.SetVisible(false);
+				if (platformContent.GetParent() == null)
+					box.Append(platformContent);
+			}
+			else
+			{
+				scrolled.SetChild(platformContent);
+			}
 		}
 
 		// Propagate layout dirty to ancestor layout panels
@@ -77,5 +89,23 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 		// Propagate arrange to page content so nested layouts resize
 		if (VirtualView is ICrossPlatformLayout crossPlatform)
 			crossPlatform.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));
+	}
+
+	public static void MapTitle(PageHandler handler, IContentView page)
+	{
+		if (page is not Microsoft.Maui.Controls.Page mauiPage)
+			return;
+
+		// Walk up to find the GTK window and update its title
+		Gtk.Widget? current = handler.PlatformView;
+		while (current != null)
+		{
+			if (current is Gtk.Window window)
+			{
+				window.SetTitle(mauiPage.Title ?? string.Empty);
+				break;
+			}
+			current = current.GetParent();
+		}
 	}
 }

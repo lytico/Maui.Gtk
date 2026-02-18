@@ -7,9 +7,7 @@
     <ApplicationId>com.platform.maui.linux.gtk4.sample</ApplicationId>
   </PropertyGroup>
 
-  <Import
-    Project="..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.props"
-    Condition="Exists('..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.props')" />
+  <Import Project="..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.props" Condition="Exists('..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.props')" />
 
   <ItemGroup>
     <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
@@ -27,8 +25,11 @@
     <ProjectReference Include="..\..\..\MauiDevFlow\src\MauiDevFlow.Blazor.Gtk\MauiDevFlow.Blazor.Gtk.csproj" />
   </ItemGroup>
 
-  <Import
-    Project="..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.targets"
-    Condition="Exists('..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.targets')" />
+  <ItemGroup>
+    <PackageReference Include="AathifMahir.Maui.MauiIcons.FontAwesome" Version="5.0.0" />
+    <PackageReference Include="AathifMahir.Maui.MauiIcons.FontAwesome.Solid" Version="5.0.0" />
+  </ItemGroup>
+
+  <Import Project="..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.targets" Condition="Exists('..\..\src\Platform.Maui.Linux.Gtk4\buildTransitive\Platform.Maui.Linux.Gtk4.targets')" />
 
 </Project>

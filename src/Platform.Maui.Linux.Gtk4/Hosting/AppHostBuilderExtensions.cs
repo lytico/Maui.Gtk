@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui;
+using Microsoft.Maui.Animations;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Microsoft.Maui.Hosting;
@@ -30,6 +31,7 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<ContentPage, PageHandler>();
 		handlersCollection.AddHandler<Layout, LayoutHandler>();
 		handlersCollection.AddHandler<ContentView, ContentViewHandler>();
+		handlersCollection.AddHandler<IContentView, ContentViewHandler>();
 		handlersCollection.AddHandler<Label, LabelHandler>();
 		handlersCollection.AddHandler<Button, ButtonHandler>();
 		handlersCollection.AddHandler<Entry, EntryHandler>();
@@ -56,22 +58,31 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<NavigationPage, NavigationPageHandler>();
 		handlersCollection.AddHandler<TabbedPage, TabbedPageHandler>();
 		handlersCollection.AddHandler<FlyoutPage, FlyoutPageHandler>();
+		handlersCollection.AddHandler<Shell, ShellHandler>();
 
 		// Phase 6: Advanced handlers
 		handlersCollection.AddHandler<CollectionView, CollectionViewHandler>();
+#pragma warning disable CS0618
+		handlersCollection.AddHandler<ListView, ListViewHandler>();
+		handlersCollection.AddHandler<TableView, TableViewHandler>();
+#pragma warning restore CS0618
 		handlersCollection.AddHandler<GraphicsView, GraphicsViewHandler>();
+		handlersCollection.AddHandler<RefreshView, RefreshViewHandler>();
+		handlersCollection.AddHandler<SwipeView, SwipeViewHandler>();
+		handlersCollection.AddHandler<CarouselView, CarouselViewHandler>();
+		handlersCollection.AddHandler<IndicatorView, IndicatorViewHandler>();
 
-		// BoxView / Shapes (MAUI routes BoxView through ShapeView internally)
+		// BoxView / Shapes
+		// Register each shape type individually for reliable handler resolution.
 #pragma warning disable CS0618
 		handlersCollection.AddHandler<BoxView, BoxViewHandler>();
 #pragma warning restore CS0618
-		handlersCollection.AddHandler(typeof(Microsoft.Maui.IShapeView), typeof(ShapeViewHandler));
-		handlersCollection.AddHandler(typeof(Microsoft.Maui.Controls.Shapes.Rectangle), typeof(ShapeHandler));
-		handlersCollection.AddHandler(typeof(Microsoft.Maui.Controls.Shapes.Ellipse), typeof(ShapeHandler));
-		handlersCollection.AddHandler(typeof(Microsoft.Maui.Controls.Shapes.Line), typeof(ShapeHandler));
-		handlersCollection.AddHandler(typeof(Microsoft.Maui.Controls.Shapes.Path), typeof(ShapeHandler));
-		handlersCollection.AddHandler(typeof(Microsoft.Maui.Controls.Shapes.Polygon), typeof(ShapeHandler));
-		handlersCollection.AddHandler(typeof(Microsoft.Maui.Controls.Shapes.Polyline), typeof(ShapeHandler));
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Rectangle, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Ellipse, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Line, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Polyline, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Polygon, ShapeViewHandler>();
+		handlersCollection.AddHandler<Microsoft.Maui.Controls.Shapes.Path, ShapeViewHandler>();
 
 		return handlersCollection;
 	}
@@ -104,6 +115,12 @@ public static partial class AppHostBuilderExtensions
 		builder.Services.AddSingleton<GtkFontManager>();
 		builder.Services.AddSingleton<IGtkFontManager>(svc => svc.GetRequiredService<GtkFontManager>());
 		builder.Services.AddSingleton<IFontManager>(svc => svc.GetRequiredService<GtkFontManager>());
+
+		// Animation ticker — drives all MAUI animations (TranslateTo, FadeTo, etc.)
+		builder.Services.AddSingleton<ITicker>(svc => new GtkPlatformTicker());
+
+		// Named font sizes (FontSize="Title", etc.)
+		Microsoft.Maui.Controls.DependencyService.Register<Microsoft.Maui.Controls.Internals.IFontNamedSizeService, GtkFontNamedSizeService>();
 
 		builder.ConfigureMauiHandlers(handlers =>
 		{

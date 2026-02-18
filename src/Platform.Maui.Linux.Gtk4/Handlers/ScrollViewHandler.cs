@@ -53,10 +53,30 @@ public class ScrollViewHandler : GtkViewHandler<IScrollView, Gtk.ScrolledWindow>
 
 	public static void MapHorizontalScrollBarVisibility(ScrollViewHandler handler, IScrollView scrollView)
 	{
+		UpdateScrollBarPolicies(handler, scrollView);
 	}
 
 	public static void MapVerticalScrollBarVisibility(ScrollViewHandler handler, IScrollView scrollView)
 	{
+		UpdateScrollBarPolicies(handler, scrollView);
+	}
+
+	static void UpdateScrollBarPolicies(ScrollViewHandler handler, IScrollView scrollView)
+	{
+		handler.PlatformView?.SetPolicy(
+			MapScrollBarVisibility(scrollView.HorizontalScrollBarVisibility),
+			MapScrollBarVisibility(scrollView.VerticalScrollBarVisibility));
+	}
+
+	static Gtk.PolicyType MapScrollBarVisibility(ScrollBarVisibility visibility)
+	{
+		return visibility switch
+		{
+			ScrollBarVisibility.Always => Gtk.PolicyType.Always,
+			ScrollBarVisibility.Never => Gtk.PolicyType.Never,
+			ScrollBarVisibility.Default => Gtk.PolicyType.Automatic,
+			_ => Gtk.PolicyType.Automatic
+		};
 	}
 
 	public override void PlatformArrange(Rect rect)

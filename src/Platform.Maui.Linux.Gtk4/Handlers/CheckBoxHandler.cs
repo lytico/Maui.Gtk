@@ -45,5 +45,7 @@ public class CheckBoxHandler : GtkViewHandler<ICheckBox, Gtk.CheckButton>
 
 	public static void MapForeground(CheckBoxHandler handler, ICheckBox checkBox)
 	{
+		if (checkBox.Foreground is Microsoft.Maui.Graphics.SolidPaint solidPaint && solidPaint.Color != null)
+			handler.ApplyCss(handler.PlatformView, $"color: {ToGtkColor(solidPaint.Color)};");
 	}
 }

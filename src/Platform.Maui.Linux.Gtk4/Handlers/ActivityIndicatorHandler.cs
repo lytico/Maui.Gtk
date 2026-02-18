@@ -8,6 +8,7 @@ public class ActivityIndicatorHandler : GtkViewHandler<IActivityIndicator, Gtk.S
 		new PropertyMapper<IActivityIndicator, ActivityIndicatorHandler>(ViewMapper)
 		{
 			[nameof(IActivityIndicator.IsRunning)] = MapIsRunning,
+			[nameof(IActivityIndicator.Color)] = MapColor,
 		};
 
 	public ActivityIndicatorHandler() : base(Mapper)
@@ -22,5 +23,11 @@ public class ActivityIndicatorHandler : GtkViewHandler<IActivityIndicator, Gtk.S
 	public static void MapIsRunning(ActivityIndicatorHandler handler, IActivityIndicator indicator)
 	{
 		handler.PlatformView?.SetSpinning(indicator.IsRunning);
+	}
+
+	public static void MapColor(ActivityIndicatorHandler handler, IActivityIndicator indicator)
+	{
+		if (indicator.Color != null)
+			handler.ApplyCss(handler.PlatformView, $"color: {ToGtkColor(indicator.Color)};");
 	}
 }

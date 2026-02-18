@@ -11,6 +11,8 @@ public class TimePickerHandler : GtkViewHandler<ITimePicker, Gtk.Box>
 		{
 			[nameof(ITimePicker.Time)] = MapTime,
 			[nameof(ITimePicker.Format)] = MapFormat,
+			[nameof(ITimePicker.CharacterSpacing)] = MapCharacterSpacing,
+			[nameof(ITimePicker.TextColor)] = MapTextColor,
 			[nameof(ITextStyle.Font)] = MapFont,
 		};
 
@@ -152,5 +154,20 @@ public class TimePickerHandler : GtkViewHandler<ITimePicker, Gtk.Box>
 		var css = handler.BuildFontCss(textStyle.Font);
 		if (!string.IsNullOrEmpty(css))
 			handler.ApplyCss(button, css);
+	}
+
+	public static void MapCharacterSpacing(TimePickerHandler handler, ITimePicker timePicker)
+	{
+		var button = handler.PlatformView?.GetFirstChild() as Gtk.Button;
+		handler.ApplyCss(button, $"letter-spacing: {timePicker.CharacterSpacing}px;");
+	}
+
+	public static void MapTextColor(TimePickerHandler handler, ITimePicker timePicker)
+	{
+		if (timePicker.TextColor != null)
+		{
+			var button = handler.PlatformView?.GetFirstChild() as Gtk.Button;
+			handler.ApplyCss(button, $"color: {ToGtkColor(timePicker.TextColor)};");
+		}
 	}
 }

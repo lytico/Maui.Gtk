@@ -306,6 +306,9 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 
 	public static void MapBackground(LayoutHandler handler, ILayout layout)
 	{
+		if (layout.Background is Microsoft.Maui.Graphics.SolidPaint solidPaint && solidPaint.Color != null)
+			handler.ApplyCss(handler.PlatformView,
+				$"background-color: {ToGtkColor(solidPaint.Color)}; background-image: none;");
 	}
 
 	public static void MapClipsToBounds(LayoutHandler handler, ILayout layout)

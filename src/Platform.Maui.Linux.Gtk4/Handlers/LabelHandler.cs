@@ -13,6 +13,9 @@ public class LabelHandler : GtkViewHandler<ILabel, Gtk.Label>
 			[nameof(ILabel.HorizontalTextAlignment)] = MapHorizontalTextAlignment,
 			[nameof(ILabel.Padding)] = MapPadding,
 			[nameof(ILabel.TextDecorations)] = MapTextDecorations,
+			[nameof(ILabel.CharacterSpacing)] = MapCharacterSpacing,
+			[nameof(ILabel.LineHeight)] = MapLineHeight,
+			[nameof(ITextAlignment.VerticalTextAlignment)] = MapVerticalTextAlignment,
 		};
 
 	public LabelHandler() : base(Mapper)
@@ -78,5 +81,28 @@ public class LabelHandler : GtkViewHandler<ILabel, Gtk.Label>
 		{
 			handler.ApplyCss(handler.PlatformView, "text-decoration: line-through;");
 		}
+	}
+
+	public static void MapCharacterSpacing(LabelHandler handler, ILabel label)
+	{
+		handler.ApplyCss(handler.PlatformView, $"letter-spacing: {label.CharacterSpacing}px;");
+	}
+
+	public static void MapLineHeight(LabelHandler handler, ILabel label)
+	{
+		if (label.LineHeight > 0)
+			handler.ApplyCss(handler.PlatformView, $"line-height: {label.LineHeight};");
+	}
+
+	public static void MapVerticalTextAlignment(LabelHandler handler, ILabel label)
+	{
+		if (handler.PlatformView == null) return;
+		handler.PlatformView.SetYalign(label.VerticalTextAlignment switch
+		{
+			TextAlignment.Start => 0f,
+			TextAlignment.Center => 0.5f,
+			TextAlignment.End => 1f,
+			_ => 0.5f
+		});
 	}
 }

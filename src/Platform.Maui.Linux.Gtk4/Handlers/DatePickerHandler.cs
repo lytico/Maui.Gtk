@@ -11,6 +11,10 @@ public class DatePickerHandler : GtkViewHandler<IDatePicker, Gtk.Box>
 		{
 			[nameof(IDatePicker.Date)] = MapDate,
 			[nameof(IDatePicker.Format)] = MapFormat,
+			[nameof(IDatePicker.MinimumDate)] = MapMinimumDate,
+			[nameof(IDatePicker.MaximumDate)] = MapMaximumDate,
+			[nameof(IDatePicker.CharacterSpacing)] = MapCharacterSpacing,
+			[nameof(IDatePicker.TextColor)] = MapTextColor,
 			[nameof(ITextStyle.Font)] = MapFont,
 		};
 
@@ -152,5 +156,34 @@ public class DatePickerHandler : GtkViewHandler<IDatePicker, Gtk.Box>
 		var css = handler.BuildFontCss(textStyle.Font);
 		if (!string.IsNullOrEmpty(css))
 			handler.ApplyCss(button, css);
+	}
+
+	public static void MapCharacterSpacing(DatePickerHandler handler, IDatePicker datePicker)
+	{
+		var button = handler.PlatformView?.GetFirstChild() as Gtk.Button;
+		handler.ApplyCss(button, $"letter-spacing: {datePicker.CharacterSpacing}px;");
+	}
+
+	public static void MapTextColor(DatePickerHandler handler, IDatePicker datePicker)
+	{
+		if (datePicker.TextColor != null)
+		{
+			var button = handler.PlatformView?.GetFirstChild() as Gtk.Button;
+			handler.ApplyCss(button, $"color: {ToGtkColor(datePicker.TextColor)};");
+		}
+	}
+
+	public static void MapMinimumDate(DatePickerHandler handler, IDatePicker datePicker)
+	{
+		// Clamp current date if it falls below the new minimum
+		if (datePicker.Date < datePicker.MinimumDate)
+			datePicker.Date = datePicker.MinimumDate;
+	}
+
+	public static void MapMaximumDate(DatePickerHandler handler, IDatePicker datePicker)
+	{
+		// Clamp current date if it exceeds the new maximum
+		if (datePicker.Date > datePicker.MaximumDate)
+			datePicker.Date = datePicker.MaximumDate;
 	}
 }

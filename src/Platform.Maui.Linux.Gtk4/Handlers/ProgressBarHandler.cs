@@ -10,6 +10,7 @@ public class ProgressBarHandler : GtkViewHandler<IProgress, Gtk.ProgressBar>
 		{
 			[nameof(IProgress.Progress)] = MapProgress,
 			[nameof(IView.Background)] = MapProgressColor,
+			["ProgressColor"] = MapProgressBarColor,
 		};
 
 	public ProgressBarHandler() : base(Mapper)
@@ -41,5 +42,12 @@ public class ProgressBarHandler : GtkViewHandler<IProgress, Gtk.ProgressBar>
 		{
 			handler.ApplyCss(handler.PlatformView, $"background-color: {ToGtkColor(solidPaint.Color)};");
 		}
+	}
+
+	public static void MapProgressBarColor(ProgressBarHandler handler, IProgress progress)
+	{
+		if (progress is Microsoft.Maui.Controls.ProgressBar pb && pb.ProgressColor != null)
+			handler.ApplyCssWithSelector(handler.PlatformView, "* > trough > progress",
+				$"background-color: {ToGtkColor(pb.ProgressColor)};");
 	}
 }

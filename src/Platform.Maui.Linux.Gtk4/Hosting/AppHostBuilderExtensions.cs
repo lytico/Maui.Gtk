@@ -56,6 +56,7 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<NavigationPage, NavigationPageHandler>();
 		handlersCollection.AddHandler<TabbedPage, TabbedPageHandler>();
 		handlersCollection.AddHandler<FlyoutPage, FlyoutPageHandler>();
+		handlersCollection.AddHandler<Shell, ShellHandler>();
 
 		// Phase 6: Advanced handlers
 		handlersCollection.AddHandler<CollectionView, CollectionViewHandler>();

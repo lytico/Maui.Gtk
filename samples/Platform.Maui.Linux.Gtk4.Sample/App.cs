@@ -37,6 +37,7 @@ class MainShell : FlyoutPage
 		("🧭 Navigation", () => new NavigationPage(new NavigationDemoPage())),
 		("📑 TabbedPage", () => new TabbedPageDemo()),
 		("📂 FlyoutPage", () => new FlyoutPageDemo()),
+		("🐚 Shell Navigation", () => new ShellDemoPage()),
 	];
 
 	public MainShell()

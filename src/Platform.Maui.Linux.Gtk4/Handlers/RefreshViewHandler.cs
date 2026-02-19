@@ -32,7 +32,6 @@ public class RefreshViewHandler : GtkViewHandler<IView, Gtk.Box>
 	protected override Gtk.Box CreatePlatformView()
 	{
 		var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
-		box.SetVexpand(true);
 		box.SetHexpand(true);
 
 		// Refresh indicator row
@@ -52,6 +51,15 @@ public class RefreshViewHandler : GtkViewHandler<IView, Gtk.Box>
 
 		box.Append(refreshRow);
 		return box;
+	}
+
+	public override void PlatformArrange(Rect rect)
+	{
+		base.PlatformArrange(rect);
+		if (_contentWidget != null)
+		{
+			_contentWidget.SetSizeRequest((int)rect.Width, (int)rect.Height - 40);
+		}
 	}
 
 	void OnRefreshClicked(Gtk.Button sender, EventArgs args)

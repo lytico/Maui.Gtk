@@ -4,12 +4,12 @@ using Microsoft.Maui.Graphics;
 namespace Platform.Maui.Linux.Gtk4.Sample.Pages;
 
 /// <summary>
-/// Demonstrates RefreshView (pull-to-refresh / refresh button) and
-/// SwipeView (passthrough container on desktop Linux).
+/// Demonstrates RefreshView (pull-to-refresh / refresh button),
+/// SwipeView (swipe-to-reveal actions), and gesture recognizers.
 /// </summary>
 public class RefreshSwipePage : ContentPage
 {
-	readonly StackLayout _itemsStack;
+	readonly VerticalStackLayout _itemsStack;
 	readonly Label _statusLabel;
 	int _refreshCount;
 	bool _isRefreshing;
@@ -20,30 +20,27 @@ public class RefreshSwipePage : ContentPage
 
 		_statusLabel = new Label
 		{
-			Text = "Tap the refresh button above the list to reload items",
+			Text = "Tap the refresh button to reload items",
 			HorizontalOptions = LayoutOptions.Center,
 			TextColor = Colors.DimGray,
-			Margin = new Thickness(0, 8),
+			FontSize = 12,
 		};
 
-		_itemsStack = new StackLayout { Spacing = 2 };
+		_itemsStack = new VerticalStackLayout { Spacing = 1 };
 		LoadItems();
-
-		var itemsScroll = new ScrollView
-		{
-			Content = _itemsStack,
-			VerticalOptions = LayoutOptions.FillAndExpand,
-			HeightRequest = 250,
-		};
 
 		RefreshView refreshView = null!;
 		refreshView = new RefreshView
 		{
-			Content = itemsScroll,
+			Content = new ScrollView
+			{
+				Content = _itemsStack,
+				HeightRequest = 200,
+			},
 			RefreshColor = Colors.DodgerBlue,
+			HeightRequest = 240,
 			Command = new Command(async () =>
 			{
-				// Guard against re-entrant refresh from rapid clicks
 				if (_isRefreshing) return;
 				_isRefreshing = true;
 				try
@@ -51,7 +48,7 @@ public class RefreshSwipePage : ContentPage
 					await Task.Delay(1200);
 					_refreshCount++;
 					LoadItems();
-					_statusLabel.Text = $"Refreshed {_refreshCount} time(s)";
+					_statusLabel.Text = $"Refreshed {_refreshCount} time(s) ✅";
 				}
 				finally
 				{
@@ -61,11 +58,18 @@ public class RefreshSwipePage : ContentPage
 			}),
 		};
 
-		// SwipeView with swipe-to-reveal actions
-		var swipeStatusLabel = new Label { Text = "← Swipe the item left or right to reveal actions", TextColor = Colors.Gray, FontSize = 12 };
+		// SwipeView demo
+		var swipeStatusLabel = new Label
+		{
+			Text = "← Swipe the card left or right →",
+			TextColor = Colors.Gray,
+			FontSize = 12,
+			HorizontalTextAlignment = TextAlignment.Center,
+		};
 
 		var swipeDemo = new SwipeView
 		{
+			HeightRequest = 80,
 			LeftItems = new SwipeItems
 			{
 				new SwipeItem
@@ -90,27 +94,17 @@ public class RefreshSwipePage : ContentPage
 					Command = new Command(() => swipeStatusLabel.Text = "🚩 Flagged!"),
 				},
 			},
-			Content = new Frame
+			Content = new Border
 			{
-				BackgroundColor = Colors.LightYellow,
-				CornerRadius = 8,
-				Padding = new Thickness(16),
-				Content = new StackLayout
+				Stroke = Colors.DodgerBlue,
+				StrokeThickness = 1,
+				Padding = new Thickness(16, 12),
+				Content = new VerticalStackLayout
 				{
 					Children =
 					{
-						new Label
-						{
-							Text = "SwipeView — Swipe to Reveal",
-							FontAttributes = FontAttributes.Bold,
-							FontSize = 16,
-						},
-						new Label
-						{
-							Text = "Drag left to see Delete/Flag buttons, " +
-							       "drag right to see Archive button.",
-							TextColor = Colors.DimGray,
-						},
+						new Label { Text = "Swipeable Card", FontAttributes = FontAttributes.Bold, FontSize = 15 },
+						new Label { Text = "Drag left for Delete/Flag, right for Archive", TextColor = Colors.Gray, FontSize = 12 },
 					}
 				}
 			},
@@ -118,29 +112,32 @@ public class RefreshSwipePage : ContentPage
 
 		Content = new ScrollView
 		{
-			Content = new StackLayout
+			Content = new VerticalStackLayout
 			{
 				Padding = new Thickness(16),
-				Spacing = 12,
+				Spacing = 16,
 				Children =
 				{
-					new Label
-					{
-						Text = "RefreshView & SwipeView Demo",
-						FontSize = 22,
-						FontAttributes = FontAttributes.Bold,
-						Margin = new Thickness(0, 0, 0, 8),
-					},
+					new Label { Text = "RefreshView", FontSize = 20, FontAttributes = FontAttributes.Bold },
 					_statusLabel,
 					refreshView,
-					new BoxView { HeightRequest = 16 },
+
+					new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+
+					new Label { Text = "SwipeView", FontSize = 20, FontAttributes = FontAttributes.Bold },
 					swipeDemo,
 					swipeStatusLabel,
-					new BoxView { HeightRequest = 16 },
+
+					new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+
 					BuildPointerGestureDemo(),
-					new BoxView { HeightRequest = 16 },
+
+					new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+
 					BuildSwipeGestureDemo(),
-					new BoxView { HeightRequest = 16 },
+
+					new BoxView { HeightRequest = 1, Color = Colors.LightGray },
+
 					BuildPinchGestureDemo(),
 				}
 			}
@@ -150,11 +147,9 @@ public class RefreshSwipePage : ContentPage
 	void LoadItems()
 	{
 		var rng = new Random();
-
-		// Reuse existing labels to avoid GTK widget reparenting issues
-		for (int i = 0; i < 15; i++)
+		for (int i = 0; i < 10; i++)
 		{
-			var text = $"  Item {i + 1} (value: {rng.Next(100, 999)})";
+			var text = $"  Item {i + 1}  —  value: {rng.Next(100, 999)}";
 			if (i < _itemsStack.Children.Count && _itemsStack.Children[i] is Label existing)
 			{
 				existing.Text = text;
@@ -164,9 +159,7 @@ public class RefreshSwipePage : ContentPage
 				_itemsStack.Children.Add(new Label
 				{
 					Text = text,
-					TextColor = Colors.Black,
 					Padding = new Thickness(8, 6),
-					BackgroundColor = (i + 1) % 2 == 0 ? Color.FromRgba(0.93, 0.93, 0.93, 1) : Color.FromRgba(0.97, 0.97, 0.97, 1),
 				});
 			}
 		}
@@ -174,14 +167,13 @@ public class RefreshSwipePage : ContentPage
 
 	static View BuildPointerGestureDemo()
 	{
-		var posLabel = new Label { Text = "Move pointer over the box →", FontSize = 13, TextColor = Colors.Gray };
 		var stateLabel = new Label { Text = "Outside", FontSize = 14, FontAttributes = FontAttributes.Bold };
 
 		var trackingBox = new BoxView
 		{
 			Color = Colors.CornflowerBlue,
 			WidthRequest = 200,
-			HeightRequest = 100,
+			HeightRequest = 80,
 			HorizontalOptions = LayoutOptions.Start,
 		};
 
@@ -192,16 +184,11 @@ public class RefreshSwipePage : ContentPage
 			stateLabel.TextColor = Colors.Green;
 			trackingBox.Color = Colors.MediumSeaGreen;
 		});
-		pointerGesture.PointerMovedCommand = new Command(() =>
-		{
-			posLabel.Text = "Pointer moving...";
-		});
 		pointerGesture.PointerExitedCommand = new Command(() =>
 		{
 			stateLabel.Text = "🔴 Outside";
 			stateLabel.TextColor = Colors.Red;
 			trackingBox.Color = Colors.CornflowerBlue;
-			posLabel.Text = "Move pointer over the box →";
 		});
 		pointerGesture.PointerPressedCommand = new Command(() =>
 		{
@@ -217,13 +204,12 @@ public class RefreshSwipePage : ContentPage
 
 		return new VerticalStackLayout
 		{
-			Spacing = 8,
+			Spacing = 6,
 			Children =
 			{
-				new Label { Text = "Pointer Gesture", FontSize = 16, FontAttributes = FontAttributes.Bold },
-				new Label { Text = "Tracks enter/move/exit/press/release on the box below.", FontSize = 12, TextColor = Colors.Gray },
+				new Label { Text = "Pointer Gesture", FontSize = 20, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "Hover, click, and release on the box below", FontSize = 12, TextColor = Colors.Gray },
 				stateLabel,
-				posLabel,
 				trackingBox,
 			}
 		};
@@ -231,14 +217,13 @@ public class RefreshSwipePage : ContentPage
 
 	static View BuildSwipeGestureDemo()
 	{
-		var directionLabel = new Label { Text = "Swipe on the box below (drag quickly)", FontSize = 13, TextColor = Colors.Gray };
 		var resultLabel = new Label { Text = "No swipe detected", FontSize = 14 };
 
 		var swipeBox = new BoxView
 		{
 			Color = Colors.Coral,
-			WidthRequest = 250,
-			HeightRequest = 100,
+			WidthRequest = 200,
+			HeightRequest = 80,
 			HorizontalOptions = LayoutOptions.Start,
 		};
 
@@ -263,11 +248,11 @@ public class RefreshSwipePage : ContentPage
 
 		return new VerticalStackLayout
 		{
-			Spacing = 8,
+			Spacing = 6,
 			Children =
 			{
-				new Label { Text = "Swipe Gesture", FontSize = 16, FontAttributes = FontAttributes.Bold },
-				directionLabel,
+				new Label { Text = "Swipe Gesture", FontSize = 20, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "Drag quickly on the box below", FontSize = 12, TextColor = Colors.Gray },
 				resultLabel,
 				swipeBox,
 			}
@@ -277,35 +262,28 @@ public class RefreshSwipePage : ContentPage
 	static View BuildPinchGestureDemo()
 	{
 		var scaleLabel = new Label { Text = "Scale: 1.00x", FontSize = 14 };
-		var statusLabel = new Label { Text = "Use trackpad pinch or Ctrl+scroll to zoom", FontSize = 12, TextColor = Colors.Gray };
 
 		var target = new BoxView
 		{
 			Color = Colors.MediumSlateBlue,
 			WidthRequest = 100,
 			HeightRequest = 100,
-			HorizontalOptions = LayoutOptions.Center,
+			HorizontalOptions = LayoutOptions.Start,
 		};
 
-		double currentScale = 1.0;
 		var pinch = new PinchGestureRecognizer();
 		pinch.PinchUpdated += (s, e) =>
 		{
 			switch (e.Status)
 			{
-				case GestureStatus.Started:
-					statusLabel.Text = "Pinching...";
-					break;
 				case GestureStatus.Running:
-					currentScale = e.Scale;
-					target.Scale = Math.Clamp(currentScale, 0.3, 3.0);
+					target.Scale = Math.Clamp(e.Scale, 0.3, 3.0);
 					scaleLabel.Text = $"Scale: {target.Scale:F2}x";
 					break;
 				case GestureStatus.Completed:
-					statusLabel.Text = $"Pinch complete at {target.Scale:F2}x";
+					scaleLabel.Text = $"Done at {target.Scale:F2}x";
 					break;
 				case GestureStatus.Canceled:
-					statusLabel.Text = "Pinch canceled";
 					target.Scale = 1.0;
 					scaleLabel.Text = "Scale: 1.00x";
 					break;
@@ -315,12 +293,12 @@ public class RefreshSwipePage : ContentPage
 
 		return new VerticalStackLayout
 		{
-			Spacing = 8,
+			Spacing = 6,
 			Children =
 			{
-				new Label { Text = "Pinch Gesture", FontSize = 16, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "Pinch Gesture", FontSize = 20, FontAttributes = FontAttributes.Bold },
+				new Label { Text = "Use Ctrl+scroll to zoom the box", FontSize = 12, TextColor = Colors.Gray },
 				scaleLabel,
-				statusLabel,
 				target,
 			}
 		};

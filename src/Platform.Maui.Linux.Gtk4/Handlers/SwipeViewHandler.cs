@@ -43,7 +43,6 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 
 		_fixed = Gtk.Fixed.New();
 		_fixed.SetHexpand(true);
-		_fixed.SetVexpand(true);
 		_fixed.SetOverflow(Gtk.Overflow.Hidden);
 
 		// Action buttons behind content
@@ -55,7 +54,6 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 		// Content sits on top, slides left/right
 		_contentBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
 		_contentBox.SetHexpand(true);
-		_contentBox.SetVexpand(true);
 
 		_fixed.Put(_leftActions, 0, 0);
 		_fixed.Put(_rightActions, 0, 0);
@@ -73,10 +71,31 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 		return outer;
 	}
 
+	public override void PlatformArrange(Rect rect)
+	{
+		base.PlatformArrange(rect);
+		if (_contentBox != null && _fixed != null)
+		{
+			int w = (int)rect.Width;
+			int h = (int)rect.Height;
+			_contentBox.SetSizeRequest(w, h);
+			_fixed.SetSizeRequest(w, h);
+			_leftActions?.SetSizeRequest(-1, h);
+			_rightActions?.SetSizeRequest(-1, h);
+
+			// Position right actions at the right edge
+			if (_rightActions?.GetVisible() == true)
+				_fixed.Move(_rightActions, w - 180, 0);
+		}
+	}
+
 	void OnDragBegin(Gtk.GestureDrag sender, Gtk.GestureDrag.DragBeginSignalArgs args)
 	{
 		_dragOffset = _committedOffset;
 		_contentWidth = _contentBox?.GetAllocatedWidth() ?? 400;
+		// Show action buttons only while dragging
+		_leftActions?.SetVisible(_leftActions.GetFirstChild() != null);
+		_rightActions?.SetVisible(_rightActions.GetFirstChild() != null);
 	}
 
 	void OnDragUpdate(Gtk.GestureDrag sender, Gtk.GestureDrag.DragUpdateSignalArgs args)
@@ -86,8 +105,8 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 		double newOffset = _committedOffset + args.OffsetX;
 
 		// Clamp: only allow left swipe if right items exist, right swipe if left items exist
-		bool hasLeft = _leftActions?.GetVisible() == true;
-		bool hasRight = _rightActions?.GetVisible() == true;
+		bool hasLeft = _leftActions?.GetFirstChild() != null;
+		bool hasRight = _rightActions?.GetFirstChild() != null;
 
 		int maxReveal = 180;
 		if (!hasRight) newOffset = Math.Max(0, newOffset);
@@ -114,10 +133,12 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 		}
 		else
 		{
-			// Cancel — snap closed
+			// Cancel — snap closed, hide action buttons
 			_committedOffset = 0;
 			_isOpen = false;
 			_fixed.Move(_contentBox, 0, 0);
+			_leftActions?.SetVisible(false);
+			_rightActions?.SetVisible(false);
 		}
 	}
 
@@ -167,7 +188,8 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 			return;
 		}
 
-		container.SetVisible(true);
+		// Keep hidden until user starts swiping
+		container.SetVisible(false);
 
 		foreach (SwipeItem item in items)
 		{
@@ -203,6 +225,8 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 				handler._committedOffset = 0;
 				handler._isOpen = false;
 				handler._fixed?.Move(handler._contentBox!, 0, 0);
+				handler._leftActions?.SetVisible(false);
+				handler._rightActions?.SetVisible(false);
 			};
 
 			container.Append(btn);

@@ -22,14 +22,6 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 		var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
 		box.SetVexpand(true);
 		box.SetHexpand(true);
-
-		// Wrap content in a ScrolledWindow so pages can scroll
-		var scrolled = Gtk.ScrolledWindow.New();
-		scrolled.SetVexpand(true);
-		scrolled.SetHexpand(true);
-		scrolled.SetPolicy(Gtk.PolicyType.Automatic, Gtk.PolicyType.Automatic);
-		box.Append(scrolled);
-
 		return box;
 	}
 
@@ -38,28 +30,17 @@ public class PageHandler : GtkViewHandler<IContentView, Gtk.Box>
 		_ = handler.MauiContext ?? throw new InvalidOperationException("MauiContext not set.");
 
 		var box = handler.PlatformView;
-		var scrolled = box.GetFirstChild() as Gtk.ScrolledWindow;
-		if (scrolled == null)
-			return;
+
+		// Remove existing content
+		while (box.GetFirstChild() is Gtk.Widget existing)
+			box.Remove(existing);
 
 		if (page.PresentedContent != null)
 		{
 			var platformContent = (Gtk.Widget)page.PresentedContent.ToPlatform(handler.MauiContext);
 			platformContent.SetVexpand(true);
 			platformContent.SetHexpand(true);
-
-			if (platformContent is Gtk.ScrolledWindow)
-			{
-				// Content is already scrollable — bypass the page's ScrolledWindow
-				// to avoid nested scroll containers that collapse to zero height
-				scrolled.SetVisible(false);
-				if (platformContent.GetParent() == null)
-					box.Append(platformContent);
-			}
-			else
-			{
-				scrolled.SetChild(platformContent);
-			}
+			box.Append(platformContent);
 		}
 
 		// Propagate layout dirty to ancestor layout panels

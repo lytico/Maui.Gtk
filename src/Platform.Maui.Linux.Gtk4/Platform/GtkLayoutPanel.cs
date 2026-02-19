@@ -23,6 +23,12 @@ public class GtkLayoutPanel : Gtk.Fixed
 	/// </summary>
 	public bool IsExternallyManaged { get; set; }
 
+	/// <summary>
+	/// When true, this panel is inside a ScrolledWindow and child height
+	/// minimums should not be set (to prevent pushing the window to grow).
+	/// </summary>
+	public bool IsInsideScrollableContainer { get; set; }
+
 	public GtkLayoutPanel() : base()
 	{
 		SetHexpand(true);

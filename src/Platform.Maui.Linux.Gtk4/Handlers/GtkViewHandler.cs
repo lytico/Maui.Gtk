@@ -160,11 +160,19 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			return;
 
 		_lastArrangeRect = rect;
-		platformView.SetSizeRequest((int)rect.Width, (int)rect.Height);
 
 		// Position the widget inside its parent GtkLayoutPanel (Gtk.Fixed)
 		if (platformView.GetParent() is Platform.GtkLayoutPanel layoutPanel)
 		{
+			// Inside a scrollable container, only set WIDTH minimum.
+			// Setting height minimum on children of a Gtk.Fixed causes the
+			// Fixed to report (child.y + child.min_height) as its minimum,
+			// which propagates up and pushes the window to grow.
+			if (layoutPanel.IsInsideScrollableContainer)
+				platformView.SetSizeRequest((int)rect.Width, -1);
+			else
+				platformView.SetSizeRequest((int)rect.Width, (int)rect.Height);
+
 			// Check if visual transforms are needed
 			bool hasTransform = VirtualView != null && (
 				VirtualView.Rotation != 0 ||
@@ -182,6 +190,10 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			{
 				layoutPanel.Move(platformView, rect.X, rect.Y);
 			}
+		}
+		else
+		{
+			platformView.SetSizeRequest((int)rect.Width, (int)rect.Height);
 		}
 	}
 

@@ -33,6 +33,9 @@ public class ScrollViewHandler : GtkViewHandler<IScrollView, Gtk.ScrolledWindow>
 		var scrolled = Gtk.ScrolledWindow.New();
 		scrolled.SetVexpand(true);
 		scrolled.SetHexpand(true);
+		// Prevent GTK from expanding ScrolledWindow to full content height —
+		// MAUI drives sizing through PlatformArrange / SetSizeRequest.
+		scrolled.SetPropagateNaturalHeight(false);
 		return scrolled;
 	}
 
@@ -149,10 +152,22 @@ public class ScrollViewHandler : GtkViewHandler<IScrollView, Gtk.ScrolledWindow>
 
 	public override void PlatformArrange(Rect rect)
 	{
-		base.PlatformArrange(rect);
+		var platformView = PlatformView;
+		if (platformView == null) return;
 
-		// When the ScrollView is resized, re-measure and re-arrange its content
-		// so nested layouts adapt to the new available width.
+		// Only set WIDTH minimum on the ScrolledWindow. Setting height
+		// minimum would propagate through the parent Fixed (y + min_h)
+		// and push the window to grow. ScrolledWindow handles scrolling.
+		platformView.SetSizeRequest((int)rect.Width, -1);
+
+		if (platformView.GetParent() is Platform.GtkLayoutPanel layoutPanel)
+			layoutPanel.Move(platformView, rect.X, rect.Y);
+
+		// Mark the inner GtkLayoutPanel as inside a scrollable container
+		// so child PlatformArrange calls skip height in SetSizeRequest.
+		MarkInnerPanelScrollable(platformView);
+
+		// Re-measure and re-arrange content for the new viewport size
 		if (VirtualView is ICrossPlatformLayout crossPlatform)
 		{
 			crossPlatform.CrossPlatformMeasure(rect.Width, rect.Height);
@@ -160,10 +175,36 @@ public class ScrollViewHandler : GtkViewHandler<IScrollView, Gtk.ScrolledWindow>
 		}
 	}
 
+	static void MarkInnerPanelScrollable(Gtk.ScrolledWindow sw)
+	{
+		Gtk.Widget? child = sw.GetChild();
+		if (child is Gtk.Viewport vp)
+			child = vp.GetChild();
+		if (child is Platform.GtkLayoutPanel panel)
+			panel.IsInsideScrollableContainer = true;
+	}
+
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
 	{
+		var ve = VirtualView as Microsoft.Maui.Controls.View;
+
+		// Honour explicit HeightRequest
+		if (ve != null && ve.HeightRequest >= 0)
+		{
+			var contentSize = (VirtualView is ICrossPlatformLayout cp)
+				? cp.CrossPlatformMeasure(widthConstraint, heightConstraint)
+				: base.GetDesiredSize(widthConstraint, heightConstraint);
+			return new Size(contentSize.Width, Math.Min(ve.HeightRequest, heightConstraint));
+		}
+
+		// Measure content for width, but report a small height so the
+		// ScrollView doesn't inflate its parent. Scrollable views work at
+		// any size — the parent layout drives actual height via Arrange.
 		if (VirtualView is ICrossPlatformLayout crossPlatform)
-			return crossPlatform.CrossPlatformMeasure(widthConstraint, heightConstraint);
+		{
+			var measured = crossPlatform.CrossPlatformMeasure(widthConstraint, heightConstraint);
+			return new Size(measured.Width, Math.Max(1, Math.Min(50, heightConstraint)));
+		}
 
 		return base.GetDesiredSize(widthConstraint, heightConstraint);
 	}

@@ -64,6 +64,9 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		scrolled.SetVexpand(true);
 		scrolled.SetHexpand(true);
 		scrolled.SetPolicy(Gtk.PolicyType.Automatic, Gtk.PolicyType.Automatic);
+		// Prevent GTK from expanding ScrolledWindow to full content height —
+		// MAUI drives sizing through PlatformArrange / SetSizeRequest.
+		scrolled.SetPropagateNaturalHeight(false);
 
 		_model = Gtk.StringList.New(null);
 
@@ -355,20 +358,37 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
 	{
-		var size = base.GetDesiredSize(widthConstraint, heightConstraint);
+		var ve = VirtualView as Microsoft.Maui.Controls.View;
 
-		// Scrollable views should fill available space rather than reporting
-		// their natural (often zero) height, so the MAUI layout allocates
-		// the full area to them.
-		if (VirtualView is Microsoft.Maui.Controls.View v &&
-			v.VerticalOptions.Alignment == Microsoft.Maui.Controls.LayoutAlignment.Fill &&
-			size.Height < heightConstraint &&
-			!double.IsInfinity(heightConstraint))
+		// Honour explicit HeightRequest
+		if (ve != null && ve.HeightRequest >= 0)
 		{
-			size = new Size(size.Width, heightConstraint);
+			double w = PlatformView.GetAllocatedWidth();
+			if (w < 1) w = widthConstraint;
+			return new Size(Math.Min(w, widthConstraint), Math.Min(ve.HeightRequest, heightConstraint));
 		}
 
-		return size;
+		// Scrollable views report a small desired height so they don't
+		// inflate their parent. The parent layout (Grid star row, Fill
+		// alignment, etc.) drives the actual size via PlatformArrange.
+		double width = PlatformView.GetAllocatedWidth();
+		if (width < 1) width = widthConstraint;
+
+		return new Size(Math.Min(width, widthConstraint), Math.Max(1, Math.Min(50, heightConstraint)));
+	}
+
+	public override void PlatformArrange(Rect rect)
+	{
+		var platformView = PlatformView;
+		if (platformView == null) return;
+
+		// Only set WIDTH minimum on the ScrolledWindow. Setting height
+		// minimum would propagate through the parent Gtk.Fixed (y + min_h)
+		// and push the window to grow. ScrolledWindow handles scrolling.
+		platformView.SetSizeRequest((int)rect.Width, -1);
+
+		if (platformView.GetParent() is Platform.GtkLayoutPanel layoutPanel)
+			layoutPanel.Move(platformView, rect.X, rect.Y);
 	}
 
 	void HookSelectionChanged()

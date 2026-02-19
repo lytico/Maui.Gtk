@@ -3,13 +3,27 @@ using Microsoft.Maui.Graphics;
 
 namespace Platform.Maui.Linux.Gtk4.Sample.Pages;
 
+static class GridRowHelper
+{
+	public static T Row<T>(this T view, int row) where T : BindableObject
+	{
+		Grid.SetRow(view, row);
+		return view;
+	}
+}
+
 public class CollectionViewPage : ContentPage
 {
 	public CollectionViewPage()
 	{
 		Title = "CollectionView";
 
-		var contentArea = new VerticalStackLayout();
+		var contentArea = new Grid
+		{
+			RowDefinitions = new RowDefinitionCollection(new RowDefinition(GridLength.Star)),
+			VerticalOptions = LayoutOptions.Fill,
+			HorizontalOptions = LayoutOptions.Fill,
+		};
 
 		var pages = new (string title, Func<View> builder)[]
 		{
@@ -34,22 +48,29 @@ public class CollectionViewPage : ContentPage
 		{
 			if (picker.SelectedIndex < 0) return;
 			contentArea.Children.Clear();
-			contentArea.Children.Add(pages[picker.SelectedIndex].builder());
+			var built = pages[picker.SelectedIndex].builder();
+			contentArea.Children.Add(built);
 		};
 
 		// Activate first example
 		picker.SelectedIndex = 0;
 
-		Content = new VerticalStackLayout
+		Content = new Grid
 		{
-			Spacing = 8,
+			RowDefinitions = new RowDefinitionCollection(
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Star)
+			),
 			Padding = new Thickness(24),
+			RowSpacing = 8,
 			Children =
 			{
 				new Label { Text = "CollectionView", FontSize = 24, FontAttributes = FontAttributes.Bold },
-				new BoxView { HeightRequest = 2, Color = Colors.DodgerBlue },
-				picker,
-				contentArea,
+				new BoxView { HeightRequest = 2, Color = Colors.DodgerBlue }.Row(1),
+				picker.Row(2),
+				contentArea.Row(3),
 			}
 		};
 	}
@@ -77,10 +98,22 @@ public class CollectionViewPage : ContentPage
 			PopulateSimpleList(stackList, filtered, selectedLabel);
 		};
 
-		return new VerticalStackLayout
+		return new Grid
 		{
-			Spacing = 8,
-			Children = { searchBar, countLabel, selectedLabel, new ScrollView { HeightRequest = 350, Content = stackList } }
+			RowDefinitions = new RowDefinitionCollection(
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Star)
+			),
+			RowSpacing = 8,
+			Children =
+			{
+				searchBar,
+				countLabel.Row(1),
+				selectedLabel.Row(2),
+				new ScrollView { Content = stackList }.Row(3),
+			}
 		};
 	}
 
@@ -139,14 +172,19 @@ public class CollectionViewPage : ContentPage
 			stack.Children.Add(card);
 		}
 
-		return new VerticalStackLayout
+		return new Grid
 		{
-			Spacing = 8,
+			RowDefinitions = new RowDefinitionCollection(
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Star)
+			),
+			RowSpacing = 8,
 			Children =
 			{
 				new Label { Text = "Contacts", FontSize = 16, FontAttributes = FontAttributes.Bold },
-				selectedLabel,
-				new ScrollView { HeightRequest = 380, Content = stack }
+				selectedLabel.Row(1),
+				new ScrollView { Content = stack }.Row(2),
 			}
 		};
 	}
@@ -312,17 +350,25 @@ public class CollectionViewPage : ContentPage
 				: "No tasks selected";
 		};
 
-		return new VerticalStackLayout
+		return new Grid
 		{
-			Spacing = 8,
+			RowDefinitions = new RowDefinitionCollection(
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Star),
+				new RowDefinition(GridLength.Auto)
+			),
+			RowSpacing = 8,
 			Children =
 			{
 				new Label { Text = "Task List", FontSize = 16, FontAttributes = FontAttributes.Bold },
-				selectionLabel,
-				selectAllRow,
-				new BoxView { HeightRequest = 1, Color = Colors.LightGray },
-				new ScrollView { HeightRequest = 320, Content = stack },
-				deleteBtn,
+				selectionLabel.Row(1),
+				selectAllRow.Row(2),
+				new BoxView { HeightRequest = 1, Color = Colors.LightGray }.Row(3),
+				new ScrollView { Content = stack }.Row(4),
+				deleteBtn.Row(5),
 			}
 		};
 	}
@@ -357,7 +403,7 @@ public class CollectionViewPage : ContentPage
 			Footer = $"{contacts.Count} contacts",
 			EmptyView = "No contacts found!",
 			SelectionMode = SelectionMode.Single,
-			HeightRequest = 400,
+			VerticalOptions = LayoutOptions.Fill,
 			ItemTemplate = new DataTemplate(() =>
 			{
 				var avatar = new BoxView
@@ -418,15 +464,21 @@ public class CollectionViewPage : ContentPage
 			}
 		};
 
-		return new VerticalStackLayout
+		return new Grid
 		{
-			Spacing = 8,
+			RowDefinitions = new RowDefinitionCollection(
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Star)
+			),
+			RowSpacing = 8,
 			Children =
 			{
 				new Label { Text = "CollectionView + ItemTemplate", FontSize = 16, FontAttributes = FontAttributes.Bold },
-				new Label { Text = "Uses DataTemplate with data bindings for each row.", FontSize = 12, TextColor = Colors.Gray },
-				selectedLabel,
-				cv,
+				new Label { Text = "Uses DataTemplate with data bindings for each row.", FontSize = 12, TextColor = Colors.Gray }.Row(1),
+				selectedLabel.Row(2),
+				cv.Row(3),
 			}
 		};
 	}
@@ -449,7 +501,7 @@ public class CollectionViewPage : ContentPage
 			IsGrouped = true,
 			Header = "🐾 Grouped Animals",
 			Footer = $"{groups.Sum(g => g.Count)} animals in {groups.Count} groups",
-			HeightRequest = 400,
+			VerticalOptions = LayoutOptions.Fill,
 			SelectionMode = SelectionMode.Single,
 			GroupHeaderTemplate = new DataTemplate(() =>
 			{
@@ -488,15 +540,21 @@ public class CollectionViewPage : ContentPage
 			}
 		};
 
-		return new VerticalStackLayout
+		return new Grid
 		{
-			Spacing = 8,
+			RowDefinitions = new RowDefinitionCollection(
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Star)
+			),
+			RowSpacing = 8,
 			Children =
 			{
 				new Label { Text = "Grouped CollectionView", FontSize = 16, FontAttributes = FontAttributes.Bold },
-				new Label { Text = "IsGrouped=true with GroupHeaderTemplate + ItemTemplate", FontSize = 12, TextColor = Colors.Gray },
-				selectedLabel,
-				cv,
+				new Label { Text = "IsGrouped=true with GroupHeaderTemplate + ItemTemplate", FontSize = 12, TextColor = Colors.Gray }.Row(1),
+				selectedLabel.Row(2),
+				cv.Row(3),
 			}
 		};
 	}
@@ -526,7 +584,7 @@ public class CollectionViewPage : ContentPage
 			Header = $"📊 10,000 Items (Virtualized)",
 			Footer = $"Total: {items.Count:N0} items",
 			SelectionMode = SelectionMode.Single,
-			HeightRequest = 400,
+			VerticalOptions = LayoutOptions.Fill,
 			ItemTemplate = new DataTemplate(() =>
 			{
 				var idLabel = new Label { FontSize = 11, TextColor = Colors.White, FontAttributes = FontAttributes.Bold };
@@ -577,17 +635,25 @@ public class CollectionViewPage : ContentPage
 		var jumpEnd = new Button { Text = "Jump to #10000", FontSize = 12, BackgroundColor = Colors.Gray, TextColor = Colors.White };
 		jumpEnd.Clicked += (s, e) => { cv.ScrollTo(9999); posLabel.Text = "Position: #10000"; };
 
-		return new VerticalStackLayout
+		return new Grid
 		{
-			Spacing = 8,
+			RowDefinitions = new RowDefinitionCollection(
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Star)
+			),
+			RowSpacing = 8,
 			Children =
 			{
 				new Label { Text = "Virtualized CollectionView (10K items)", FontSize = 16, FontAttributes = FontAttributes.Bold },
-				infoLabel,
-				selectedLabel,
-				posLabel,
-				new HorizontalStackLayout { Spacing = 8, Children = { jumpTop, jumpMid, jumpEnd } },
-				cv,
+				infoLabel.Row(1),
+				selectedLabel.Row(2),
+				posLabel.Row(3),
+				new HorizontalStackLayout { Spacing = 8, Children = { jumpTop, jumpMid, jumpEnd } }.Row(4),
+				cv.Row(5),
 			}
 		};
 	}

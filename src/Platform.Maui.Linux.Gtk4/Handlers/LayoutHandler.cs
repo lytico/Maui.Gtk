@@ -90,10 +90,24 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 			while (cur != null && cur is not Gtk.Window) cur = cur.GetParent();
 			if (cur is not Gtk.Window window) return false;
 
+			// Capture the initial window size from allocation (actual rendered
+			// size), not default size. On Wayland, the compositor may constrain
+			// the window smaller than the default. Content-driven size changes
+			// (from SetSizeRequest) can push the window to grow, so only
+			// user-initiated resizes should update the constraint.
+			int constraintW = window.GetAllocatedWidth();
+			int constraintH = window.GetAllocatedHeight();
+			if (constraintW < 1 || constraintH < 1)
+			{
+				window.GetDefaultSize(out constraintW, out constraintH);
+			}
+			if (constraintW < 1) constraintW = 800;
+			if (constraintH < 1) constraintH = 600;
+
 			void DoLayout()
 			{
 				if (VirtualView == null) return;
-				var (dw, dh) = GetConstrainedSize(platformView);
+				var (dw, dh) = GetConstrainedSize(platformView, constraintW, constraintH);
 				if (dw < 1 || dh < 1) return;
 
 				// Invalidate cached measurements so MAUI re-measures the
@@ -112,6 +126,11 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 			{
 				if (args.Pspec.GetName() is "default-width" or "default-height")
 				{
+					// Update constraint from actual allocated size
+					var aw = window.GetAllocatedWidth();
+					var ah = window.GetAllocatedHeight();
+					if (aw > 0) constraintW = aw;
+					if (ah > 0) constraintH = ah;
 					DoLayout();
 				}
 			};
@@ -166,14 +185,24 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		return false;
 	}
 
-	/// <summary>
-	/// Gets the available layout size for a widget by walking up the tree.
-	/// If the widget is inside a Gtk.Paned, returns the constrained size
-	/// for that pane (start or end child) instead of the full window size.
-	/// </summary>
 	private static (int width, int height) GetConstrainedSize(Gtk.Widget widget)
 	{
-		Gtk.Window? window = null;
+		// Find window to get initial size
+		Gtk.Widget? cur = widget;
+		while (cur != null && cur is not Gtk.Window) cur = cur.GetParent();
+		if (cur is not Gtk.Window window)
+			return (800, 600);
+
+		window.GetDefaultSize(out var ww, out var wh);
+		if (ww < 1) ww = window.GetAllocatedWidth();
+		if (wh < 1) wh = window.GetAllocatedHeight();
+		if (ww < 1 || wh < 1) return (800, 600);
+
+		return GetConstrainedSize(widget, ww, wh);
+	}
+
+	private static (int width, int height) GetConstrainedSize(Gtk.Widget widget, int windowWidth, int windowHeight)
+	{
 		Gtk.Paned? paned = null;
 		bool isStartChild = false;
 
@@ -183,10 +212,7 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 			if (current is Gtk.Paned p && paned == null)
 			{
 				paned = p;
-				// Determine which side of the Paned we're in
 				var startChild = p.GetStartChild();
-				var check = widget.GetParent();
-				// Walk from widget up to the Paned to find if we're in start or end
 				var w = widget;
 				while (w != null && w != p)
 				{
@@ -198,33 +224,21 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 					w = w.GetParent();
 				}
 			}
-			if (current is Gtk.Window win)
-			{
-				window = win;
+			if (current is Gtk.Window)
 				break;
-			}
 			current = current.GetParent();
 		}
-
-		if (window == null)
-			return (800, 600);
-
-		window.GetDefaultSize(out var ww, out var wh);
-		if (ww < 1) ww = window.GetAllocatedWidth();
-		if (wh < 1) wh = window.GetAllocatedHeight();
-		if (ww < 1 || wh < 1)
-			return (800, 600);
 
 		if (paned != null)
 		{
 			var pos = paned.GetPosition();
 			if (isStartChild)
-				return (pos, wh);
+				return (pos, windowHeight);
 			else
-				return (ww - pos, wh);
+				return (windowWidth - pos, windowHeight);
 		}
 
-		return (ww, wh);
+		return (windowWidth, windowHeight);
 	}
 
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
@@ -234,8 +248,14 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 
 	public override void PlatformArrange(Rect rect)
 	{
-		// Size and position the GtkLayoutPanel itself within its parent
-		base.PlatformArrange(rect);
+		// Never set height minimum on GtkLayoutPanels. MAUI drives layout
+		// through CrossPlatformArrange. Setting height via SetSizeRequest
+		// inflates the Gtk.Fixed minimum (child.y + child.min_height),
+		// which propagates up and can push the window to grow.
+		PlatformView.SetSizeRequest((int)rect.Width, -1);
+
+		if (PlatformView.GetParent() is Platform.GtkLayoutPanel lp)
+			lp.Move(PlatformView, rect.X, rect.Y);
 
 		// Arrange children relative to the panel (origin at 0,0)
 		PlatformView.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));

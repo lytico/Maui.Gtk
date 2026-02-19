@@ -382,15 +382,9 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		var platformView = PlatformView;
 		if (platformView == null) return;
 
-		// Only set WIDTH minimum on the ScrolledWindow. Setting height
-		// minimum would propagate through the parent Gtk.Fixed (y + min_h)
-		// and push the window to grow. ScrolledWindow handles scrolling.
-		platformView.SetSizeRequest((int)rect.Width, -1);
-
 		if (platformView.GetParent() is Platform.GtkLayoutPanel layoutPanel)
 		{
-			layoutPanel.Move(platformView, rect.X, rect.Y);
-			layoutPanel.SetArrangedSize(platformView, (int)rect.Width, (int)rect.Height);
+			layoutPanel.SetChildBounds(platformView, rect.X, rect.Y, (int)rect.Width, (int)rect.Height);
 		}
 	}
 

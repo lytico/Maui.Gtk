@@ -155,20 +155,10 @@ public class ScrollViewHandler : GtkViewHandler<IScrollView, Gtk.ScrolledWindow>
 		var platformView = PlatformView;
 		if (platformView == null) return;
 
-		// Only set WIDTH minimum on the ScrolledWindow. Setting height
-		// minimum would propagate through the parent Fixed (y + min_h)
-		// and push the window to grow. ScrolledWindow handles scrolling.
-		platformView.SetSizeRequest((int)rect.Width, -1);
-
 		if (platformView.GetParent() is Platform.GtkLayoutPanel layoutPanel)
 		{
-			layoutPanel.Move(platformView, rect.X, rect.Y);
-			layoutPanel.SetArrangedSize(platformView, (int)rect.Width, (int)rect.Height);
+			layoutPanel.SetChildBounds(platformView, rect.X, rect.Y, (int)rect.Width, (int)rect.Height);
 		}
-
-		// Mark the inner GtkLayoutPanel as inside a scrollable container
-		// so child PlatformArrange calls skip height in SetSizeRequest.
-		MarkInnerPanelScrollable(platformView);
 
 		// Re-measure and re-arrange content for the new viewport size
 		if (VirtualView is ICrossPlatformLayout crossPlatform)
@@ -176,15 +166,6 @@ public class ScrollViewHandler : GtkViewHandler<IScrollView, Gtk.ScrolledWindow>
 			crossPlatform.CrossPlatformMeasure(rect.Width, rect.Height);
 			crossPlatform.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));
 		}
-	}
-
-	static void MarkInnerPanelScrollable(Gtk.ScrolledWindow sw)
-	{
-		Gtk.Widget? child = sw.GetChild();
-		if (child is Gtk.Viewport vp)
-			child = vp.GetChild();
-		if (child is Platform.GtkLayoutPanel panel)
-			panel.IsInsideScrollableContainer = true;
 	}
 
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)

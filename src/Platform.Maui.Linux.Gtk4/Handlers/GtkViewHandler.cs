@@ -161,16 +161,9 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 
 		_lastArrangeRect = rect;
 
-		// Position the widget inside its parent GtkLayoutPanel (Gtk.Fixed)
+		// Position the widget inside its parent GtkLayoutPanel
 		if (platformView.GetParent() is Platform.GtkLayoutPanel layoutPanel)
 		{
-			// Always set small height minimum (-1) to prevent inflating
-			// the Gtk.Fixed minimum (child.y + child.min_height), which
-			// propagates up and pushes the window to grow. The actual
-			// allocation is applied later via ApplyArrangedSizes.
-			platformView.SetSizeRequest((int)rect.Width, -1);
-			layoutPanel.SetArrangedSize(platformView, (int)rect.Width, (int)rect.Height);
-
 			// Check if visual transforms are needed
 			bool hasTransform = VirtualView != null && (
 				VirtualView.Rotation != 0 ||
@@ -179,14 +172,14 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 
 			if (hasTransform)
 			{
-				// When using SetChildTransform, the transform replaces the
-				// allocation position. Include Move offset in the transform.
-				layoutPanel.Move(platformView, 0, 0);
+				// When using SetChildTransform, the transform includes the position.
+				layoutPanel.SetChildBounds(platformView, 0, 0, (int)rect.Width, (int)rect.Height);
 				ApplyTransform(platformView, layoutPanel, rect);
 			}
 			else
 			{
-				layoutPanel.Move(platformView, rect.X, rect.Y);
+				layoutPanel.SetChildTransform(platformView, null);
+				layoutPanel.SetChildBounds(platformView, rect.X, rect.Y, (int)rect.Width, (int)rect.Height);
 			}
 		}
 		else
@@ -195,7 +188,7 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		}
 	}
 
-	void ApplyTransform(Gtk.Widget widget, Gtk.Fixed fixedParent, Rect rect)
+	void ApplyTransform(Gtk.Widget widget, Platform.GtkLayoutPanel layoutPanel, Rect rect)
 	{
 		if (VirtualView == null) return;
 
@@ -207,9 +200,9 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 
 		if (!hasScale && !hasRotation)
 		{
-			// Translation-only: just use Move with offset (avoids SetChildTransform issues)
-			fixedParent.SetChildTransform(widget, null);
-			fixedParent.Move(widget, rect.X + view.TranslationX, rect.Y + view.TranslationY);
+			// Translation-only: just update position (avoids SetChildTransform issues)
+			layoutPanel.SetChildTransform(widget, null);
+			layoutPanel.SetChildBounds(widget, rect.X + view.TranslationX, rect.Y + view.TranslationY, (int)rect.Width, (int)rect.Height);
 			return;
 		}
 
@@ -243,7 +236,7 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		negPt.Init(-anchorX, -anchorY);
 		transform = transform.Translate(negPt);
 
-		fixedParent.SetChildTransform(widget, transform);
+		layoutPanel.SetChildTransform(widget, transform);
 	}
 
 	public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
@@ -555,13 +548,13 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 
 			if (hasTransform)
 			{
-				layoutPanel.Move(widget, 0, 0);
+				layoutPanel.SetChildBounds(widget, 0, 0, (int)rect.Width, (int)rect.Height);
 				handler.ApplyTransform(widget, layoutPanel, rect);
 			}
 			else
 			{
 				layoutPanel.SetChildTransform(widget, null);
-				layoutPanel.Move(widget, rect.X, rect.Y);
+				layoutPanel.SetChildBounds(widget, rect.X, rect.Y, (int)rect.Width, (int)rect.Height);
 			}
 		}
 	}

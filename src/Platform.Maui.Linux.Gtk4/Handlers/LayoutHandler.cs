@@ -121,19 +121,6 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 			// Initial layout
 			DoLayout();
 
-			// GTK's Fixed layout allocates children at their MINIMUM size,
-			// but we set sr(w,-1) to keep minimums small (preventing window
-			// growth). This persistent idle re-applies the correct MAUI-arranged
-			// sizes after every GTK layout phase. Priority 121 runs after GTK's
-			// frame clock (priority 120). Allocate short-circuits when sizes
-			// haven't changed, so this is cheap when idle.
-			GLib.Functions.IdleAdd(121, () =>
-			{
-				if (VirtualView == null) return false;
-				platformView.ApplyArrangedSizes();
-				return true;
-			});
-
 			// Re-layout on window resize via property notification
 			window.OnNotify += (sender, args) =>
 			{
@@ -261,17 +248,9 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 
 	public override void PlatformArrange(Rect rect)
 	{
-		// Never set height minimum on GtkLayoutPanels. MAUI drives layout
-		// through CrossPlatformArrange. Setting height via SetSizeRequest
-		// inflates the Gtk.Fixed minimum (child.y + child.min_height),
-		// which propagates up and can push the window to grow.
-		// The correct allocation is applied later via ApplyArrangedSizes.
-		PlatformView.SetSizeRequest((int)rect.Width, -1);
-
 		if (PlatformView.GetParent() is Platform.GtkLayoutPanel lp)
 		{
-			lp.Move(PlatformView, rect.X, rect.Y);
-			lp.SetArrangedSize(PlatformView, (int)rect.Width, (int)rect.Height);
+			lp.SetChildBounds(PlatformView, rect.X, rect.Y, (int)rect.Width, (int)rect.Height);
 		}
 
 		// Arrange children relative to the panel (origin at 0,0)
@@ -284,7 +263,7 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		try
 		{
 			var platformChild = (Gtk.Widget)child.ToPlatform(MauiContext);
-			PlatformView.Put(platformChild, 0, 0);
+			PlatformView.AddChild(platformChild);
 			MarkLayoutDirty();
 		}
 		catch (Exception ex)
@@ -297,7 +276,7 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 	{
 		if (child.Handler?.PlatformView is Gtk.Widget widget)
 		{
-			PlatformView.Remove(widget);
+			PlatformView.RemoveChild(widget);
 			MarkLayoutDirty();
 		}
 	}
@@ -310,7 +289,7 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 	public void Clear()
 	{
 		while (PlatformView.GetFirstChild() is Gtk.Widget child)
-			PlatformView.Remove(child);
+			PlatformView.RemoveChild(child);
 		MarkLayoutDirty();
 	}
 

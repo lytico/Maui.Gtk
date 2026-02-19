@@ -59,11 +59,14 @@ public class BlazorWebViewHandler : ViewHandler<IBlazorWebView, Gtk.Box>
 		try
 		{
 			var view = PlatformView;
-			view.SetSizeRequest((int)rect.Width, (int)rect.Height);
 
 			if (view.GetParent() is global::Platform.Maui.Linux.Gtk4.Platform.GtkLayoutPanel layoutPanel)
 			{
-				layoutPanel.Move(view, rect.X, rect.Y);
+				layoutPanel.SetChildBounds(view, rect.X, rect.Y, (int)rect.Width, (int)rect.Height);
+			}
+			else
+			{
+				view.SetSizeRequest((int)rect.Width, (int)rect.Height);
 			}
 		}
 		catch (InvalidOperationException)

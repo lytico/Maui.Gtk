@@ -54,8 +54,8 @@ public class BorderHandler : GtkViewHandler<IBorderView, Platform.GtkLayoutPanel
 			var platformContent = (Gtk.Widget)border.PresentedContent.ToPlatform(handler.MauiContext);
 			// Remove existing children
 			while (handler.PlatformView.GetFirstChild() is Gtk.Widget child)
-				handler.PlatformView.Remove(child);
-			handler.PlatformView.Put(platformContent, 0, 0);
+				handler.PlatformView.RemoveChild(child);
+			handler.PlatformView.AddChild(platformContent);
 			handler.PlatformView.LayoutDirty = true;
 		}
 	}

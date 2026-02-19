@@ -171,6 +171,9 @@ public class GtkLayoutPanel : Gtk.Fixed
 	public void SetChildBounds(Gtk.Widget child, double x, double y, int width, int height)
 	{
 		_childBounds[child] = new Rect(x, y, width, height);
+		// QueueResize (not QueueAllocate) so parent widgets like ScrolledWindow/Viewport
+		// re-measure and discover the full content extent for scrolling.
+		QueueResize();
 	}
 
 	/// <summary>

@@ -14,7 +14,7 @@
 
   <!-- Common NuGet package properties for all src/ projects -->
   <PropertyGroup>
-    <Version>0.1.0-preview.1</Version>
+    <Version>0.2.0</Version>
     <Authors>Platform.Maui.Linux.Gtk4 Contributors</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Redth/Platform.Maui.Linux.Gtk4</PackageProjectUrl>

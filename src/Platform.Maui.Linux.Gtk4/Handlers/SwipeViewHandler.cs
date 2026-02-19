@@ -93,9 +93,6 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 	{
 		_dragOffset = _committedOffset;
 		_contentWidth = _contentBox?.GetAllocatedWidth() ?? 400;
-		// Show action buttons only while dragging
-		_leftActions?.SetVisible(_leftActions.GetFirstChild() != null);
-		_rightActions?.SetVisible(_rightActions.GetFirstChild() != null);
 	}
 
 	void OnDragUpdate(Gtk.GestureDrag sender, Gtk.GestureDrag.DragUpdateSignalArgs args)
@@ -112,6 +109,10 @@ public class SwipeViewHandler : GtkViewHandler<IView, Gtk.Box>
 		if (!hasRight) newOffset = Math.Max(0, newOffset);
 		if (!hasLeft) newOffset = Math.Min(0, newOffset);
 		newOffset = Math.Clamp(newOffset, -maxReveal, maxReveal);
+
+		// Show only the side being revealed, hide the other
+		_leftActions?.SetVisible(hasLeft && newOffset > 0);
+		_rightActions?.SetVisible(hasRight && newOffset < 0);
 
 		_dragOffset = newOffset;
 		_fixed.Move(_contentBox, newOffset, 0);

@@ -56,6 +56,7 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		GLib.Functions.IdleAdd(0, () =>
 		{
 			if (VirtualView == null || PlatformView == null) return false;
+			if (PlatformView.IsExternallyManaged) return false;
 
 			var (w, h) = GetConstrainedSize(PlatformView);
 			if (w > 1 && h > 1)
@@ -80,6 +81,9 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		{
 			if (HasAncestorLayoutPanel(platformView))
 				return false; // nested — parent drives layout
+
+			if (platformView.IsExternallyManaged)
+				return false; // template-driven — CollectionView manages layout
 
 			// Find the window and listen for size changes
 			Gtk.Widget? cur = platformView;

@@ -17,6 +17,12 @@ public class GtkLayoutPanel : Gtk.Fixed
 	/// </summary>
 	public bool LayoutDirty { get; set; }
 
+	/// <summary>
+	/// When true, this panel is driven by an external layout (e.g., CollectionView template)
+	/// and should not run its own idle/tick layout passes.
+	/// </summary>
+	public bool IsExternallyManaged { get; set; }
+
 	public GtkLayoutPanel() : base()
 	{
 		SetHexpand(true);

@@ -494,6 +494,120 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 			return (gtkImage, imgSize);
 		}
 
+		if (mauiView is Border border)
+		{
+			var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+			box.SetHexpand(true);
+
+			// Apply border CSS styling
+			var css = "";
+			if (border.Background is SolidColorBrush bgBrush && bgBrush.Color != null)
+			{
+				var c = bgBrush.Color;
+				css += $"background-color: rgba({(int)(c.Red*255)},{(int)(c.Green*255)},{(int)(c.Blue*255)},{c.Alpha}); ";
+			}
+			else if (border.BackgroundColor != null)
+			{
+				var c = border.BackgroundColor;
+				css += $"background-color: rgba({(int)(c.Red*255)},{(int)(c.Green*255)},{(int)(c.Blue*255)},{c.Alpha}); ";
+			}
+			if (border.Stroke is SolidColorBrush strokeBrush && strokeBrush.Color != null)
+			{
+				var c = strokeBrush.Color;
+				var thickness = Math.Max(1, (int)border.StrokeThickness);
+				css += $"border: {thickness}px solid rgba({(int)(c.Red*255)},{(int)(c.Green*255)},{(int)(c.Blue*255)},{c.Alpha}); ";
+			}
+			else if (border.StrokeThickness <= 0)
+			{
+				css += "border: none; ";
+			}
+			if (border.StrokeShape is Microsoft.Maui.Controls.Shapes.RoundRectangle rr)
+			{
+				var cr = rr.CornerRadius;
+				css += $"border-radius: {(int)cr.TopLeft}px {(int)cr.TopRight}px {(int)cr.BottomRight}px {(int)cr.BottomLeft}px; ";
+			}
+			if (!string.IsNullOrEmpty(css))
+			{
+				css += "background-image: none; ";
+				var cssProvider = Gtk.CssProvider.New();
+				cssProvider.LoadFromString($"box {{ {css} }}");
+				box.GetStyleContext().AddProvider(cssProvider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
+			}
+			box.SetOverflow(Gtk.Overflow.Hidden);
+			ApplyPadding(box, border.Padding);
+
+			int totalHeight = (int)(border.Padding.VerticalThickness + border.StrokeThickness * 2);
+			if (border.Content is View borderContent)
+			{
+				var (childWidget, childHeight) = BuildSingleNativeWidget(borderContent);
+				box.Append(childWidget);
+				totalHeight += childHeight;
+			}
+			if (border.HeightRequest > 0)
+				totalHeight = (int)border.HeightRequest;
+
+			ApplyMargin(box, border.Margin);
+			return (box, Math.Max(totalHeight, 20));
+		}
+
+		if (mauiView is Frame frame)
+		{
+			var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+			box.SetHexpand(true);
+
+			var css = "";
+			if (frame.BackgroundColor != null)
+			{
+				var c = frame.BackgroundColor;
+				css += $"background-color: rgba({(int)(c.Red*255)},{(int)(c.Green*255)},{(int)(c.Blue*255)},{c.Alpha}); ";
+			}
+			if (frame.BorderColor != null)
+			{
+				var c = frame.BorderColor;
+				css += $"border: 1px solid rgba({(int)(c.Red*255)},{(int)(c.Green*255)},{(int)(c.Blue*255)},{c.Alpha}); ";
+			}
+			if (frame.CornerRadius >= 0)
+				css += $"border-radius: {(int)frame.CornerRadius}px; ";
+			if (!string.IsNullOrEmpty(css))
+			{
+				css += "background-image: none; ";
+				var cssProvider = Gtk.CssProvider.New();
+				cssProvider.LoadFromString($"box {{ {css} }}");
+				box.GetStyleContext().AddProvider(cssProvider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
+			}
+			box.SetOverflow(Gtk.Overflow.Hidden);
+			ApplyPadding(box, frame.Padding);
+
+			int totalHeight = (int)(frame.Padding.VerticalThickness);
+			if (frame.Content is View frameContent)
+			{
+				var (childWidget, childHeight) = BuildSingleNativeWidget(frameContent);
+				box.Append(childWidget);
+				totalHeight += childHeight;
+			}
+			if (frame.HeightRequest > 0)
+				totalHeight = (int)frame.HeightRequest;
+
+			ApplyMargin(box, frame.Margin);
+			return (box, Math.Max(totalHeight, 20));
+		}
+
+		if (mauiView is ContentView cView)
+		{
+			var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+			box.SetHexpand(true);
+			ApplyPadding(box, cView.Padding);
+			int totalHeight = (int)cView.Padding.VerticalThickness;
+			if (cView.Content is View cvContent)
+			{
+				var (childWidget, childHeight) = BuildSingleNativeWidget(cvContent);
+				box.Append(childWidget);
+				totalHeight += childHeight;
+			}
+			ApplyMargin(box, cView.Margin);
+			return (box, Math.Max(totalHeight, 20));
+		}
+
 		// Fallback: create label with ToString
 		var fallback = Gtk.Label.New(mauiView.GetType().Name);
 		fallback.SetHalign(Gtk.Align.Start);

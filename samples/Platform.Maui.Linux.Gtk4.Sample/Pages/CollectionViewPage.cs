@@ -381,17 +381,23 @@ public class CollectionViewPage : ContentPage
 				};
 				emailLabel.SetBinding(Label.TextProperty, "Email");
 
-				return new HorizontalStackLayout
+				return new Border
 				{
-					Spacing = 10,
+					StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
+					Stroke = Color.FromArgb("#e0e0e0"),
+					StrokeThickness = 1,
 					Padding = new Thickness(8, 6),
-					Children =
+					Content = new HorizontalStackLayout
 					{
-						avatar,
-						new VerticalStackLayout
+						Spacing = 10,
+						Children =
 						{
-							Spacing = 2,
-							Children = { nameLabel, emailLabel },
+							avatar,
+							new VerticalStackLayout
+							{
+								Spacing = 2,
+								Children = { nameLabel, emailLabel },
+							},
 						},
 					},
 				};

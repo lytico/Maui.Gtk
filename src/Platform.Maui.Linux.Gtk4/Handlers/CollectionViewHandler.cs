@@ -388,7 +388,10 @@ public class CollectionViewHandler : GtkViewHandler<IView, Gtk.ScrolledWindow>
 		platformView.SetSizeRequest((int)rect.Width, -1);
 
 		if (platformView.GetParent() is Platform.GtkLayoutPanel layoutPanel)
+		{
 			layoutPanel.Move(platformView, rect.X, rect.Y);
+			layoutPanel.SetArrangedSize(platformView, (int)rect.Width, (int)rect.Height);
+		}
 	}
 
 	void HookSelectionChanged()

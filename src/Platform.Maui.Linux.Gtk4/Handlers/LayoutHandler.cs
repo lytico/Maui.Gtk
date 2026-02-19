@@ -116,6 +116,17 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 
 				platformView.CrossPlatformMeasure(dw, dh);
 				platformView.CrossPlatformArrange(new Rect(0, 0, dw, dh));
+
+				// GTK's Fixed layout allocates children at their MINIMUM size,
+				// but we set sr(w,-1) to keep minimums small (preventing window
+				// growth). Schedule a post-layout re-allocation at the correct
+				// MAUI-arranged sizes. Priority 121 runs after GTK's frame clock
+				// layout phase (priority 120).
+				GLib.Functions.IdleAdd(121, () =>
+				{
+					platformView.ApplyArrangedSizes();
+					return false;
+				});
 			}
 
 			// Initial layout
@@ -252,10 +263,14 @@ public class LayoutHandler : GtkViewHandler<ILayout, GtkLayoutPanel>, ILayoutHan
 		// through CrossPlatformArrange. Setting height via SetSizeRequest
 		// inflates the Gtk.Fixed minimum (child.y + child.min_height),
 		// which propagates up and can push the window to grow.
+		// The correct allocation is applied later via ApplyArrangedSizes.
 		PlatformView.SetSizeRequest((int)rect.Width, -1);
 
 		if (PlatformView.GetParent() is Platform.GtkLayoutPanel lp)
+		{
 			lp.Move(PlatformView, rect.X, rect.Y);
+			lp.SetArrangedSize(PlatformView, (int)rect.Width, (int)rect.Height);
+		}
 
 		// Arrange children relative to the panel (origin at 0,0)
 		PlatformView.CrossPlatformArrange(new Rect(0, 0, rect.Width, rect.Height));

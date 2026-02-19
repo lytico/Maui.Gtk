@@ -10,6 +10,7 @@ namespace Platform.Maui.Linux.Gtk4.Platform;
 public class GtkLayoutPanel : Gtk.Fixed
 {
 	ICrossPlatformLayout? _crossPlatformLayout;
+	readonly Dictionary<Gtk.Widget, (int Width, int Height)> _arrangedSizes = new();
 
 	/// <summary>
 	/// Set to true when children are added/removed so the root tick callback
@@ -36,6 +37,36 @@ public class GtkLayoutPanel : Gtk.Fixed
 		// Override GTK size negotiation: report 0 minimum so the window
 		// can shrink freely. MAUI's layout engine controls actual sizing.
 		SetSizeRequest(0, 0);
+	}
+
+	/// <summary>
+	/// Stores the MAUI-arranged size for a child widget. GTK's Fixed layout
+	/// allocates children at their minimum size, which may be smaller than
+	/// MAUI's arranged size. ApplyArrangedSizes re-allocates at the correct size.
+	/// </summary>
+	public void SetArrangedSize(Gtk.Widget child, int width, int height)
+	{
+		_arrangedSizes[child] = (width, height);
+	}
+
+	/// <summary>
+	/// Re-allocates all children at their MAUI-arranged sizes. Call this after
+	/// GTK's layout phase to override the Fixed's minimum-based allocation.
+	/// Recurses into nested GtkLayoutPanels.
+	/// </summary>
+	public void ApplyArrangedSizes()
+	{
+		for (var child = GetFirstChild(); child != null; child = child.GetNextSibling())
+		{
+			if (_arrangedSizes.TryGetValue(child, out var size))
+			{
+				var transform = GetChildTransform(child);
+				child.Allocate(size.Width, size.Height, -1, transform);
+			}
+
+			if (child is GtkLayoutPanel nested)
+				nested.ApplyArrangedSizes();
+		}
 	}
 
 	public ICrossPlatformLayout? CrossPlatformLayout

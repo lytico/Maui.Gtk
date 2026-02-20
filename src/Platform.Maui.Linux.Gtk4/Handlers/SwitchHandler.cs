@@ -50,7 +50,7 @@ public class SwitchHandler : GtkViewHandler<ISwitch, Gtk.Switch>
 	{
 		if (@switch.TrackColor != null)
 			handler.ApplyCss(handler.PlatformView,
-				$"background-color: {ToGtkColor(@switch.TrackColor)}; background-image: none;");
+				$"background-color: {ToGtkColor(@switch.TrackColor)}; background-image: none; border-radius: 9999px;");
 	}
 
 	public static void MapThumbColor(SwitchHandler handler, ISwitch @switch)

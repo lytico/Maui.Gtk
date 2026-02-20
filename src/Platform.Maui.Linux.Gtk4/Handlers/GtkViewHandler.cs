@@ -456,7 +456,8 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 		if (clip == null)
 		{
 			widget.SetOverflow(Gtk.Overflow.Visible);
-			handler.ApplyCss(widget, "border-radius: 0;");
+			// Don't reset border-radius — it overrides native theme styling
+			// (e.g. GTK4 Switch pill shape). Overflow.Visible is sufficient.
 			return;
 		}
 

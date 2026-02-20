@@ -281,8 +281,18 @@ public partial class ShellHandler : GtkViewHandler<Shell, Gtk.Box>
 		bool showFlyout = VirtualView.FlyoutBehavior != FlyoutBehavior.Disabled
 			&& VirtualView.Items.Count > 1;
 
-		_flyoutBox.SetVisible(showFlyout && VirtualView.FlyoutIsPresented);
-		_paned.SetPosition(showFlyout && VirtualView.FlyoutIsPresented ? _flyoutWidth : 0);
+		// On desktop GTK, always present the flyout as a sidebar when enabled.
+		// FlyoutIsPresented defaults to false (mobile pattern), but desktop
+		// should show the sidebar by default.
+		if (showFlyout && !VirtualView.FlyoutIsPresented
+			&& VirtualView.FlyoutBehavior != FlyoutBehavior.Disabled)
+		{
+			VirtualView.FlyoutIsPresented = true;
+		}
+
+		bool visible = showFlyout && VirtualView.FlyoutIsPresented;
+		_flyoutBox.SetVisible(visible);
+		_paned.SetPosition(visible ? _flyoutWidth : 0);
 	}
 
 	// === Mapper Methods ===

@@ -89,6 +89,9 @@ public static partial class AppHostBuilderExtensions
 
 	static MauiAppBuilder SetupDefaults(this MauiAppBuilder builder)
 	{
+		// Register AppInfo so AppInfo.RequestedTheme returns GTK's system theme
+		GtkAppInfoImplementation.Register();
+
 		builder.Services.AddSingleton<IDispatcherProvider>(svc => new GtkDispatcherProvider());
 
 		// Register GTK alert/dialog handler for DisplayAlert/ActionSheet/Prompt

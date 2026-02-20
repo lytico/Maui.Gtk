@@ -43,16 +43,10 @@ public class ApplicationHandler : ElementHandler<IApplication, Gtk.Application>
 
 	static void MapAppTheme(ApplicationHandler handler, IApplication app)
 	{
-		// Set GTK dark/light preference. Unspecified reverts to system default.
 		if (app.UserAppTheme == AppTheme.Unspecified)
-		{
-			// Revert to system theme by reading the original system preference
-			// (GTK doesn't have a "follow system" API — we just stop overriding)
-		}
+			GtkThemeManager.RevertToSystemTheme();
 		else
-		{
 			GtkThemeManager.SetTheme(app.UserAppTheme);
-		}
 
 		// Defer ThemeChanged so GTK has time to apply the new theme CSS
 		GLib.Functions.IdleAdd(0, () =>

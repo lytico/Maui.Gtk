@@ -47,6 +47,7 @@ class MainShell : FlyoutPage
 		("🐚 Shell Navigation", () => new ShellDemoPage()),
 		("🧬 ControlTemplate", () => new ControlTemplatePage()),
 		("🪟 Multi-Window", () => new MultiWindowPage()),
+		("🎨 Theme", () => new ThemePage()),
 	];
 
 	public MainShell()

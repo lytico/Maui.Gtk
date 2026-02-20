@@ -68,6 +68,9 @@ public abstract class GtkMauiApplication : IPlatformApplication
 		appHandler.SetMauiContext(applicationContext);
 		appHandler.SetVirtualView(_mauiApp);
 
+		// Monitor system theme changes
+		GtkThemeManager.StartMonitoring();
+
 		// Create the window
 		CreatePlatformWindow(applicationContext);
 		EnsureDesktopEntry();

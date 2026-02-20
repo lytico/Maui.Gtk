@@ -8,6 +8,8 @@ namespace Platform.Maui.Linux.Gtk4.Platform;
 /// </summary>
 public static class GtkThemeManager
 {
+	static bool _monitoring;
+
 	/// <summary>
 	/// Sets the GTK4 application theme based on MAUI AppTheme.
 	/// </summary>
@@ -30,6 +32,29 @@ public static class GtkThemeManager
 			return AppTheme.Unspecified;
 
 		return settings.GtkApplicationPreferDarkTheme ? AppTheme.Dark : AppTheme.Light;
+	}
+
+	/// <summary>
+	/// Starts monitoring GTK settings for system theme changes.
+	/// Fires IApplication.ThemeChanged() when the system theme switches.
+	/// </summary>
+	public static void StartMonitoring()
+	{
+		if (_monitoring) return;
+		_monitoring = true;
+
+		var settings = Gtk.Settings.GetDefault();
+		if (settings == null) return;
+
+		settings.OnNotify += (sender, args) =>
+		{
+			if (args.Pspec.GetName() == "gtk-application-prefer-dark-theme" ||
+				args.Pspec.GetName() == "gtk-theme-name")
+			{
+				var app = IPlatformApplication.Current as GtkMauiApplication;
+				(app?.Application as IApplication)?.ThemeChanged();
+			}
+		};
 	}
 
 	/// <summary>

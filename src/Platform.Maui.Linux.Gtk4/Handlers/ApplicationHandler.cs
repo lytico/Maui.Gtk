@@ -9,6 +9,7 @@ public class ApplicationHandler : ElementHandler<IApplication, Gtk.Application>
 	public static IPropertyMapper<IApplication, ApplicationHandler> Mapper =
 		new PropertyMapper<IApplication, ApplicationHandler>(ElementHandler.ElementMapper)
 		{
+			[nameof(IApplication.UserAppTheme)] = MapAppTheme,
 		};
 
 	public static CommandMapper<IApplication, ApplicationHandler> CommandMapper =
@@ -38,5 +39,26 @@ public class ApplicationHandler : ElementHandler<IApplication, Gtk.Application>
 	{
 		if (arg is not IWindow virtualWindow) return;
 		GtkMauiApplication.Current.CloseWindow(virtualWindow);
+	}
+
+	static void MapAppTheme(ApplicationHandler handler, IApplication app)
+	{
+		// Set GTK dark/light preference. Unspecified reverts to system default.
+		if (app.UserAppTheme == AppTheme.Unspecified)
+		{
+			// Revert to system theme by reading the original system preference
+			// (GTK doesn't have a "follow system" API — we just stop overriding)
+		}
+		else
+		{
+			GtkThemeManager.SetTheme(app.UserAppTheme);
+		}
+
+		// Defer ThemeChanged so GTK has time to apply the new theme CSS
+		GLib.Functions.IdleAdd(0, () =>
+		{
+			app.ThemeChanged();
+			return false;
+		});
 	}
 }

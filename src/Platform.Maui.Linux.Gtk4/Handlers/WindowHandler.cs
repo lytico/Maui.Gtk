@@ -45,6 +45,36 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 		{
 			platformView.SetChild(new WindowRootViewContainer());
 		}
+
+		platformView.OnCloseRequest += OnCloseRequest;
+		platformView.OnNotify += OnNotifyIsActive;
+	}
+
+	protected override void DisconnectHandler(Gtk.Window platformView)
+	{
+		platformView.OnCloseRequest -= OnCloseRequest;
+		platformView.OnNotify -= OnNotifyIsActive;
+		base.DisconnectHandler(platformView);
+	}
+
+	private bool OnCloseRequest(Gtk.Window sender, EventArgs args)
+	{
+		if (VirtualView != null)
+		{
+			GtkMauiApplication.Current.UnregisterWindow(VirtualView);
+			VirtualView.Destroying();
+		}
+		return false; // allow GTK to destroy the window
+	}
+
+	private void OnNotifyIsActive(GObject.Object sender, GObject.Object.NotifySignalArgs args)
+	{
+		if (args.Pspec.GetName() != "is-active" || VirtualView == null) return;
+
+		if (PlatformView?.GetIsActive() == true)
+			VirtualView.Activated();
+		else
+			VirtualView.Deactivated();
 	}
 
 	public static void MapTitle(WindowHandler handler, IWindow window)

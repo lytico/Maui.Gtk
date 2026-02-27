@@ -10,6 +10,7 @@ public class WindowRootViewContainer : Gtk.Box
 {
 	private Gtk.Widget? _currentPage;
 	private Gtk.Widget? _menuBar;
+	private readonly Stack<Gtk.Widget> _modalStack = new();
 
 	public WindowRootViewContainer() : base()
 	{
@@ -35,13 +36,15 @@ public class WindowRootViewContainer : Gtk.Box
 
 	public void AddPage(Gtk.Widget page)
 	{
-		if (_currentPage != null)
+		if (_currentPage != null && _modalStack.Count == 0)
 		{
 			Remove(_currentPage);
 		}
 
 		_currentPage = page;
-		Append(page);
+
+		if (_modalStack.Count == 0)
+			Append(page);
 	}
 
 	public void RemovePage(Gtk.Widget page)
@@ -51,5 +54,37 @@ public class WindowRootViewContainer : Gtk.Box
 			Remove(page);
 			_currentPage = null;
 		}
+	}
+
+	/// <summary>
+	/// Push a modal page on top of the current content.
+	/// Hides the current top (main page or previous modal) and shows the new modal.
+	/// </summary>
+	public void PushModal(Gtk.Widget page)
+	{
+		var currentTop = _modalStack.Count > 0 ? _modalStack.Peek() : _currentPage;
+		currentTop?.SetVisible(false);
+
+		_modalStack.Push(page);
+		page.SetVexpand(true);
+		page.SetHexpand(true);
+		Append(page);
+	}
+
+	/// <summary>
+	/// Pop the top modal page and restore the previous content.
+	/// </summary>
+	public Gtk.Widget? PopModal()
+	{
+		if (_modalStack.Count == 0)
+			return null;
+
+		var modal = _modalStack.Pop();
+		Remove(modal);
+
+		var previousTop = _modalStack.Count > 0 ? _modalStack.Peek() : _currentPage;
+		previousTop?.SetVisible(true);
+
+		return modal;
 	}
 }

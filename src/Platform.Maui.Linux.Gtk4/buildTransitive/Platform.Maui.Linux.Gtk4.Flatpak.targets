@@ -118,8 +118,9 @@
             "buildsystem": "simple",
             "build-commands": [
                 "mkdir -p /app/bin",
-                "cp -r publish/* /app/bin/",
-                "chmod +x /app/bin/$(AssemblyName)"
+                "cp -r * /app/bin/",
+                "chmod +x /app/bin/$(AssemblyName)",
+                "if [ -d share ]; then mkdir -p /app/share &amp;&amp; cp -r share/* /app/share/; fi"
             ],
             "sources": [
                 {
@@ -173,11 +174,16 @@ Categories=$(FlatpakCategories)
       <_FlatpakAppStreamComment Condition="'$(FlatpakDescription)' != ''">
     &lt;summary&gt;$(FlatpakDescription)&lt;/summary&gt;</_FlatpakAppStreamComment>
 
+      <_FlatpakAppStreamDescription Condition="'$(FlatpakDescription)' != ''">
+    &lt;description&gt;&lt;p&gt;$(FlatpakDescription)&lt;/p&gt;&lt;/description&gt;</_FlatpakAppStreamDescription>
+      <_FlatpakAppStreamDescription Condition="'$(FlatpakDescription)' == ''">
+    &lt;description&gt;&lt;p&gt;$(ApplicationTitle) - a .NET MAUI application for Linux.&lt;/p&gt;&lt;/description&gt;</_FlatpakAppStreamDescription>
+
       <_FlatpakAppStream>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;component type="desktop-application"&gt;
     &lt;id&gt;$(ApplicationId)&lt;/id&gt;
     &lt;metadata_license&gt;CC0-1.0&lt;/metadata_license&gt;
-    &lt;name&gt;$(ApplicationTitle)&lt;/name&gt;$(_FlatpakAppStreamComment)
+    &lt;name&gt;$(ApplicationTitle)&lt;/name&gt;$(_FlatpakAppStreamComment)$(_FlatpakAppStreamDescription)
     &lt;launchable type="desktop-id"&gt;$(ApplicationId).desktop&lt;/launchable&gt;
     &lt;provides&gt;
       &lt;binary&gt;$(AssemblyName)&lt;/binary&gt;
@@ -274,10 +280,9 @@ Categories=$(FlatpakCategories)
             "buildsystem": "simple",
             "build-commands": [
                 "mkdir -p /app/bin",
-                "cp -r publish/* /app/bin/",
+                "cp -r * /app/bin/",
                 "chmod +x /app/bin/$(AssemblyName)",
-                "mkdir -p /app/share",
-                "cp -r publish/share/* /app/share/"
+                "if [ -d share ]; then mkdir -p /app/share &amp;&amp; cp -r share/* /app/share/; fi"
             ],
             "sources": [
                 {

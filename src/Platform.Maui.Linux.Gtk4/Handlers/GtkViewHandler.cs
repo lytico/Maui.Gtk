@@ -44,8 +44,15 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			["ContextFlyout"] = MapContextFlyout,
 		};
 
+	public static CommandMapper<TVirtualView, GtkViewHandler<TVirtualView, TPlatformView>> ViewCommandMapper =
+		new(ViewHandler.ViewCommandMapper)
+		{
+			["Focus"] = MapFocus,
+			["Unfocus"] = MapUnfocus,
+		};
+
 	protected GtkViewHandler(IPropertyMapper mapper, CommandMapper? commandMapper = null)
-		: base(mapper, commandMapper)
+		: base(mapper, commandMapper ?? ViewCommandMapper)
 	{
 	}
 
@@ -140,6 +147,34 @@ public abstract class GtkViewHandler<TVirtualView, TPlatformView> : ViewHandler<
 			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "PointerOver");
 		else
 			Microsoft.Maui.Controls.VisualStateManager.GoToState(ve, "Normal");
+	}
+
+	static void MapFocus(GtkViewHandler<TVirtualView, TPlatformView> handler, TVirtualView view, object? args)
+	{
+		if (args is RetrievePlatformValueRequest<bool> request)
+		{
+			try
+			{
+				var result = handler.PlatformView?.GrabFocus() ?? false;
+				request.SetResult(result);
+			}
+			catch
+			{
+				request.SetResult(false);
+			}
+		}
+	}
+
+	static void MapUnfocus(GtkViewHandler<TVirtualView, TPlatformView> handler, TVirtualView view, object? args)
+	{
+		// GTK4 doesn't have a direct "unfocus" — focus the window root instead
+		try
+		{
+			var root = handler.PlatformView?.GetRoot();
+			if (root is Gtk.Window window)
+				window.GrabFocus();
+		}
+		catch { }
 	}
 
 	/// <summary>

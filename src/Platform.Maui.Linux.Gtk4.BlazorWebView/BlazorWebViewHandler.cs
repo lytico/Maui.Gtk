@@ -16,7 +16,13 @@ public class BlazorWebViewHandler : ViewHandler<IBlazorWebView, Gtk.Box>
 			[nameof(IBlazorWebView.RootComponents)] = MapRootComponents,
 		};
 
-	public BlazorWebViewHandler() : base(BlazorWebViewMapper)
+	public static CommandMapper<IBlazorWebView, BlazorWebViewHandler> BlazorWebViewCommandMapper =
+		new(ViewHandler.ViewCommandMapper)
+		{
+			["Focus"] = MapFocus,
+		};
+
+	public BlazorWebViewHandler() : base(BlazorWebViewMapper, BlazorWebViewCommandMapper)
 	{
 	}
 
@@ -59,14 +65,36 @@ public class BlazorWebViewHandler : ViewHandler<IBlazorWebView, Gtk.Box>
 		try
 		{
 			var view = PlatformView;
+			var height = (int)rect.Height;
+			var width = (int)rect.Width;
+
+			// MAUI may arrange with the full window size, but the GTK content area
+			// (below the HeaderBar/titlebar) is smaller. Walk up to the window's
+			// direct child container and clamp to its allocated height.
+			Gtk.Widget? ancestor = view.GetParent();
+			while (ancestor != null)
+			{
+				if (ancestor.GetParent() is Gtk.Window)
+				{
+					int containerH = ancestor.GetAllocatedHeight();
+					if (containerH > 0)
+					{
+						int maxH = containerH - (int)rect.Y;
+						if (maxH > 0 && maxH < height)
+							height = maxH;
+					}
+					break;
+				}
+				ancestor = ancestor.GetParent();
+			}
 
 			if (view.GetParent() is global::Platform.Maui.Linux.Gtk4.Platform.GtkLayoutPanel layoutPanel)
 			{
-				layoutPanel.SetChildBounds(view, rect.X, rect.Y, (int)rect.Width, (int)rect.Height);
+				layoutPanel.SetChildBounds(view, rect.X, rect.Y, width, height);
 			}
 			else
 			{
-				view.SetSizeRequest((int)rect.Width, (int)rect.Height);
+				view.SetSizeRequest(width, height);
 			}
 		}
 		catch (InvalidOperationException)
@@ -92,6 +120,13 @@ public class BlazorWebViewHandler : ViewHandler<IBlazorWebView, Gtk.Box>
 	{
 		if (handler._blazorWebView != null && webView.HostPage != null)
 		{
+			// Transfer StartPath before setting HostPage (which triggers navigation)
+			if (webView is Microsoft.AspNetCore.Components.WebView.Maui.BlazorWebView mauiWebView
+				&& !string.IsNullOrEmpty(mauiWebView.StartPath))
+			{
+				handler._blazorWebView.StartPath = mauiWebView.StartPath;
+			}
+
 			handler._blazorWebView.HostPage = webView.HostPage;
 		}
 	}
@@ -110,6 +145,22 @@ public class BlazorWebViewHandler : ViewHandler<IBlazorWebView, Gtk.Box>
 				ComponentType = rc.ComponentType,
 				Parameters = rc.Parameters,
 			});
+		}
+	}
+
+	static void MapFocus(BlazorWebViewHandler handler, IBlazorWebView view, object? args)
+	{
+		if (args is Microsoft.Maui.RetrievePlatformValueRequest<bool> request)
+		{
+			try
+			{
+				var result = handler.PlatformView?.GrabFocus() ?? false;
+				request.SetResult(result);
+			}
+			catch
+			{
+				request.SetResult(false);
+			}
 		}
 	}
 }

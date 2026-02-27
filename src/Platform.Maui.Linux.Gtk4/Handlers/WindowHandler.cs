@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Maui;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Platform;
 using Platform.Maui.Linux.Gtk4.Platform;
@@ -47,13 +48,25 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 		}
 
 		platformView.OnCloseRequest += OnCloseRequest;
-		platformView.OnNotify += OnNotifyIsActive;
+		platformView.OnNotify += OnWindowNotify;
+
+		if (VirtualView is Microsoft.Maui.Controls.Window mauiWindow)
+		{
+			mauiWindow.ModalPushed += OnModalPushed;
+			mauiWindow.ModalPopped += OnModalPopped;
+		}
 	}
 
 	protected override void DisconnectHandler(Gtk.Window platformView)
 	{
+		if (VirtualView is Microsoft.Maui.Controls.Window mauiWindow)
+		{
+			mauiWindow.ModalPushed -= OnModalPushed;
+			mauiWindow.ModalPopped -= OnModalPopped;
+		}
+
 		platformView.OnCloseRequest -= OnCloseRequest;
-		platformView.OnNotify -= OnNotifyIsActive;
+		platformView.OnNotify -= OnWindowNotify;
 		base.DisconnectHandler(platformView);
 	}
 
@@ -67,14 +80,35 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 		return false; // allow GTK to destroy the window
 	}
 
-	private void OnNotifyIsActive(GObject.Object sender, GObject.Object.NotifySignalArgs args)
+	private void OnWindowNotify(GObject.Object sender, GObject.Object.NotifySignalArgs args)
 	{
-		if (args.Pspec.GetName() != "is-active" || VirtualView == null) return;
+		if (VirtualView == null) return;
+		var prop = args.Pspec.GetName();
 
-		if (PlatformView?.GetIsActive() == true)
-			VirtualView.Activated();
-		else
-			VirtualView.Deactivated();
+		if (prop == "is-active")
+		{
+			if (PlatformView?.GetIsActive() == true)
+				VirtualView.Activated();
+			else
+				VirtualView.Deactivated();
+		}
+	}
+
+	private void OnModalPushed(object? sender, ModalPushedEventArgs e)
+	{
+		if (MauiContext == null || PlatformView == null) return;
+
+		var container = PlatformView.GetChild() as WindowRootViewContainer;
+		if (container == null) return;
+
+		var platformContent = (Gtk.Widget)e.Modal.ToPlatform(MauiContext);
+		container.PushModal(platformContent);
+	}
+
+	private void OnModalPopped(object? sender, ModalPoppedEventArgs e)
+	{
+		var container = PlatformView?.GetChild() as WindowRootViewContainer;
+		container?.PopModal();
 	}
 
 	public static void MapTitle(WindowHandler handler, IWindow window)

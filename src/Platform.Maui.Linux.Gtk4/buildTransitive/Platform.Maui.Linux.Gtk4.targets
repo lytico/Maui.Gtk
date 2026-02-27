@@ -48,4 +48,12 @@
   <Import Project="$(MSBuildThisFileDirectory)Platform.Maui.Linux.Gtk4.AppImage.targets"
           Condition="Exists('$(MSBuildThisFileDirectory)Platform.Maui.Linux.Gtk4.AppImage.targets')" />
 
+  <!-- Import Deb packaging targets (active when CreateDeb=true) -->
+  <Import Project="$(MSBuildThisFileDirectory)Platform.Maui.Linux.Gtk4.Deb.targets"
+          Condition="Exists('$(MSBuildThisFileDirectory)Platform.Maui.Linux.Gtk4.Deb.targets')" />
+
+  <!-- Import Flatpak packaging targets (active when CreateFlatpak=true) -->
+  <Import Project="$(MSBuildThisFileDirectory)Platform.Maui.Linux.Gtk4.Flatpak.targets"
+          Condition="Exists('$(MSBuildThisFileDirectory)Platform.Maui.Linux.Gtk4.Flatpak.targets')" />
+
 </Project>

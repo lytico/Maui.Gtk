@@ -44,4 +44,8 @@
     </ContentWithTargetPath>
   </ItemGroup>
 
+  <!-- Import AppImage packaging targets (active when CreateAppImage=true) -->
+  <Import Project="$(MSBuildThisFileDirectory)Platform.Maui.Linux.Gtk4.AppImage.targets"
+          Condition="Exists('$(MSBuildThisFileDirectory)Platform.Maui.Linux.Gtk4.AppImage.targets')" />
+
 </Project>

@@ -38,14 +38,14 @@
     <DebArch Condition="'$(DebArch)' == ''">amd64</DebArch>
 
     <!-- Output -->
-    <DebOutputDir Condition="'$(DebOutputDir)' == ''">$(PublishDir)..</DebOutputDir>
+    <DebOutputDir Condition="'$(DebOutputDir)' == ''">$(MSBuildProjectDirectory)/bin/Deb</DebOutputDir>
     <DebFileName Condition="'$(DebFileName)' == ''">$(DebPackageName)_$(ApplicationDisplayVersion)_$(DebArch).deb</DebFileName>
 
     <!-- Install paths (inside the .deb) -->
     <_DebInstallPrefix>/usr/lib/$(DebPackageName)</_DebInstallPrefix>
 
     <!-- Working directory -->
-    <_DebStagingDir>$(IntermediateOutputPath)Deb/$(DebPackageName)_$(ApplicationDisplayVersion)_$(DebArch)</_DebStagingDir>
+    <_DebStagingDir>$(MSBuildProjectDirectory)/obj/Deb/$(DebPackageName)_$(ApplicationDisplayVersion)_$(DebArch)</_DebStagingDir>
   </PropertyGroup>
 
   <!-- ================= Validate Properties ================= -->
@@ -153,15 +153,11 @@ Description: $(DebDescription)$(_DebHomepageLine)
           AfterTargets="_PrepareDebStagingDir"
           BeforeTargets="CreateDeb">
 
-    <PropertyGroup>
-      <_DebLauncherContent>#!/bin/sh
-exec $(_DebInstallPrefix)/$(AssemblyName) "$@"
-</_DebLauncherContent>
-    </PropertyGroup>
-
-    <WriteLinesToFile File="$(_DebStagingDir)/usr/bin/$(DebPackageName)"
-                     Lines="$(_DebLauncherContent)"
-                     Overwrite="true" />
+    <!-- Write launcher via Exec to avoid MSBuild interpreting shell $ syntax -->
+    <Exec Command="cat &gt; &quot;$(_DebStagingDir)/usr/bin/$(DebPackageName)&quot; &lt;&lt; '_LAUNCHER_EOF_'
+#!/bin/sh
+exec $(_DebInstallPrefix)/$(AssemblyName) &quot;%24@&quot;
+_LAUNCHER_EOF_" />
 
     <Exec Command="chmod +x &quot;$(_DebStagingDir)/usr/bin/$(DebPackageName)&quot;" />
     <!-- Ensure the main binary is executable too -->

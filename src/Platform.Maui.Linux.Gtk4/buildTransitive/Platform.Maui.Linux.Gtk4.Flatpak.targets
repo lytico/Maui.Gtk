@@ -29,11 +29,11 @@
     <FlatpakDescription Condition="'$(FlatpakDescription)' == ''">$(ApplicationTitle)</FlatpakDescription>
 
     <!-- Output -->
-    <FlatpakOutputDir Condition="'$(FlatpakOutputDir)' == ''">$(PublishDir)..</FlatpakOutputDir>
+    <FlatpakOutputDir Condition="'$(FlatpakOutputDir)' == ''">$(MSBuildProjectDirectory)/bin/Flatpak</FlatpakOutputDir>
     <FlatpakFileName Condition="'$(FlatpakFileName)' == ''">$(ApplicationId).flatpak</FlatpakFileName>
 
     <!-- Working directories -->
-    <_FlatpakWorkDir>$(IntermediateOutputPath)Flatpak</_FlatpakWorkDir>
+    <_FlatpakWorkDir>$(MSBuildProjectDirectory)/obj/Flatpak</_FlatpakWorkDir>
     <_FlatpakBuildDir>$(_FlatpakWorkDir)/build</_FlatpakBuildDir>
     <_FlatpakRepoDir>$(_FlatpakWorkDir)/repo</_FlatpakRepoDir>
     <_FlatpakStateDir>$(_FlatpakWorkDir)/.flatpak-builder</_FlatpakStateDir>

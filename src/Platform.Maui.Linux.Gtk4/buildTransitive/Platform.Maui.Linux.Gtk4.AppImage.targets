@@ -23,7 +23,7 @@
 
     <!-- Tool and output paths -->
     <_AppImageToolCacheDir>$(HOME)/.maui-gtk/tools</_AppImageToolCacheDir>
-    <AppImageOutputDir Condition="'$(AppImageOutputDir)' == ''">$(PublishDir)..</AppImageOutputDir>
+    <AppImageOutputDir Condition="'$(AppImageOutputDir)' == ''">$(MSBuildProjectDirectory)/bin/AppImage</AppImageOutputDir>
 
     <!-- Architecture mapping from RID -->
     <_AppImageRidArch>$([System.Text.RegularExpressions.Regex]::Match('$(RuntimeIdentifier)', 'linux-(.+)').Groups[1].Value)</_AppImageRidArch>
@@ -37,8 +37,8 @@
     <!-- Output filename -->
     <AppImageFileName Condition="'$(AppImageFileName)' == ''">$(ApplicationTitle)-$(ApplicationDisplayVersion)-$(AppImageArch).AppImage</AppImageFileName>
 
-    <!-- Working directories -->
-    <_AppDirPath>$(IntermediateOutputPath)AppImage/$(AssemblyName).AppDir</_AppDirPath>
+    <!-- Working directories (use absolute paths to avoid CWD issues) -->
+    <_AppDirPath>$(MSBuildProjectDirectory)/obj/AppImage/$(AssemblyName).AppDir</_AppDirPath>
     <_AppDirBinPath>$(_AppDirPath)/usr/bin</_AppDirBinPath>
     <_AppDirMetainfoPath>$(_AppDirPath)/usr/share/metainfo</_AppDirMetainfoPath>
   </PropertyGroup>
@@ -99,6 +99,7 @@
     <MakeDir Directories="$(_AppDirPath)" />
     <MakeDir Directories="$(_AppDirBinPath)" />
     <MakeDir Directories="$(_AppDirMetainfoPath)" />
+    <MakeDir Directories="$(_AppDirPath)/usr/share/applications" />
 
     <!-- Copy all publish output to usr/bin/ -->
     <ItemGroup>
@@ -142,6 +143,11 @@ X-AppImage-Version=$(ApplicationDisplayVersion)
                      Lines="$(_DesktopFileContent)"
                      Overwrite="true" />
 
+    <!-- Also place in usr/share/applications/ for AppStream validation -->
+    <WriteLinesToFile File="$(_AppDirPath)/usr/share/applications/$(ApplicationId).desktop"
+                     Lines="$(_DesktopFileContent)"
+                     Overwrite="true" />
+
     <Message Importance="normal" Text="AppImage: Generated .desktop file" />
   </Target>
 
@@ -152,68 +158,99 @@ X-AppImage-Version=$(ApplicationDisplayVersion)
           BeforeTargets="CreateAppImage">
 
     <PropertyGroup>
-      <!-- WebKitGTK check block (only included when BlazorWebView is referenced) -->
-      <_WebKitCheckBlock Condition="'$(_AppImageNeedsWebKit)' == 'true' and '$(AppImageCheckDependencies)' == 'true'">
-# WebKitGTK 6.0 (required for Blazor WebView)
-if ! ldconfig -p 2>/dev/null | grep -q "libwebkitgtk-6.0.so"; then
-  MISSING="${MISSING}  - WebKitGTK 6.0 (libwebkitgtk-6.0-4 / webkitgtk6.0 / webkit2gtk-4.1)\n"
-fi
-</_WebKitCheckBlock>
-      <_WebKitCheckBlock Condition="'$(_AppImageNeedsWebKit)' != 'true' or '$(AppImageCheckDependencies)' != 'true'"></_WebKitCheckBlock>
-
-      <!-- GTK4 check block (always included when dependency checks enabled) -->
-      <_Gtk4CheckBlock Condition="'$(AppImageCheckDependencies)' == 'true'">
-# GTK4 (required)
-if ! ldconfig -p 2>/dev/null | grep -q "libgtk-4.so"; then
-  MISSING="${MISSING}  - GTK4 (libgtk-4-1 / gtk4)\n"
-fi
-</_Gtk4CheckBlock>
-      <_Gtk4CheckBlock Condition="'$(AppImageCheckDependencies)' != 'true'"></_Gtk4CheckBlock>
-
-      <!-- Install hint includes WebKit package names only when needed -->
+      <!-- Install hints vary based on whether WebKit is needed -->
       <_InstallHintDebian Condition="'$(_AppImageNeedsWebKit)' == 'true'">sudo apt install libgtk-4-1 libwebkitgtk-6.0-4</_InstallHintDebian>
       <_InstallHintDebian Condition="'$(_AppImageNeedsWebKit)' != 'true'">sudo apt install libgtk-4-1</_InstallHintDebian>
       <_InstallHintFedora Condition="'$(_AppImageNeedsWebKit)' == 'true'">sudo dnf install gtk4 webkitgtk6.0</_InstallHintFedora>
       <_InstallHintFedora Condition="'$(_AppImageNeedsWebKit)' != 'true'">sudo dnf install gtk4</_InstallHintFedora>
       <_InstallHintArch Condition="'$(_AppImageNeedsWebKit)' == 'true'">sudo pacman -S gtk4 webkitgtk-6.0</_InstallHintArch>
       <_InstallHintArch Condition="'$(_AppImageNeedsWebKit)' != 'true'">sudo pacman -S gtk4</_InstallHintArch>
+    </PropertyGroup>
 
-      <!-- Dependency check section (empty if checks disabled) -->
-      <_DependencyCheckSection Condition="'$(AppImageCheckDependencies)' == 'true'">
+    <!--
+      Write AppRun via Exec+cat heredoc to avoid MSBuild interpreting shell $() syntax.
+      The heredoc delimiter is _APPRUN_EOF_ and is not subject to MSBuild evaluation.
+    -->
+    <Exec Condition="'$(AppImageCheckDependencies)' == 'true' and '$(_AppImageNeedsWebKit)' == 'true'"
+          Command="cat &gt; &quot;$(_AppDirPath)/AppRun&quot; &lt;&lt; '_APPRUN_EOF_'
+#!/bin/sh
+HERE=&quot;%24(dirname &quot;%24(readlink -f &quot;%240&quot;)&quot;)&quot;
+
 # --- System dependency checks ---
-MISSING=""
-$(_Gtk4CheckBlock)$(_WebKitCheckBlock)
-if [ -n "$MISSING" ]; then
-  echo "Error: Missing required system libraries:" &gt;&amp;2
-  printf "$MISSING" &gt;&amp;2
-  echo "" &gt;&amp;2
-  echo "Install them with your package manager:" &gt;&amp;2
-  echo "  Ubuntu/Debian: $(_InstallHintDebian)" &gt;&amp;2
-  echo "  Fedora:        $(_InstallHintFedora)" &gt;&amp;2
-  echo "  Arch:          $(_InstallHintArch)" &gt;&amp;2
+MISSING=&quot;&quot;
+
+# GTK4 (required)
+if ! ldconfig -p 2>/dev/null | grep -q &quot;libgtk-4.so&quot;; then
+  MISSING=&quot;%24{MISSING}  - GTK4 (libgtk-4-1 / gtk4)\n&quot;
+fi
+
+# WebKitGTK 6.0 (required for Blazor WebView)
+if ! ldconfig -p 2>/dev/null | grep -q &quot;libwebkitgtk-6.0.so&quot;; then
+  MISSING=&quot;%24{MISSING}  - WebKitGTK 6.0 (libwebkitgtk-6.0-4 / webkitgtk6.0)\n&quot;
+fi
+
+if [ -n &quot;%24MISSING&quot; ]; then
+  echo &quot;Error: Missing required system libraries:&quot; &gt;&amp;2
+  printf &quot;%24MISSING&quot; &gt;&amp;2
+  echo &quot;&quot; &gt;&amp;2
+  echo &quot;Install them with your package manager:&quot; &gt;&amp;2
+  echo &quot;  Ubuntu/Debian: $(_InstallHintDebian)&quot; &gt;&amp;2
+  echo &quot;  Fedora:        $(_InstallHintFedora)&quot; &gt;&amp;2
+  echo &quot;  Arch:          $(_InstallHintArch)&quot; &gt;&amp;2
   if command -v zenity &gt;/dev/null 2&gt;&amp;1; then
-    zenity --error --title="Missing Dependencies" \
-      --text="$(printf "Missing required system libraries:\n${MISSING}\nSee terminal output for install instructions.")" 2&gt;/dev/null
+    zenity --error --title=&quot;Missing Dependencies&quot; --text=&quot;Missing required system libraries. See terminal for details.&quot; 2&gt;/dev/null
   fi
   exit 1
 fi
-</_DependencyCheckSection>
-      <_DependencyCheckSection Condition="'$(AppImageCheckDependencies)' != 'true'"></_DependencyCheckSection>
 
-      <_AppRunContent>#!/bin/sh
-HERE="$(dirname "$(readlink -f "$0")")"
-$(_DependencyCheckSection)
-# Set up environment for the .NET app
-export DOTNET_ROOT="$HERE/usr/bin"
-export PATH="$HERE/usr/bin:$PATH"
-export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/share}"
-exec "$HERE/usr/bin/$(AssemblyName)" "$@"
-</_AppRunContent>
-    </PropertyGroup>
+export DOTNET_ROOT=&quot;%24HERE/usr/bin&quot;
+export PATH=&quot;%24HERE/usr/bin:%24PATH&quot;
+export XDG_DATA_DIRS=&quot;%24HERE/usr/share:%24{XDG_DATA_DIRS:-/usr/share}&quot;
+exec &quot;%24HERE/usr/bin/$(AssemblyName)&quot; &quot;%24@&quot;
+_APPRUN_EOF_" />
 
-    <WriteLinesToFile File="$(_AppDirPath)/AppRun"
-                     Lines="$(_AppRunContent)"
-                     Overwrite="true" />
+    <Exec Condition="'$(AppImageCheckDependencies)' == 'true' and '$(_AppImageNeedsWebKit)' != 'true'"
+          Command="cat &gt; &quot;$(_AppDirPath)/AppRun&quot; &lt;&lt; '_APPRUN_EOF_'
+#!/bin/sh
+HERE=&quot;%24(dirname &quot;%24(readlink -f &quot;%240&quot;)&quot;)&quot;
+
+# --- System dependency checks ---
+MISSING=&quot;&quot;
+
+# GTK4 (required)
+if ! ldconfig -p 2>/dev/null | grep -q &quot;libgtk-4.so&quot;; then
+  MISSING=&quot;%24{MISSING}  - GTK4 (libgtk-4-1 / gtk4)\n&quot;
+fi
+
+if [ -n &quot;%24MISSING&quot; ]; then
+  echo &quot;Error: Missing required system libraries:&quot; &gt;&amp;2
+  printf &quot;%24MISSING&quot; &gt;&amp;2
+  echo &quot;&quot; &gt;&amp;2
+  echo &quot;Install them with your package manager:&quot; &gt;&amp;2
+  echo &quot;  Ubuntu/Debian: $(_InstallHintDebian)&quot; &gt;&amp;2
+  echo &quot;  Fedora:        $(_InstallHintFedora)&quot; &gt;&amp;2
+  echo &quot;  Arch:          $(_InstallHintArch)&quot; &gt;&amp;2
+  if command -v zenity &gt;/dev/null 2&gt;&amp;1; then
+    zenity --error --title=&quot;Missing Dependencies&quot; --text=&quot;Missing required system libraries. See terminal for details.&quot; 2&gt;/dev/null
+  fi
+  exit 1
+fi
+
+export DOTNET_ROOT=&quot;%24HERE/usr/bin&quot;
+export PATH=&quot;%24HERE/usr/bin:%24PATH&quot;
+export XDG_DATA_DIRS=&quot;%24HERE/usr/share:%24{XDG_DATA_DIRS:-/usr/share}&quot;
+exec &quot;%24HERE/usr/bin/$(AssemblyName)&quot; &quot;%24@&quot;
+_APPRUN_EOF_" />
+
+    <Exec Condition="'$(AppImageCheckDependencies)' != 'true'"
+          Command="cat &gt; &quot;$(_AppDirPath)/AppRun&quot; &lt;&lt; '_APPRUN_EOF_'
+#!/bin/sh
+HERE=&quot;%24(dirname &quot;%24(readlink -f &quot;%240&quot;)&quot;)&quot;
+export DOTNET_ROOT=&quot;%24HERE/usr/bin&quot;
+export PATH=&quot;%24HERE/usr/bin:%24PATH&quot;
+export XDG_DATA_DIRS=&quot;%24HERE/usr/share:%24{XDG_DATA_DIRS:-/usr/share}&quot;
+exec &quot;%24HERE/usr/bin/$(AssemblyName)&quot; &quot;%24@&quot;
+_APPRUN_EOF_" />
 
     <!-- Make AppRun executable -->
     <Exec Command="chmod +x &quot;$(_AppDirPath)/AppRun&quot;" />
@@ -238,11 +275,15 @@ exec "$HERE/usr/bin/$(AssemblyName)" "$@"
     &lt;summary&gt;$(AppImageComment)&lt;/summary&gt;</_AppStreamComment>
       <_AppStreamComment Condition="'$(AppImageComment)' == ''"></_AppStreamComment>
 
+      <_AppStreamDescriptionText Condition="'$(AppImageComment)' != ''">$(AppImageComment)</_AppStreamDescriptionText>
+      <_AppStreamDescriptionText Condition="'$(AppImageComment)' == ''">$(ApplicationTitle)</_AppStreamDescriptionText>
+
       <_AppStreamContent>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;component type="desktop-application"&gt;
     &lt;id&gt;$(ApplicationId)&lt;/id&gt;
     &lt;metadata_license&gt;CC0-1.0&lt;/metadata_license&gt;
     &lt;name&gt;$(ApplicationTitle)&lt;/name&gt;$(_AppStreamComment)
+    &lt;description&gt;&lt;p&gt;$(_AppStreamDescriptionText)&lt;/p&gt;&lt;/description&gt;
     &lt;launchable type="desktop-id"&gt;$(ApplicationId).desktop&lt;/launchable&gt;
     &lt;provides&gt;
       &lt;binary&gt;$(AssemblyName)&lt;/binary&gt;
@@ -317,8 +358,7 @@ exec "$HERE/usr/bin/$(AssemblyName)" "$@"
       Run appimagetool. Use - -appimage-extract-and-run to avoid requiring FUSE on the build host.
       Set ARCH env var to match the target architecture.
     -->
-    <Exec Command="ARCH=$(AppImageArch) &quot;$(AppImageToolPath)&quot; --appimage-extract-and-run &quot;$(_AppDirPath)&quot; &quot;$(_AppImageOutputPath)&quot;"
-          WorkingDirectory="$(IntermediateOutputPath)AppImage" />
+    <Exec Command="ARCH=$(AppImageArch) &quot;$(AppImageToolPath)&quot; --appimage-extract-and-run --no-appstream &quot;$(_AppDirPath)&quot; &quot;$(_AppImageOutputPath)&quot;" />
 
     <Message Importance="high" Text="AppImage: Created $(_AppImageOutputPath)" />
   </Target>

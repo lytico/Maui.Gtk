@@ -131,7 +131,11 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 			dialog.SetTitle((e.Modal as Page)?.Title ?? string.Empty);
 
 			var (width, height) = ComputeDialogSize(e.Modal as Page);
-			dialog.SetDefaultSize((int)width, (int)height);
+
+			// Use SetSizeRequest on the content widget so that the requested
+			// dimensions describe the *content area*.  GTK will size the window
+			// to content + CSD titlebar automatically.
+			platformContent.SetSizeRequest((int)width, (int)height);
 
 			// Apply minimum size constraints
 			if (e.Modal is Page modalPage2)

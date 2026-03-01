@@ -60,6 +60,7 @@ https://github.com/user-attachments/assets/70f2a910-94b3-437c-945a-6b71223c5cd3
 - **Font icons** — Embedded font registration with fontconfig/Pango, FontImageSource rendering via Cairo. FontAwesome and custom icon fonts work out of the box.
 - **FormattedText** — Rich text via Pango markup: Span colors, fonts, sizes, bold/italic, underline/strikethrough, character spacing.
 - **Alerts & Dialogs** — `DisplayAlert`, `DisplayActionSheet`, `DisplayPromptAsync` via native GTK4 modal windows.
+- **Modal Pages** — `PushModalAsync` presents pages as native GTK4 dialog windows by default, with attached properties for custom sizing, content-fit sizing, and inline (legacy) presentation via `GtkPage`.
 - **Brushes & Gradients** — SolidColorBrush, LinearGradientBrush, RadialGradientBrush via CSS gradients.
 - **Tooltips & Context Menus** — `ToolTipProperties.Text` and `ContextFlyout` via `Gtk.PopoverMenu`.
 - **Theming** — Automatic light/dark theme detection via `GtkThemeManager`.
@@ -85,7 +86,7 @@ https://github.com/user-attachments/assets/70f2a910-94b3-437c-945a-6b71223c5cd3
 | Input Controls | 100% | Picker, DatePicker, TimePicker, SearchBar |
 | Collection Controls | 100% | Virtualized CollectionView, ListView, TableView, CarouselView, SwipeView |
 | Navigation & Routing | 100% | Push/pop, Shell routes, query parameters |
-| Alerts & Dialogs | 100% | All three dialog types + modal overlay |
+| Alerts & Dialogs | 100% | All three dialog types + native modal dialog windows |
 | Gesture Recognizers | 100% | All 5 gesture types |
 | Graphics & Shapes | 100% | GraphicsView + all 6 shape types |
 | Font Management | 100% | Registrar, manager, FontImageSource, named sizes |

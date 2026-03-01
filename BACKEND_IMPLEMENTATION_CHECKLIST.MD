@@ -43,7 +43,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | Control | Status | Notes |
 |---------|--------|-------|
 | ✅ **Application** | Done | App lifecycle via `GtkMauiApplication`, `Gtk.Application` integration |
-| ✅ **Window** | Done | Title, Width/Height mapping, default size 1024×768, min 800×600, Activated/Deactivated events, modal push/pop. X/Y positioning disabled (Wayland/X11 compositor constraints) |
+| ✅ **Window** | Done | Title, Width/Height mapping, default size 1024×768, min 800×600, Activated/Deactivated events, native modal dialog windows via `PushModalAsync` with sizing options (`GtkPage` attached properties). X/Y positioning disabled (Wayland/X11 compositor constraints) |
 | ✅ **Multi-Window** | Done | `Application.OpenWindow`/`CloseWindow`, `Application.Windows` collection tracking, window lifecycle events (Creating, Destroying, Activated, Deactivated) |
 
 ---
@@ -144,7 +144,7 @@ Implementation status of the .NET MAUI backend for Linux using GTK4. Adapted fro
 | ✅ **DisplayAlert** | Done | Custom GTK Window dialog with Title, message, accept/cancel buttons |
 | ✅ **DisplayActionSheet** | Done | Dialog with action buttons, destructive button styling, cancel |
 | ✅ **DisplayPromptAsync** | Done | Text entry dialog with placeholder, initial value, validation |
-| ✅ **Modal overlay** | Done | GTK modal window with transient-for parent |
+| ✅ **Modal Pages** | Done | `PushModalAsync` uses native GTK4 modal `Gtk.Window` (default). `GtkPage` attached properties: `ModalPresentationStyle` (Dialog/Inline), `ModalSizesToContent`, `ModalWidth`/`ModalHeight`, `ModalMinWidth`/`ModalMinHeight` |
 
 ---
 

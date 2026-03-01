@@ -24,6 +24,8 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 	{
 	};
 
+	private readonly Dictionary<Page, Gtk.Window> _modalDialogs = new();
+
 	public WindowHandler() : base(Mapper, CommandMapper)
 	{
 	}
@@ -65,6 +67,13 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 			mauiWindow.ModalPopped -= OnModalPopped;
 		}
 
+		foreach (var dialog in _modalDialogs.Values)
+		{
+			dialog.SetChild(null);
+			dialog.Close();
+		}
+		_modalDialogs.Clear();
+
 		platformView.OnCloseRequest -= OnCloseRequest;
 		platformView.OnNotify -= OnWindowNotify;
 		base.DisconnectHandler(platformView);
@@ -98,17 +107,144 @@ public class WindowHandler : ElementHandler<IWindow, Gtk.Window>
 	{
 		if (MauiContext == null || PlatformView == null) return;
 
-		var container = PlatformView.GetChild() as WindowRootViewContainer;
-		if (container == null) return;
+		var style = e.Modal is Page p
+			? GtkPage.GetModalPresentationStyle(p)
+			: GtkModalPresentationStyle.Dialog;
 
-		var platformContent = (Gtk.Widget)e.Modal.ToPlatform(MauiContext);
-		container.PushModal(platformContent);
+		if (style == GtkModalPresentationStyle.Inline)
+		{
+			// Inline: hide current content and show modal within the same window
+			var container = PlatformView.GetChild() as WindowRootViewContainer;
+			if (container == null) return;
+
+			var platformContent = (Gtk.Widget)e.Modal.ToPlatform(MauiContext);
+			container.PushModal(platformContent);
+		}
+		else
+		{
+			// Native GTK4 modal dialog window (default)
+			var platformContent = (Gtk.Widget)e.Modal.ToPlatform(MauiContext);
+
+			var dialog = new Gtk.Window();
+			dialog.SetModal(true);
+			dialog.SetTransientFor(PlatformView);
+			dialog.SetTitle((e.Modal as Page)?.Title ?? string.Empty);
+
+			var (width, height) = ComputeDialogSize(e.Modal as Page);
+			dialog.SetDefaultSize((int)width, (int)height);
+
+			// Apply minimum size constraints
+			if (e.Modal is Page modalPage2)
+			{
+				var minW = GtkPage.GetModalMinWidth(modalPage2);
+				var minH = GtkPage.GetModalMinHeight(modalPage2);
+				if (minW > 0 || minH > 0)
+					dialog.SetSizeRequest(minW > 0 ? (int)minW : -1, minH > 0 ? (int)minH : -1);
+			}
+
+			var app = PlatformView.GetApplication();
+			if (app != null)
+				dialog.SetApplication(app);
+
+			platformContent.SetVexpand(true);
+			platformContent.SetHexpand(true);
+			dialog.SetChild(platformContent);
+
+			if (e.Modal is Page modalPage)
+			{
+				_modalDialogs[modalPage] = dialog;
+
+				dialog.OnCloseRequest += (_, _) =>
+				{
+					// Remove from tracking first; if already gone this is a
+					// programmatic close from OnModalPopped — just allow it.
+					if (!_modalDialogs.Remove(modalPage))
+						return false;
+
+					// User clicked X — let GTK close the window immediately
+					// and tell MAUI to pop the modal.
+					if (VirtualView is Microsoft.Maui.Controls.Window mauiWindow)
+						_ = mauiWindow.Navigation.PopModalAsync();
+					return false;
+				};
+			}
+
+			dialog.Present();
+		}
+	}
+
+	private (double width, double height) ComputeDialogSize(Page? page)
+	{
+		PlatformView!.GetDefaultSize(out var pw, out var ph);
+		double parentWidth = pw > 0 ? pw : 800;
+		double parentHeight = ph > 0 ? ph : 600;
+
+		if (page == null)
+			return (parentWidth, parentHeight);
+
+		var requestedWidth = GtkPage.GetModalWidth(page);
+		var requestedHeight = GtkPage.GetModalHeight(page);
+		var sizesToContent = GtkPage.GetModalSizesToContent(page);
+
+		double width = parentWidth;
+		double height = parentHeight;
+
+		if (requestedWidth > 0)
+			width = requestedWidth;
+
+		if (requestedHeight > 0)
+			height = requestedHeight;
+
+		// When sizing to content, measure the page's Content (not the Page itself,
+		// since Page always fills available space).
+		if (sizesToContent && (requestedWidth <= 0 || requestedHeight <= 0))
+		{
+			var contentView = (page as ContentPage)?.Content as IView;
+			if (contentView != null)
+			{
+				var measured = contentView.Measure(
+					double.PositiveInfinity,
+					double.PositiveInfinity);
+
+				var padding = page.Padding;
+				var contentWidth = measured.Width + padding.Left + padding.Right;
+				var contentHeight = measured.Height + padding.Top + padding.Bottom;
+
+				if (requestedWidth <= 0)
+					width = contentWidth;
+				if (requestedHeight <= 0)
+					height = contentHeight;
+			}
+		}
+
+		// Apply min size constraints
+		var minWidth = GtkPage.GetModalMinWidth(page);
+		var minHeight = GtkPage.GetModalMinHeight(page);
+		if (minWidth > 0 && width < minWidth) width = minWidth;
+		if (minHeight > 0 && height < minHeight) height = minHeight;
+
+		// Don't exceed parent window size
+		if (width > parentWidth) width = parentWidth;
+		if (height > parentHeight) height = parentHeight;
+
+		return (width, height);
 	}
 
 	private void OnModalPopped(object? sender, ModalPoppedEventArgs e)
 	{
-		var container = PlatformView?.GetChild() as WindowRootViewContainer;
-		container?.PopModal();
+		if (e.Modal is Page page && _modalDialogs.Remove(page, out var dialog))
+		{
+			// Programmatic pop — close the native dialog window
+			dialog.Close();
+		}
+		else if (e.Modal is not Page mp
+			|| GtkPage.GetModalPresentationStyle(mp) == GtkModalPresentationStyle.Inline)
+		{
+			// Inline modal — pop from the container
+			var container = PlatformView?.GetChild() as WindowRootViewContainer;
+			container?.PopModal();
+		}
+		// else: user-initiated dialog close — already closed by GTK via OnCloseRequest
 	}
 
 	public static void MapTitle(WindowHandler handler, IWindow window)

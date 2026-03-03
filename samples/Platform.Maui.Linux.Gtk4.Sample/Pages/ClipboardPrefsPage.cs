@@ -3,6 +3,7 @@ using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Storage;
+using Platform.Maui.Linux.Gtk4.Essentials.Storage;
 
 namespace Platform.Maui.Linux.Gtk4.Sample.Pages;
 
@@ -83,6 +84,16 @@ public class ClipboardPrefsPage : ContentPage
 		var secureValue = new Entry { Placeholder = "Secret value", Text = "sk-12345-secret" };
 		var secureResult = new Label { Text = "(no value)", FontSize = 14, TextColor = Colors.Gray };
 
+		var secureBackendLabel = new Label { Text = "Backend: probing...", FontSize = 12, TextColor = Colors.Gray };
+		// Resolve backend on load
+		var secureStorage = IPlatformApplication.Current?.Services.GetService<ISecureStorage>();
+		if (secureStorage is LinuxSecureStorage linuxSecure)
+		{
+			var backend = linuxSecure.Backend;
+			secureBackendLabel.Text = $"Backend: {backend}";
+			secureBackendLabel.TextColor = backend == "libsecret" ? Colors.Green : Colors.Orange;
+		}
+
 		var secSaveButton = new Button { Text = "🔐 Store Secret" };
 		secSaveButton.Clicked += async (s, e) =>
 		{
@@ -133,7 +144,8 @@ public class ClipboardPrefsPage : ContentPage
 
 					Separator(),
 
-					SectionHeader("🔐 Secure Storage (AES encrypted)"),
+					SectionHeader("🔐 Secure Storage"),
+				secureBackendLabel,
 					new HorizontalStackLayout { Spacing = 8, Children = { secureKey, secureValue } },
 					new HorizontalStackLayout { Spacing = 8, Children = { secSaveButton, secLoadButton } },
 					secureResult,

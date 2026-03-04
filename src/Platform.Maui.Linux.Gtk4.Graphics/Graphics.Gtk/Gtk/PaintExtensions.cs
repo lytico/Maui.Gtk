@@ -2,120 +2,105 @@ using System;
 
 namespace Microsoft.Maui.Graphics.Platform.Gtk;
 
-public static class PaintExtensions
-{
+public static class PaintExtensions {
+    public static Cairo.Context? PaintToSurface (this PatternPaint? it, Cairo.Surface? surface, float scale) {
+        if (surface == null || it == null)
+            return null;
 
-	public static Cairo.Context? PaintToSurface(this PatternPaint? it, Cairo.Surface? surface, float scale)
-	{
-		if (surface == null || it == null)
-			return null;
+        var context = new Cairo.Context (surface);
+        context.Scale (scale, scale);
 
-		var context = new Cairo.Context(surface);
-		context.Scale(scale, scale);
+        using var canv = new PlatformCanvas ();
+        canv.Context = context;
+        it.Pattern.Draw (canv);
 
-		using var canv = new PlatformCanvas
-		{
-			Context = context,
-		};
+        return context;
+    }
 
-		it.Pattern.Draw(canv);
+    /*
+      Cairo.Extend is used to describe how pattern color/alpha will be determined for areas "outside" the pattern's natural area,
+      (for example, outside the surface bounds or outside the gradient geometry).
+      The default extend mode is CAIRO_EXTEND_NONE for surface patterns and CAIRO_EXTEND_PAD for gradient patterns.
 
-		return context;
+       NONE	    pixels outside of the source pattern are fully transparent
+       REPEAT   the pattern is tiled by repeating
+       REFLECT  the pattern is tiled by reflecting at the edges (Implemented for surface patterns since 1.6)
+       PAD      pixels outside of the pattern copy the closest pixel from the source (only implemented for surface patterns since 1.6)
 
-	}
+     */
 
-	/*
-	  Cairo.Extend is used to describe how pattern color/alpha will be determined for areas "outside" the pattern's natural area,
-	  (for example, outside the surface bounds or outside the gradient geometry).
-	  The default extend mode is CAIRO_EXTEND_NONE for surface patterns and CAIRO_EXTEND_PAD for gradient patterns.
+    public static void SetCairoExtend (Cairo.Extend it) { }
 
-	   NONE	    pixels outside of the source pattern are fully transparent
-	   REPEAT   the pattern is tiled by repeating
-	   REFLECT  the pattern is tiled by reflecting at the edges (Implemented for surface patterns since 1.6)
-	   PAD      pixels outside of the pattern copy the closest pixel from the source (only implemented for surface patterns since 1.6)
+    public static GdkPixbuf.Pixbuf? GetPatternBitmap (this PatternPaint? it, float scale) {
+        if (it == null)
+            return null;
 
-	 */
+        using var surface = new Cairo.ImageSurface (Cairo.Format.Argb32, (int)it.Pattern.Width, (int)it.Pattern.Height);
+        using var context = it.PaintToSurface (surface, scale);
+        surface.Flush ();
 
-	public static void SetCairoExtend(Cairo.Extend it) { }
+        return surface.CreatePixbuf ();
+    }
 
-	public static GdkPixbuf.Pixbuf? GetPatternBitmap(this PatternPaint? it, float scale)
-	{
-		if (it == null)
-			return null;
+    /// <summary>
+    /// does not work, pattern isn't shown
+    /// </summary>
+    [GtkMissingImplementation]
+    public static Cairo.Pattern? GetCairoPattern (this PatternPaint? it, Cairo.Surface? surface, float scale) {
+        if (surface == null || it == null)
+            return null;
 
-		using var surface = new Cairo.ImageSurface(Cairo.Format.Argb32, (int)it.Pattern.Width, (int)it.Pattern.Height);
-		using var context = it.PaintToSurface(surface, scale);
-		surface.Flush();
+        using var context = it.PaintToSurface (surface, scale);
+        surface.Flush ();
 
-		return surface.CreatePixbuf();
+        var pattern = new Cairo.SurfacePattern (surface);
 
-	}
+        return pattern;
+    }
 
-	/// <summary>
-	/// does not work, pattern isn't shown
-	/// </summary>
-	[GtkMissingImplementation]
-	public static Cairo.Pattern? GetCairoPattern(this PatternPaint? it, Cairo.Surface? surface, float scale)
-	{
-		if (surface == null || it == null)
-			return null;
+    public static Cairo.Pattern? GetCairoPattern (this LinearGradientPaint? it, RectF rectangle, float scaleFactor) {
+        if (it == null)
+            return null;
 
-		using var context = it.PaintToSurface(surface, scale);
-		surface.Flush();
+        var x1 = it.StartPoint.X * rectangle.Width + rectangle.X;
+        var y1 = it.StartPoint.Y * rectangle.Height + rectangle.Y;
 
-		var pattern = new Cairo.SurfacePattern(surface);
+        var x2 = it.EndPoint.X * rectangle.Width + rectangle.X;
+        var y2 = it.EndPoint.Y * rectangle.Height + rectangle.Y;
 
-		return pattern;
-	}
+        // https://developer.gnome.org/cairo/stable/cairo-cairo-pattern-t.html#cairo-pattern-create-linear
+        var pattern = new Cairo.LinearGradient (x1, y1, x2, y2);
 
-	public static Cairo.Pattern? GetCairoPattern(this LinearGradientPaint? it, RectF rectangle, float scaleFactor)
-	{
-		if (it == null)
-			return null;
+        foreach (var s in it.GetSortedStops ()) {
+            pattern.AddColorStopRgba (s.Offset, s.Color.Red, s.Color.Green, s.Color.Blue, s.Color.Alpha);
+        }
 
-		var x1 = it.StartPoint.X * rectangle.Width + rectangle.X;
-		var y1 = it.StartPoint.Y * rectangle.Height + rectangle.Y;
+        return pattern;
+    }
 
-		var x2 = it.EndPoint.X * rectangle.Width + rectangle.X;
-		var y2 = it.EndPoint.Y * rectangle.Height + rectangle.Y;
+    public static Cairo.Pattern? GetCairoPattern (this RadialGradientPaint? it, RectF rectangle, float scaleFactor) {
+        if (it == null)
+            return null;
 
-		// https://developer.gnome.org/cairo/stable/cairo-cairo-pattern-t.html#cairo-pattern-create-linear
-		var pattern = new Cairo.LinearGradient(x1, y1, x2, y2);
+        var centerX = it.Center.X * rectangle.Width;
+        var centerY = it.Center.Y * rectangle.Height;
 
-		foreach (var s in it.GetSortedStops())
-		{
-			pattern.AddColorStop(s.Offset, s.Color.ToCairoColor());
-		}
+        var x1 = centerX + rectangle.X;
+        var y1 = centerY + rectangle.Y;
 
-		return pattern;
-	}
+        var x2 = rectangle.Right - centerX;
+        var y2 = rectangle.Bottom - centerY;
 
-	public static Cairo.Pattern? GetCairoPattern(this RadialGradientPaint? it, RectF rectangle, float scaleFactor)
-	{
-		if (it == null)
-			return null;
+        var radius1 = it.Radius * 1;
+        var radius2 = it.Radius * Math.Max (rectangle.Width, rectangle.Height);
 
-		var centerX = it.Center.X * rectangle.Width;
-		var centerY = it.Center.Y * rectangle.Height;
+        // https://developer.gnome.org/cairo/stable/cairo-cairo-pattern-t.html#cairo-pattern-create-radial
+        var pattern = new Cairo.RadialGradient (x1, y1, radius1, x2, y2, radius2);
 
-		var x1 = centerX + rectangle.X;
-		var y1 = centerY + rectangle.Y;
+        foreach (var s in it.GetSortedStops ()) {
+            pattern.AddColorStopRgba (s.Offset, s.Color.Red, s.Color.Green, s.Color.Blue, s.Color.Alpha);
+        }
 
-		var x2 = rectangle.Right - centerX;
-		var y2 = rectangle.Bottom - centerY;
-
-		var radius1 = it.Radius * 1;
-		var radius2 = it.Radius * Math.Max(rectangle.Width, rectangle.Height);
-
-		// https://developer.gnome.org/cairo/stable/cairo-cairo-pattern-t.html#cairo-pattern-create-radial
-		var pattern = new Cairo.RadialGradient(x1, y1, radius1, x2, y2, radius2);
-
-		foreach (var s in it.GetSortedStops())
-		{
-			pattern.AddColorStop(s.Offset, s.Color.ToCairoColor());
-		}
-
-		return pattern;
-	}
-
+        return pattern;
+    }
 }

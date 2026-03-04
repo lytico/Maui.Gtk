@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Graphics-Prototyping/">
+    <Project Path="src/Platform.Maui.Linux.Gtk4.Graphics/Graphics.Gtk/Graphics.Gtk.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Platform.Maui.Linux.Gtk4.Sample/Platform.Maui.Linux.Gtk4.Sample.csproj" />
   </Folder>

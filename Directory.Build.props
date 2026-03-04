@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <MauiVersion>10.0.31</MauiVersion>
     <!-- Set to false in CI or when MauiDevFlow repo is not available -->
-    <EnableMauiDevFlow Condition="'$(EnableMauiDevFlow)' == ''">true</EnableMauiDevFlow>
+    <EnableMauiDevFlow Condition="'$(EnableMauiDevFlow)' == ''">false</EnableMauiDevFlow>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(EnableMauiDevFlow)' == 'true'">

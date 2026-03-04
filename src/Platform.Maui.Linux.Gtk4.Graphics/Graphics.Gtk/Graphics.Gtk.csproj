@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk/">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Microsoft.Maui.Graphics.Gtk</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);CA1307;CA1309;CS8603;CS8618;CS0162</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Graphics" Version="$(MauiVersion)" />
+    <PackageReference Include="Microsoft.Maui.Graphics.Skia" Version="$(MauiVersion)" />
+    <PackageReference Include="GirCore.Gtk-4.0" Version="0.7.0" />
+    <PackageReference Include="GirCore.Cairo-1.0" Version="0.7.0" />
+    <PackageReference Include="GirCore.Pango-1.0" Version="0.7.0" />
+    <PackageReference Include="GirCore.GdkPixbuf-2.0" Version="0.7.0" />
+  </ItemGroup>
+
+
+</Project>

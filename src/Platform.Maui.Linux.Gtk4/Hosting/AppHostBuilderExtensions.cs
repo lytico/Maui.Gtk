@@ -7,7 +7,9 @@ using Microsoft.Maui;
 using Microsoft.Maui.Animations;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
+using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Hosting;
+using Platform.Maui.Linux.Gtk4.Graphics;
 using Platform.Maui.Linux.Gtk4.Handlers;
 using Platform.Maui.Linux.Gtk4.Platform;
 
@@ -126,6 +128,11 @@ public static partial class AppHostBuilderExtensions
 
 		// Named font sizes (FontSize="Title", etc.)
 		Microsoft.Maui.Controls.DependencyService.Register<Microsoft.Maui.Controls.Internals.IFontNamedSizeService, GtkFontNamedSizeService>();
+
+		// Graphics platform services
+		builder.Services.AddSingleton<IStringSizeService, CairoStringSizeService>();
+		builder.Services.AddSingleton<IBitmapExportService, CairoBitmapExportService>();
+		builder.Services.AddSingleton<IImageLoadingService, CairoImageLoadingService>();
 
 		builder.ConfigureMauiHandlers(handlers =>
 		{

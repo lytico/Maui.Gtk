@@ -69,6 +69,7 @@ internal class CairoCanvas : ICanvas
 
 	public void FillRectangle(float x, float y, float width, float height)
 	{
+		DrawShadowFill(() => { _cr.Rectangle(x, y, width, height); _cr.Fill(); });
 		ApplyFill();
 		_cr.Rectangle(x, y, width, height);
 		_cr.Fill();
@@ -83,6 +84,7 @@ internal class CairoCanvas : ICanvas
 
 	public void FillRoundedRectangle(float x, float y, float width, float height, float cornerRadius)
 	{
+		DrawShadowFill(() => { RoundedRectPath(x, y, width, height, cornerRadius); _cr.Fill(); });
 		ApplyFill();
 		RoundedRectPath(x, y, width, height, cornerRadius);
 		_cr.Fill();
@@ -97,6 +99,7 @@ internal class CairoCanvas : ICanvas
 
 	public void FillEllipse(float x, float y, float width, float height)
 	{
+		DrawShadowFill(() => { EllipsePath(x, y, width, height); _cr.Fill(); });
 		ApplyFill();
 		EllipsePath(x, y, width, height);
 		_cr.Fill();
@@ -252,9 +255,11 @@ internal class CairoCanvas : ICanvas
 
 	public void FillPath(PathF path, WindingMode windingMode = WindingMode.NonZero)
 	{
+		var rule = windingMode == WindingMode.NonZero ? Cairo.FillRule.Winding : Cairo.FillRule.EvenOdd;
+		DrawShadowFill(() => { DrawPathInternal(path); _cr.FillRule = rule; _cr.Fill(); });
 		ApplyFill();
 		DrawPathInternal(path);
-		_cr.FillRule = windingMode == WindingMode.NonZero ? Cairo.FillRule.Winding : Cairo.FillRule.EvenOdd;
+		_cr.FillRule = rule;
 		_cr.Fill();
 	}
 
@@ -370,6 +375,49 @@ internal class CairoCanvas : ICanvas
 		_shadowOffset = offset;
 		_shadowBlur = blur;
 		_shadowColor = color;
+	}
+
+	private bool HasShadow => _shadowColor != null && (_shadowOffset.Width != 0 || _shadowOffset.Height != 0 || _shadowBlur > 0);
+
+	/// <summary>
+	/// Draws a shadow version of the current path/shape before the actual draw.
+	/// Uses offset copies with decreasing alpha to approximate blur.
+	/// </summary>
+	private void DrawShadowFill(Action drawShape)
+	{
+		if (!HasShadow || _shadowColor == null)
+		{
+			drawShape();
+			return;
+		}
+
+		_cr.Save();
+
+		// Approximate blur with multiple offset passes
+		int passes = _shadowBlur > 0 ? Math.Max(1, (int)(_shadowBlur / 2)) : 1;
+		passes = Math.Min(passes, 5); // Cap at 5 for performance
+		float baseAlpha = _shadowColor.Alpha * _alpha;
+
+		for (int i = passes; i >= 1; i--)
+		{
+			float spread = _shadowBlur > 0 ? _shadowBlur * i / passes : 0;
+			float passAlpha = baseAlpha / (passes + 1);
+
+			_cr.Save();
+			_cr.Translate(_shadowOffset.Width, _shadowOffset.Height);
+
+			if (spread > 0)
+			{
+				// Slight scale to simulate spread
+				_cr.Translate(spread / 2, spread / 2);
+			}
+
+			_cr.SetSourceRgba(_shadowColor.Red, _shadowColor.Green, _shadowColor.Blue, passAlpha);
+			drawShape();
+			_cr.Restore();
+		}
+
+		_cr.Restore();
 	}
 
 	// --- Paint ---

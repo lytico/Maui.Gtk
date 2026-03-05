@@ -136,25 +136,26 @@ internal class CairoCanvas : ICanvas
 		if (string.IsNullOrEmpty(value)) return;
 
 		ApplyFontColor();
-		ApplyFontFace();
-		_cr.SetFontSize(_fontSize);
+		var layout = CreatePangoLayout(value);
 
-		_cr.TextExtents(value, out var extents);
-		double drawX = x;
-		double drawY = y + _fontSize;
-
-		switch (horizontalAlignment)
+		layout.SetAlignment(horizontalAlignment switch
 		{
-			case HorizontalAlignment.Center:
-				drawX = x - extents.Width / 2 - extents.XBearing;
-				break;
-			case HorizontalAlignment.Right:
-				drawX = x - extents.Width - extents.XBearing;
-				break;
-		}
+			HorizontalAlignment.Center => Pango.Alignment.Center,
+			HorizontalAlignment.Right => Pango.Alignment.Right,
+			_ => Pango.Alignment.Left,
+		});
 
-		_cr.MoveTo(drawX, drawY);
-		_cr.ShowText(value);
+		layout.GetPixelSize(out int textW, out int textH);
+
+		double drawX = horizontalAlignment switch
+		{
+			HorizontalAlignment.Center => x - textW / 2.0,
+			HorizontalAlignment.Right => x - textW,
+			_ => x,
+		};
+
+		_cr.MoveTo(drawX, y);
+		PangoCairo.Functions.ShowLayout(_cr, layout);
 	}
 
 	public void DrawString(string value, float x, float y, float width, float height,
@@ -164,39 +165,30 @@ internal class CairoCanvas : ICanvas
 		if (string.IsNullOrEmpty(value)) return;
 
 		ApplyFontColor();
-		ApplyFontFace();
-		_cr.SetFontSize(_fontSize);
+		var layout = CreatePangoLayout(value);
 
-		_cr.TextExtents(value, out var extents);
-		_cr.FontExtents(out var fontExtents);
+		// Enable word wrapping when we have a width constraint
+		layout.SetWidth((int)(width * Pango.Constants.SCALE));
+		layout.SetWrap(Pango.WrapMode.Word);
 
-		double drawX = x;
-		switch (horizontalAlignment)
+		layout.SetAlignment(horizontalAlignment switch
 		{
-			case HorizontalAlignment.Center:
-				drawX = x + (width - extents.Width) / 2 - extents.XBearing;
-				break;
-			case HorizontalAlignment.Right:
-				drawX = x + width - extents.Width - extents.XBearing;
-				break;
-			default:
-				drawX = x - extents.XBearing;
-				break;
-		}
+			HorizontalAlignment.Center => Pango.Alignment.Center,
+			HorizontalAlignment.Right => Pango.Alignment.Right,
+			_ => Pango.Alignment.Left,
+		});
 
-		double drawY = y;
-		switch (verticalAlignment)
+		if (lineSpacingAdjustment != 0)
+			layout.SetSpacing((int)(lineSpacingAdjustment * Pango.Constants.SCALE));
+
+		layout.GetPixelSize(out int textW, out int textH);
+
+		double drawY = verticalAlignment switch
 		{
-			case VerticalAlignment.Center:
-				drawY = y + (height + fontExtents.Ascent - fontExtents.Descent) / 2;
-				break;
-			case VerticalAlignment.Bottom:
-				drawY = y + height - fontExtents.Descent;
-				break;
-			default:
-				drawY = y + fontExtents.Ascent;
-				break;
-		}
+			VerticalAlignment.Center => y + (height - textH) / 2.0,
+			VerticalAlignment.Bottom => y + height - textH,
+			_ => y,
+		};
 
 		if (textFlow == TextFlow.ClipBounds)
 		{
@@ -205,8 +197,8 @@ internal class CairoCanvas : ICanvas
 			_cr.Clip();
 		}
 
-		_cr.MoveTo(drawX, drawY);
-		_cr.ShowText(value);
+		_cr.MoveTo(x, drawY);
+		PangoCairo.Functions.ShowLayout(_cr, layout);
 
 		if (textFlow == TextFlow.ClipBounds)
 		{
@@ -216,7 +208,23 @@ internal class CairoCanvas : ICanvas
 
 	public void DrawText(IAttributedText value, float x, float y, float width, float height)
 	{
-		DrawString(value.Text, x, y, width, height, HorizontalAlignment.Left, VerticalAlignment.Top);
+		if (value == null || string.IsNullOrEmpty(value.Text)) return;
+
+		ApplyFontColor();
+		var layout = CreatePangoLayout(value.Text);
+		layout.SetWidth((int)(width * Pango.Constants.SCALE));
+		layout.SetWrap(Pango.WrapMode.Word);
+
+		// Apply text attributes (bold, italic, color, etc.)
+		var attrList = BuildPangoAttrList(value);
+		if (attrList != IntPtr.Zero)
+		{
+			pango_layout_set_attributes(layout.Handle.DangerousGetHandle(), attrList);
+			// attrList ownership transfers to layout
+		}
+
+		_cr.MoveTo(x, y);
+		PangoCairo.Functions.ShowLayout(_cr, layout);
 	}
 
 	public SizeF GetStringSize(string value, IFont font, float fontSize)
@@ -224,19 +232,9 @@ internal class CairoCanvas : ICanvas
 		if (string.IsNullOrEmpty(value))
 			return SizeF.Zero;
 
-		_cr.Save();
-		var fontName = font?.Name ?? "Sans";
-		var slant = GetCairoFontSlant(font);
-		var weight = GetCairoFontWeight(font);
-		_cr.SelectFontFace(fontName, slant, weight);
-		_cr.SetFontSize(fontSize);
-
-		_cr.TextExtents(value, out var extents);
-		_cr.FontExtents(out var fontExtents);
-
-		_cr.Restore();
-
-		return new SizeF((float)(extents.Width + extents.XBearing), (float)(fontExtents.Ascent + fontExtents.Descent));
+		var layout = CreatePangoLayout(value, font, fontSize);
+		layout.GetPixelSize(out int textW, out int textH);
+		return new SizeF(textW, textH);
 	}
 
 	public SizeF GetStringSize(string value, IFont font, float fontSize, HorizontalAlignment horizontalAlignment, VerticalAlignment verticalAlignment)
@@ -544,12 +542,100 @@ internal class CairoCanvas : ICanvas
 		_cr.SetSourceRgba(_fontColor.Red, _fontColor.Green, _fontColor.Blue, _fontColor.Alpha * _alpha);
 	}
 
-	private void ApplyFontFace()
+	/// <summary>
+	/// Creates a Pango layout configured with the current font settings.
+	/// </summary>
+	private Pango.Layout CreatePangoLayout(string text, IFont? font = null, float? fontSize = null)
 	{
-		var fontName = Font?.Name ?? "Sans";
-		var slant = GetCairoFontSlant(Font);
-		var weight = GetCairoFontWeight(Font);
-		_cr.SelectFontFace(fontName, slant, weight);
+		var layout = PangoCairo.Functions.CreateLayout(_cr);
+		var fontDesc = Pango.FontDescription.New();
+
+		var f = font ?? Font;
+		var size = fontSize ?? _fontSize;
+
+		fontDesc.SetFamily(f?.Name ?? "Sans");
+		fontDesc.SetAbsoluteSize(size * Pango.Constants.SCALE);
+
+		if (f != null)
+		{
+			fontDesc.SetWeight(f.Weight >= 600 ? Pango.Weight.Bold : Pango.Weight.Normal);
+			fontDesc.SetStyle(f.StyleType switch
+			{
+				FontStyleType.Italic => Pango.Style.Italic,
+				FontStyleType.Oblique => Pango.Style.Oblique,
+				_ => Pango.Style.Normal,
+			});
+		}
+
+		layout.SetFontDescription(fontDesc);
+		layout.SetText(text, -1);
+		return layout;
+	}
+
+	/// <summary>
+	/// Builds a PangoAttrList from IAttributedText runs.
+	/// Returns IntPtr.Zero if no attributes to apply.
+	/// </summary>
+	private static IntPtr BuildPangoAttrList(IAttributedText attributedText)
+	{
+		if (attributedText.Runs == null || attributedText.Runs.Count == 0)
+			return IntPtr.Zero;
+
+		var attrList = pango_attr_list_new();
+		var text = attributedText.Text;
+
+		foreach (var run in attributedText.Runs)
+		{
+			// Convert character indices to byte indices (Pango uses UTF-8 byte offsets)
+			int byteStart = System.Text.Encoding.UTF8.GetByteCount(text.AsSpan(0, Math.Min(run.Start, text.Length)));
+			int byteEnd = System.Text.Encoding.UTF8.GetByteCount(text.AsSpan(0, Math.Min(run.Start + run.Length, text.Length)));
+
+			var attrs = run.Attributes;
+			if (attrs == null) continue;
+
+			if (attrs.ContainsKey(TextAttribute.Bold))
+				InsertPangoAttr(attrList, pango_attr_weight_new(700), byteStart, byteEnd);
+
+			if (attrs.ContainsKey(TextAttribute.Italic))
+				InsertPangoAttr(attrList, pango_attr_style_new(2), byteStart, byteEnd);
+
+			if (attrs.ContainsKey(TextAttribute.Underline))
+				InsertPangoAttr(attrList, pango_attr_underline_new(1), byteStart, byteEnd);
+
+			if (attrs.ContainsKey(TextAttribute.Strikethrough))
+				InsertPangoAttr(attrList, pango_attr_strikethrough_new(true), byteStart, byteEnd);
+
+			if (attrs.TryGetValue(TextAttribute.FontSize, out var fontSizeStr)
+				&& float.TryParse(fontSizeStr, out float attrFontSize))
+			{
+				InsertPangoAttr(attrList, pango_attr_size_new((int)(attrFontSize * Pango.Constants.SCALE)), byteStart, byteEnd);
+			}
+
+			if (attrs.TryGetValue(TextAttribute.Color, out var colorStr))
+			{
+				if (Color.TryParse(colorStr, out var color))
+				{
+					ushort r = (ushort)(color.Red * 65535);
+					ushort g = (ushort)(color.Green * 65535);
+					ushort b = (ushort)(color.Blue * 65535);
+					InsertPangoAttr(attrList, pango_attr_foreground_new(r, g, b), byteStart, byteEnd);
+				}
+			}
+		}
+
+		return attrList;
+	}
+
+	/// <summary>
+	/// Sets start/end byte indices on a PangoAttribute and inserts it into the list.
+	/// PangoAttribute struct layout: klass (ptr), start_index (uint), end_index (uint)
+	/// </summary>
+	private static void InsertPangoAttr(IntPtr attrList, IntPtr attr, int byteStart, int byteEnd)
+	{
+		if (attr == IntPtr.Zero) return;
+		Marshal.WriteInt32(attr, IntPtr.Size, byteStart);
+		Marshal.WriteInt32(attr, IntPtr.Size + 4, byteEnd);
+		pango_attr_list_insert(attrList, attr);
 	}
 
 	private void ApplyOperator()
@@ -573,23 +659,6 @@ internal class CairoCanvas : ICanvas
 	private void ApplyAntialias()
 	{
 		_cr.Antialias = Antialias ? Cairo.Antialias.Default : Cairo.Antialias.None;
-	}
-
-	private static Cairo.FontSlant GetCairoFontSlant(IFont? font)
-	{
-		if (font == null) return Cairo.FontSlant.Normal;
-		return font.StyleType switch
-		{
-			FontStyleType.Italic => Cairo.FontSlant.Italic,
-			FontStyleType.Oblique => Cairo.FontSlant.Oblique,
-			_ => Cairo.FontSlant.Normal,
-		};
-	}
-
-	private static Cairo.FontWeight GetCairoFontWeight(IFont? font)
-	{
-		if (font == null) return Cairo.FontWeight.Normal;
-		return font.Weight >= 600 ? Cairo.FontWeight.Bold : Cairo.FontWeight.Normal;
 	}
 
 	private void ArcPath(float x, float y, float width, float height, float startAngle, float endAngle, bool clockwise)
@@ -706,4 +775,33 @@ internal class CairoCanvas : ICanvas
 
 	[DllImport("libcairo.so.2")]
 	private static extern int cairo_image_surface_get_height(nint surface);
+
+	// --- Pango P/Invoke for attributed text ---
+
+	[DllImport("libpango-1.0.so.0")]
+	private static extern IntPtr pango_attr_list_new();
+
+	[DllImport("libpango-1.0.so.0")]
+	private static extern void pango_attr_list_insert(IntPtr list, IntPtr attr);
+
+	[DllImport("libpango-1.0.so.0")]
+	private static extern void pango_layout_set_attributes(IntPtr layout, IntPtr attrs);
+
+	[DllImport("libpango-1.0.so.0")]
+	private static extern IntPtr pango_attr_weight_new(int weight);
+
+	[DllImport("libpango-1.0.so.0")]
+	private static extern IntPtr pango_attr_style_new(int style);
+
+	[DllImport("libpango-1.0.so.0")]
+	private static extern IntPtr pango_attr_underline_new(int underline);
+
+	[DllImport("libpango-1.0.so.0")]
+	private static extern IntPtr pango_attr_strikethrough_new(bool strikethrough);
+
+	[DllImport("libpango-1.0.so.0")]
+	private static extern IntPtr pango_attr_size_new(int size);
+
+	[DllImport("libpango-1.0.so.0")]
+	private static extern IntPtr pango_attr_foreground_new(ushort red, ushort green, ushort blue);
 }

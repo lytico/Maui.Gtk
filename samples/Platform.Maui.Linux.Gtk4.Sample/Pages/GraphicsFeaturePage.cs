@@ -82,6 +82,9 @@ public class GraphicsFeaturePage : ContentPage
 					Section("9. Interaction Events (click, drag, hover)"),
 					interactiveView,
 					_interactionLog,
+
+					Section("10. Multi-line Text Wrapping (Pango)"),
+					new GraphicsView { HeightRequest = 200, Drawable = new TextWrapDrawable() },
 				}
 			}
 		};
@@ -632,5 +635,72 @@ class InteractionDrawable : IDrawable
 		canvas.FontColor = Colors.Gray;
 		canvas.DrawString("Events are logged below",
 			rect.Width / 2, rect.Height / 2 + 10, HorizontalAlignment.Center);
+	}
+}
+
+// ── 10. Multi-line Text Wrapping (Pango) ────────────────────────────────────
+
+class TextWrapDrawable : IDrawable
+{
+	public void Draw(ICanvas canvas, RectF rect)
+	{
+		canvas.FillColor = Color.FromArgb("#f0f4f8");
+		canvas.FillRectangle(rect);
+
+		string longText = "This is a long paragraph that should automatically wrap " +
+			"to multiple lines when drawn inside a bounded rectangle. " +
+			"Pango handles word wrapping, line breaking, and text shaping.";
+
+		// Left-aligned wrapped text
+		float boxW = (rect.Width - 60) / 3;
+
+		canvas.StrokeColor = Colors.DodgerBlue;
+		canvas.StrokeSize = 1;
+		canvas.StrokeDashPattern = [3, 3];
+		canvas.DrawRectangle(10, 10, boxW, 150);
+		canvas.StrokeDashPattern = [];
+
+		canvas.FontSize = 11;
+		canvas.FontColor = Colors.DarkSlateGray;
+		canvas.DrawString(longText, 10, 10, boxW, 150,
+			HorizontalAlignment.Left, VerticalAlignment.Top);
+
+		canvas.FontSize = 9;
+		canvas.FontColor = Colors.DodgerBlue;
+		canvas.DrawString("Left / Top", 10, 165, HorizontalAlignment.Left);
+
+		// Center-aligned wrapped text
+		float x2 = 20 + boxW;
+		canvas.StrokeColor = Colors.Coral;
+		canvas.StrokeSize = 1;
+		canvas.StrokeDashPattern = [3, 3];
+		canvas.DrawRectangle(x2, 10, boxW, 150);
+		canvas.StrokeDashPattern = [];
+
+		canvas.FontSize = 11;
+		canvas.FontColor = Colors.DarkSlateGray;
+		canvas.DrawString(longText, x2, 10, boxW, 150,
+			HorizontalAlignment.Center, VerticalAlignment.Center);
+
+		canvas.FontSize = 9;
+		canvas.FontColor = Colors.Coral;
+		canvas.DrawString("Center / Center", x2, 165, HorizontalAlignment.Left);
+
+		// Right-aligned wrapped text
+		float x3 = 30 + boxW * 2;
+		canvas.StrokeColor = Colors.MediumPurple;
+		canvas.StrokeSize = 1;
+		canvas.StrokeDashPattern = [3, 3];
+		canvas.DrawRectangle(x3, 10, boxW, 150);
+		canvas.StrokeDashPattern = [];
+
+		canvas.FontSize = 11;
+		canvas.FontColor = Colors.DarkSlateGray;
+		canvas.DrawString(longText, x3, 10, boxW, 150,
+			HorizontalAlignment.Right, VerticalAlignment.Bottom);
+
+		canvas.FontSize = 9;
+		canvas.FontColor = Colors.MediumPurple;
+		canvas.DrawString("Right / Bottom", x3, 165, HorizontalAlignment.Left);
 	}
 }

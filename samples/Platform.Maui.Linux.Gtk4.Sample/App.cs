@@ -36,6 +36,7 @@ class MainShell : FlyoutPage
 		("🔄 Refresh & Swipe", () => new RefreshSwipePage()),
 		("🎠 Carousel & Indicators", () => new CarouselIndicatorPage()),
 		("🎨 Graphics (Cairo)", () => new GraphicsPage()),
+		("🧪 Graphics Features", () => new GraphicsFeaturePage()),
 		("📱 Device & App Info", () => new DeviceInfoPage()),
 		("🔋 Battery & Network", () => new BatteryNetworkPage()),
 		("📋 Clipboard & Storage", () => new ClipboardPrefsPage()),

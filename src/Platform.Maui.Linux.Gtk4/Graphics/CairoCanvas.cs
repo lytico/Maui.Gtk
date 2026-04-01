@@ -1,8 +1,11 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Cairo;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Graphics.Text;
 using IImage = Microsoft.Maui.Graphics.IImage;
+using LineCap = Microsoft.Maui.Graphics.LineCap;
+using LineJoin = Microsoft.Maui.Graphics.LineJoin;
 
 namespace Platform.Maui.Linux.Gtk4.Graphics;
 
@@ -495,15 +498,15 @@ internal class CairoCanvas : ICanvas
 		double x1 = rect.X + paint.EndPoint.X * rect.Width;
 		double y1 = rect.Y + paint.EndPoint.Y * rect.Height;
 
-		var patternHandle = cairo_pattern_create_linear(x0, y0, x1, y1);
+		var gradient = new LinearGradient (x0, y0, x1, y1);
 		try
 		{
-			AddGradientStops(patternHandle, paint.GradientStops);
-			cairo_set_source(_cr.Handle.DangerousGetHandle(), patternHandle);
+			AddGradientStops(gradient, paint.GradientStops);
+			_cr.SetSource ( gradient);
 		}
 		finally
 		{
-			cairo_pattern_destroy(patternHandle);
+			gradient.Dispose ();
 		}
 	}
 
@@ -513,26 +516,26 @@ internal class CairoCanvas : ICanvas
 		double cy = rect.Y + paint.Center.Y * rect.Height;
 		double radius = Math.Max(rect.Width, rect.Height) * paint.Radius;
 
-		var patternHandle = cairo_pattern_create_radial(cx, cy, 0, cx, cy, radius);
+		var gradient = new RadialGradient(cx, cy, 0, cx, cy, radius);
 		try
 		{
-			AddGradientStops(patternHandle, paint.GradientStops);
-			cairo_set_source(_cr.Handle.DangerousGetHandle(), patternHandle);
+			AddGradientStops(gradient, paint.GradientStops);
+			_cr.SetSource(gradient);
 		}
 		finally
 		{
-			cairo_pattern_destroy(patternHandle);
+			gradient.Dispose();
 		}
 	}
 
-	private void AddGradientStops(nint pattern, PaintGradientStop[]? stops)
+	private void AddGradientStops(Gradient pattern, PaintGradientStop[]? stops)
 	{
 		if (stops == null) return;
 
 		foreach (var stop in stops)
 		{
 			var color = stop.Color;
-			cairo_pattern_add_color_stop_rgba(pattern, stop.Offset,
+			pattern.AddColorStopRgba ( stop.Offset,
 				color.Red, color.Green, color.Blue, color.Alpha * _alpha);
 		}
 	}
@@ -752,23 +755,6 @@ internal class CairoCanvas : ICanvas
 			}
 		}
 	}
-
-	// --- Cairo P/Invoke for gradient patterns ---
-
-	[DllImport("libcairo.so.2")]
-	private static extern nint cairo_pattern_create_linear(double x0, double y0, double x1, double y1);
-
-	[DllImport("libcairo.so.2")]
-	private static extern nint cairo_pattern_create_radial(double cx0, double cy0, double radius0, double cx1, double cy1, double radius1);
-
-	[DllImport("libcairo.so.2")]
-	private static extern void cairo_pattern_add_color_stop_rgba(nint pattern, double offset, double red, double green, double blue, double alpha);
-
-	[DllImport("libcairo.so.2")]
-	private static extern void cairo_pattern_destroy(nint pattern);
-
-	[DllImport("libcairo.so.2")]
-	private static extern void cairo_set_source(nint cr, nint pattern);
 
 	[DllImport("libcairo.so.2")]
 	private static extern int cairo_image_surface_get_width(nint surface);

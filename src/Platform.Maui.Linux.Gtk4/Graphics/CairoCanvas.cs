@@ -3,9 +3,13 @@ using System.Runtime.InteropServices;
 using Cairo;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Graphics.Text;
+using Pango;
+using Attribute = Pango.Attribute;
+using Color = Microsoft.Maui.Graphics.Color;
 using IImage = Microsoft.Maui.Graphics.IImage;
 using LineCap = Microsoft.Maui.Graphics.LineCap;
 using LineJoin = Microsoft.Maui.Graphics.LineJoin;
+using Style = Pango.Style;
 
 namespace Platform.Maui.Linux.Gtk4.Graphics;
 
@@ -220,9 +224,9 @@ internal class CairoCanvas : ICanvas
 
 		// Apply text attributes (bold, italic, color, etc.)
 		var attrList = BuildPangoAttrList(value);
-		if (attrList != IntPtr.Zero)
+		if (attrList != null)
 		{
-			pango_layout_set_attributes(layout.Handle.DangerousGetHandle(), attrList);
+			layout.SetAttributes ( attrList );
 			// attrList ownership transfers to layout
 		}
 
@@ -579,12 +583,12 @@ internal class CairoCanvas : ICanvas
 	/// Builds a PangoAttrList from IAttributedText runs.
 	/// Returns IntPtr.Zero if no attributes to apply.
 	/// </summary>
-	private static IntPtr BuildPangoAttrList(IAttributedText attributedText)
+	private static AttrList? BuildPangoAttrList(IAttributedText attributedText)
 	{
 		if (attributedText.Runs == null || attributedText.Runs.Count == 0)
-			return IntPtr.Zero;
+			return default;
 
-		var attrList = pango_attr_list_new();
+		var attrList = Pango.AttrList.New ();
 		var text = attributedText.Text;
 
 		foreach (var run in attributedText.Runs)
@@ -597,21 +601,21 @@ internal class CairoCanvas : ICanvas
 			if (attrs == null) continue;
 
 			if (attrs.ContainsKey(TextAttribute.Bold))
-				InsertPangoAttr(attrList, pango_attr_weight_new(700), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrWeightNew (Pango.Weight.Bold));
 
 			if (attrs.ContainsKey(TextAttribute.Italic))
-				InsertPangoAttr(attrList, pango_attr_style_new(2), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrStyleNew (Style.Italic));
 
 			if (attrs.ContainsKey(TextAttribute.Underline))
-				InsertPangoAttr(attrList, pango_attr_underline_new(1), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrUnderlineNew (Underline.Single));
 
 			if (attrs.ContainsKey(TextAttribute.Strikethrough))
-				InsertPangoAttr(attrList, pango_attr_strikethrough_new(true), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrStrikethroughNew (true));
 
 			if (attrs.TryGetValue(TextAttribute.FontSize, out var fontSizeStr)
 				&& float.TryParse(fontSizeStr, out float attrFontSize))
 			{
-				InsertPangoAttr(attrList, pango_attr_size_new((int)(attrFontSize * Pango.Constants.SCALE)), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrSizeNew ((int)(attrFontSize * Pango.Constants.SCALE)));
 			}
 
 			if (attrs.TryGetValue(TextAttribute.Color, out var colorStr))
@@ -621,7 +625,7 @@ internal class CairoCanvas : ICanvas
 					ushort r = (ushort)(color.Red * 65535);
 					ushort g = (ushort)(color.Green * 65535);
 					ushort b = (ushort)(color.Blue * 65535);
-					InsertPangoAttr(attrList, pango_attr_foreground_new(r, g, b), byteStart, byteEnd);
+					InsertPangoAttr(attrList, Pango.Functions.AttrForegroundNew (r, g, b));
 				}
 			}
 		}
@@ -633,12 +637,11 @@ internal class CairoCanvas : ICanvas
 	/// Sets start/end byte indices on a PangoAttribute and inserts it into the list.
 	/// PangoAttribute struct layout: klass (ptr), start_index (uint), end_index (uint)
 	/// </summary>
-	private static void InsertPangoAttr(IntPtr attrList, IntPtr attr, int byteStart, int byteEnd)
+	private static void InsertPangoAttr (AttrList attrList, Attribute attr)
 	{
-		if (attr == IntPtr.Zero) return;
-		Marshal.WriteInt32(attr, IntPtr.Size, byteStart);
-		Marshal.WriteInt32(attr, IntPtr.Size + 4, byteEnd);
-		pango_attr_list_insert(attrList, attr);
+		if (attr is null) return;
+
+		attrList.Insert (attr);
 	}
 
 	private void ApplyOperator()
@@ -756,32 +759,4 @@ internal class CairoCanvas : ICanvas
 		}
 	}
 
-	// --- Pango P/Invoke for attributed text ---
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_list_new();
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern void pango_attr_list_insert(IntPtr list, IntPtr attr);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern void pango_layout_set_attributes(IntPtr layout, IntPtr attrs);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_weight_new(int weight);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_style_new(int style);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_underline_new(int underline);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_strikethrough_new(bool strikethrough);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_size_new(int size);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_foreground_new(ushort red, ushort green, ushort blue);
 }

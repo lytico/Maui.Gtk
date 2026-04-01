@@ -306,8 +306,8 @@ internal class CairoCanvas : ICanvas
 
 		_cr.Save();
 
-		double scaleX = width / cairo_image_surface_get_width(surface.Handle.DangerousGetHandle());
-		double scaleY = height / cairo_image_surface_get_height(surface.Handle.DangerousGetHandle());
+		double scaleX = width / surface.Width;
+		double scaleY = height / surface.Height;
 		_cr.Translate(x, y);
 		_cr.Scale(scaleX, scaleY);
 
@@ -755,12 +755,6 @@ internal class CairoCanvas : ICanvas
 			}
 		}
 	}
-
-	[DllImport("libcairo.so.2")]
-	private static extern int cairo_image_surface_get_width(nint surface);
-
-	[DllImport("libcairo.so.2")]
-	private static extern int cairo_image_surface_get_height(nint surface);
 
 	// --- Pango P/Invoke for attributed text ---
 

@@ -11,10 +11,25 @@
       <Image
         Source="https://aka.ms/campus.jpg" />
       <Label
-        Text="FileSource" />
+        Text="FileSource png" />
       <Image
         Background="Purple"
         Source="dotnet_bot.png" />
+      <Label
+        Text="FileSource jpg" />
+      <Image
+        Background="Purple"
+        Source="dotnet_bot.jpg" />
+      <Label
+        Text="FileSource tif" />
+      <Image
+        Background="Purple"
+        Source="dotnet_bot.tif" />
+      <Label
+        Text="FileSource svg" />
+      <Image
+        Background="Purple"
+        Source="dotnet_bot.svg" />
       <Label
         Text="Font Image Source" />
       <Image

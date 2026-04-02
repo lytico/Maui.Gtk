@@ -1,8 +1,15 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Cairo;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Graphics.Text;
+using Pango;
+using Attribute = Pango.Attribute;
+using Color = Microsoft.Maui.Graphics.Color;
 using IImage = Microsoft.Maui.Graphics.IImage;
+using LineCap = Microsoft.Maui.Graphics.LineCap;
+using LineJoin = Microsoft.Maui.Graphics.LineJoin;
+using Style = Pango.Style;
 
 namespace Platform.Maui.Linux.Gtk4.Graphics;
 
@@ -217,9 +224,9 @@ internal class CairoCanvas : ICanvas
 
 		// Apply text attributes (bold, italic, color, etc.)
 		var attrList = BuildPangoAttrList(value);
-		if (attrList != IntPtr.Zero)
+		if (attrList != null)
 		{
-			pango_layout_set_attributes(layout.Handle.DangerousGetHandle(), attrList);
+			layout.SetAttributes ( attrList );
 			// attrList ownership transfers to layout
 		}
 
@@ -303,8 +310,8 @@ internal class CairoCanvas : ICanvas
 
 		_cr.Save();
 
-		double scaleX = width / cairo_image_surface_get_width(surface.Handle.DangerousGetHandle());
-		double scaleY = height / cairo_image_surface_get_height(surface.Handle.DangerousGetHandle());
+		double scaleX = width / surface.Width;
+		double scaleY = height / surface.Height;
 		_cr.Translate(x, y);
 		_cr.Scale(scaleX, scaleY);
 
@@ -495,15 +502,15 @@ internal class CairoCanvas : ICanvas
 		double x1 = rect.X + paint.EndPoint.X * rect.Width;
 		double y1 = rect.Y + paint.EndPoint.Y * rect.Height;
 
-		var patternHandle = cairo_pattern_create_linear(x0, y0, x1, y1);
+		var gradient = new LinearGradient (x0, y0, x1, y1);
 		try
 		{
-			AddGradientStops(patternHandle, paint.GradientStops);
-			cairo_set_source(_cr.Handle.DangerousGetHandle(), patternHandle);
+			AddGradientStops(gradient, paint.GradientStops);
+			_cr.SetSource ( gradient);
 		}
 		finally
 		{
-			cairo_pattern_destroy(patternHandle);
+			gradient.Dispose ();
 		}
 	}
 
@@ -513,26 +520,26 @@ internal class CairoCanvas : ICanvas
 		double cy = rect.Y + paint.Center.Y * rect.Height;
 		double radius = Math.Max(rect.Width, rect.Height) * paint.Radius;
 
-		var patternHandle = cairo_pattern_create_radial(cx, cy, 0, cx, cy, radius);
+		var gradient = new RadialGradient(cx, cy, 0, cx, cy, radius);
 		try
 		{
-			AddGradientStops(patternHandle, paint.GradientStops);
-			cairo_set_source(_cr.Handle.DangerousGetHandle(), patternHandle);
+			AddGradientStops(gradient, paint.GradientStops);
+			_cr.SetSource(gradient);
 		}
 		finally
 		{
-			cairo_pattern_destroy(patternHandle);
+			gradient.Dispose();
 		}
 	}
 
-	private void AddGradientStops(nint pattern, PaintGradientStop[]? stops)
+	private void AddGradientStops(Gradient pattern, PaintGradientStop[]? stops)
 	{
 		if (stops == null) return;
 
 		foreach (var stop in stops)
 		{
 			var color = stop.Color;
-			cairo_pattern_add_color_stop_rgba(pattern, stop.Offset,
+			pattern.AddColorStopRgba ( stop.Offset,
 				color.Red, color.Green, color.Blue, color.Alpha * _alpha);
 		}
 	}
@@ -576,12 +583,12 @@ internal class CairoCanvas : ICanvas
 	/// Builds a PangoAttrList from IAttributedText runs.
 	/// Returns IntPtr.Zero if no attributes to apply.
 	/// </summary>
-	private static IntPtr BuildPangoAttrList(IAttributedText attributedText)
+	private static AttrList? BuildPangoAttrList(IAttributedText attributedText)
 	{
 		if (attributedText.Runs == null || attributedText.Runs.Count == 0)
-			return IntPtr.Zero;
+			return default;
 
-		var attrList = pango_attr_list_new();
+		var attrList = Pango.AttrList.New ();
 		var text = attributedText.Text;
 
 		foreach (var run in attributedText.Runs)
@@ -594,21 +601,21 @@ internal class CairoCanvas : ICanvas
 			if (attrs == null) continue;
 
 			if (attrs.ContainsKey(TextAttribute.Bold))
-				InsertPangoAttr(attrList, pango_attr_weight_new(700), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrWeightNew (Pango.Weight.Bold));
 
 			if (attrs.ContainsKey(TextAttribute.Italic))
-				InsertPangoAttr(attrList, pango_attr_style_new(2), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrStyleNew (Style.Italic));
 
 			if (attrs.ContainsKey(TextAttribute.Underline))
-				InsertPangoAttr(attrList, pango_attr_underline_new(1), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrUnderlineNew (Underline.Single));
 
 			if (attrs.ContainsKey(TextAttribute.Strikethrough))
-				InsertPangoAttr(attrList, pango_attr_strikethrough_new(true), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrStrikethroughNew (true));
 
 			if (attrs.TryGetValue(TextAttribute.FontSize, out var fontSizeStr)
 				&& float.TryParse(fontSizeStr, out float attrFontSize))
 			{
-				InsertPangoAttr(attrList, pango_attr_size_new((int)(attrFontSize * Pango.Constants.SCALE)), byteStart, byteEnd);
+				InsertPangoAttr(attrList, Pango.Functions.AttrSizeNew ((int)(attrFontSize * Pango.Constants.SCALE)));
 			}
 
 			if (attrs.TryGetValue(TextAttribute.Color, out var colorStr))
@@ -618,7 +625,7 @@ internal class CairoCanvas : ICanvas
 					ushort r = (ushort)(color.Red * 65535);
 					ushort g = (ushort)(color.Green * 65535);
 					ushort b = (ushort)(color.Blue * 65535);
-					InsertPangoAttr(attrList, pango_attr_foreground_new(r, g, b), byteStart, byteEnd);
+					InsertPangoAttr(attrList, Pango.Functions.AttrForegroundNew (r, g, b));
 				}
 			}
 		}
@@ -630,12 +637,11 @@ internal class CairoCanvas : ICanvas
 	/// Sets start/end byte indices on a PangoAttribute and inserts it into the list.
 	/// PangoAttribute struct layout: klass (ptr), start_index (uint), end_index (uint)
 	/// </summary>
-	private static void InsertPangoAttr(IntPtr attrList, IntPtr attr, int byteStart, int byteEnd)
+	private static void InsertPangoAttr (AttrList attrList, Attribute attr)
 	{
-		if (attr == IntPtr.Zero) return;
-		Marshal.WriteInt32(attr, IntPtr.Size, byteStart);
-		Marshal.WriteInt32(attr, IntPtr.Size + 4, byteEnd);
-		pango_attr_list_insert(attrList, attr);
+		if (attr is null) return;
+
+		attrList.Insert (attr);
 	}
 
 	private void ApplyOperator()
@@ -753,55 +759,4 @@ internal class CairoCanvas : ICanvas
 		}
 	}
 
-	// --- Cairo P/Invoke for gradient patterns ---
-
-	[DllImport("libcairo.so.2")]
-	private static extern nint cairo_pattern_create_linear(double x0, double y0, double x1, double y1);
-
-	[DllImport("libcairo.so.2")]
-	private static extern nint cairo_pattern_create_radial(double cx0, double cy0, double radius0, double cx1, double cy1, double radius1);
-
-	[DllImport("libcairo.so.2")]
-	private static extern void cairo_pattern_add_color_stop_rgba(nint pattern, double offset, double red, double green, double blue, double alpha);
-
-	[DllImport("libcairo.so.2")]
-	private static extern void cairo_pattern_destroy(nint pattern);
-
-	[DllImport("libcairo.so.2")]
-	private static extern void cairo_set_source(nint cr, nint pattern);
-
-	[DllImport("libcairo.so.2")]
-	private static extern int cairo_image_surface_get_width(nint surface);
-
-	[DllImport("libcairo.so.2")]
-	private static extern int cairo_image_surface_get_height(nint surface);
-
-	// --- Pango P/Invoke for attributed text ---
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_list_new();
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern void pango_attr_list_insert(IntPtr list, IntPtr attr);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern void pango_layout_set_attributes(IntPtr layout, IntPtr attrs);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_weight_new(int weight);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_style_new(int style);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_underline_new(int underline);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_strikethrough_new(bool strikethrough);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_size_new(int size);
-
-	[DllImport("libpango-1.0.so.0")]
-	private static extern IntPtr pango_attr_foreground_new(ushort red, ushort green, ushort blue);
 }

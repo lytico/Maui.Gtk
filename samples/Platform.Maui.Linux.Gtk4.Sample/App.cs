@@ -50,6 +50,7 @@ class MainShell : FlyoutPage
 		("🪟 Modal Pages", () => new ModalDemoPage()),
 		("🪟 Multi-Window", () => new MultiWindowPage()),
 		("🎨 Theme", () => new ThemePage()),
+		("🎨 Images", () => new ImagePage()),
 	];
 
 	public MainShell()
@@ -84,11 +85,7 @@ class MainShell : FlyoutPage
 			}
 		};
 
-		Flyout = new ContentPage
-		{
-			Title = "Menu",
-			Content = menuList,
-		};
+		Flyout = new ContentPage { Title = "Menu", Content = menuList, };
 
 		Detail = new NavigationPage(new HomePage());
 		IsPresented = true;

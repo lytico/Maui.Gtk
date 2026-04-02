@@ -17,8 +17,8 @@ internal class CairoPlatformImage : IImage
 
 	internal Cairo.ImageSurface Surface { get; }
 
-	public float Width => cairo_image_surface_get_width(Surface.Handle.DangerousGetHandle());
-	public float Height => cairo_image_surface_get_height(Surface.Handle.DangerousGetHandle());
+	public float Width => Surface.Width;
+	public float Height => Surface.Height;
 
 	public IImage Downsize(float maxWidthOrHeight, bool disposeOriginal = false)
 	{
@@ -143,8 +143,8 @@ internal class CairoPlatformImage : IImage
 
 			// Copy the PNG data onto our managed surface
 			var cr = new Cairo.Context(surface);
-			cairo_set_source_surface(cr.Handle.DangerousGetHandle(), surfaceHandle, 0, 0);
-			Cairo.Internal.Context.Paint(cr.Handle);
+			cr.SetSourceSurface (surface, 0, 0);
+			cr.Paint ();
 			cr.Dispose();
 			cairo_surface_destroy(surfaceHandle);
 
@@ -172,9 +172,6 @@ internal class CairoPlatformImage : IImage
 
 	[DllImport("libcairo.so.2")]
 	private static extern int cairo_image_surface_get_height(nint surface);
-
-	[DllImport("libcairo.so.2")]
-	private static extern void cairo_set_source_surface(nint cr, nint surface, double x, double y);
 
 	[DllImport("libcairo.so.2")]
 	private static extern void cairo_surface_destroy(nint surface);

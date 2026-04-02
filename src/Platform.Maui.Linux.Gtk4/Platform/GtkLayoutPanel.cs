@@ -39,22 +39,22 @@ public class GtkLayoutPanel : Gtk.Fixed {
         SetLayoutManager (layout);
     }
 
-    static SizeRequestMode NativeRequestMode (Widget widget) => SizeRequestMode.ConstantSize;
+    SizeRequestMode NativeRequestMode (Widget widget) => SizeRequestMode.ConstantSize;
 
     /// <summary>
     /// Reports 0 minimum height so the panel never pushes the window to grow.
     /// Natural size reflects the extent of all arranged children.
     /// </summary>
-    static void NativeMeasure (Widget widget, Orientation orientation,
+    void NativeMeasure (Widget widget, Orientation orientation,
         int forSize, out int minimum, out int natural, out int minimumBaseline, out int naturalBaseline) {
         minimum = 0;
         natural = 0;
         minimumBaseline = -1;
         naturalBaseline = -1;
 
-        if (widget is not GtkLayoutPanel panel)
+        if (widget != this)
             return;
-
+        var panel = this;
         foreach (var kvp in panel._childBounds) {
             var child = kvp.Key;
             if (!child.GetVisible ()) continue;
@@ -72,9 +72,10 @@ public class GtkLayoutPanel : Gtk.Fixed {
     /// Position is applied as a GskTransform translate, combined with any
     /// visual transforms (rotation, scale, etc.) stored via SetChildTransform.
     /// </summary>
-    static void NativeAllocate (Widget widget, int width, int height, int baseline) {
-        if (widget is not GtkLayoutPanel panel)
+    void NativeAllocate (Widget widget, int width, int height, int baseline) {
+        if (widget != this)
             return;
+        var panel = this;
 
         for (var child = panel.GetFirstChild (); child != null; child = child.GetNextSibling ()) {
             if (!child.GetVisible ()) continue;

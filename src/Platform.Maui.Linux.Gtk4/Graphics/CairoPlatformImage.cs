@@ -102,17 +102,8 @@ internal class CairoPlatformImage : IImage
 
 	public void Save(Stream stream, ImageFormat format = ImageFormat.Png, float quality = 1)
 	{
-		var tmpPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"maui_img_{Guid.NewGuid():N}.png");
-		try
-		{
-			cairo_surface_write_to_png(Surface.Handle.DangerousGetHandle(), tmpPath);
-			using var fs = File.OpenRead(tmpPath);
-			fs.CopyTo(stream);
-		}
-		finally
-		{
-			try { File.Delete(tmpPath); } catch { }
-		}
+		var pixbuf = Surface.CreatePixbuf();
+		pixbuf.SaveToStream(stream);
 	}
 
 	public Task SaveAsync(Stream stream, ImageFormat format = ImageFormat.Png, float quality = 1)
@@ -122,37 +113,29 @@ internal class CairoPlatformImage : IImage
 	}
 
 	/// <summary>
-	/// Creates a CairoPlatformImage from a PNG stream.
+	/// Creates a CairoPlatformImage from a stream.
 	/// </summary>
-	public static CairoPlatformImage? FromStream(Stream stream)
+	public static CairoPlatformImage? FromStream(Stream stream, ImageFormat imageFormat)
 	{
-		var tmpPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"maui_img_{Guid.NewGuid():N}.png");
 		try
 		{
-			using (var fs = File.Create(tmpPath))
-				stream.CopyTo(fs);
-
-			var surfaceHandle = cairo_image_surface_create_from_png(tmpPath);
-			if (surfaceHandle == nint.Zero)
+			using var pixbuf = PixbufExtensions.LoadFromStream(stream);
+			if (pixbuf is null)
 				return null;
 
-			// Wrap the unmanaged surface handle. We use an ImageSurface that manages its own lifetime.
-			var surface = new Cairo.ImageSurface(Cairo.Format.Argb32,
-				cairo_image_surface_get_width(surfaceHandle),
-				cairo_image_surface_get_height(surfaceHandle));
+			var surface = new Cairo.ImageSurface(Cairo.Format.Argb32, pixbuf.Width, pixbuf.Height);
 
-			// Copy the PNG data onto our managed surface
 			var cr = new Cairo.Context(surface);
-			cr.SetSourceSurface (surface, 0, 0);
-			cr.Paint ();
+			cr.PaintPixbuf(pixbuf);
+
 			cr.Dispose();
-			cairo_surface_destroy(surfaceHandle);
 
 			return new CairoPlatformImage(surface);
 		}
 		finally
 		{
-			try { File.Delete(tmpPath); } catch { }
+			try { }
+			catch { }
 		}
 	}
 
@@ -163,16 +146,4 @@ internal class CairoPlatformImage : IImage
 
 	[DllImport("libcairo.so.2")]
 	private static extern int cairo_surface_write_to_png(nint surface, [MarshalAs(UnmanagedType.LPUTF8Str)] string filename);
-
-	[DllImport("libcairo.so.2")]
-	private static extern nint cairo_image_surface_create_from_png([MarshalAs(UnmanagedType.LPUTF8Str)] string filename);
-
-	[DllImport("libcairo.so.2")]
-	private static extern int cairo_image_surface_get_width(nint surface);
-
-	[DllImport("libcairo.so.2")]
-	private static extern int cairo_image_surface_get_height(nint surface);
-
-	[DllImport("libcairo.so.2")]
-	private static extern void cairo_surface_destroy(nint surface);
 }

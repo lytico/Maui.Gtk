@@ -75,16 +75,45 @@ public class LinuxBattery : IBattery
 	{
 		var baseDir = "/sys/class/power_supply";
 		if (!Directory.Exists(baseDir)) return null;
+		var batteryPaths = new List<string>();
 		foreach (var dir in Directory.GetDirectories(baseDir))
 		{
 			var typePath = Path.Combine(dir, "type");
 			if (File.Exists(typePath) && File.ReadAllText(typePath).Trim().Equals("Battery", StringComparison.OrdinalIgnoreCase))
+				batteryPaths.Add(dir);
+		}
+		if (batteryPaths.Count == 0) return null;
+		string matchingPath = batteryPaths[0];	// as a default, but maybe we can do better...
+		if (batteryPaths.Count > 1)				// if there are multiple batteries, try to find best match
+		{										// for example exclude batteries of wireless mouse or keyboard
+			var matchingPaths = batteryPaths.Where(x => x.EndsWith("BAT0", StringComparison.OrdinalIgnoreCase));
+			if (matchingPaths.Count() == 1)
+				matchingPath = matchingPaths.First();	// ThinkPads or systems with multiple batteries BAT0 + BAT1
+			else										// assume BAT0 as primary
 			{
-				var filePath = Path.Combine(dir, file);
-				if (File.Exists(filePath))
-					return filePath;
+				matchingPaths = batteryPaths.Where(x => x.EndsWith("BAT", StringComparison.OrdinalIgnoreCase));
+				if (matchingPaths.Count() == 1)
+					matchingPath = matchingPaths.First();  // on ASUS and some ThinkPads the primary battery is BAT1
+				else
+				{
+					matchingPaths = batteryPaths.Where(x => x.EndsWith("BA", StringComparison.OrdinalIgnoreCase));
+					if (matchingPaths.Count() == 1)
+						matchingPath = matchingPaths.First();  // BAPM or some other naming scheme
+					else
+						matchingPath = batteryPaths[0];  // give up, use the first one found
+
+					// TODO: If the BA(T(0)) pattern doesn't yield a single match, we could try a secondary heuristic
+					//       and read the "model_name", "technology" or "manufacturer" files in each battery path and
+					//       use that to determine which one is the main battery. Usually the main battery will have
+					//       more such information available than wireless devices.
+				}
 			}
 		}
+
+		var filePath = Path.Combine(matchingPath, file);
+		if (File.Exists(filePath))
+			return filePath;
+
 		return null;
 	}
 }

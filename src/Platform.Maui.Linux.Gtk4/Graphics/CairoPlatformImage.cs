@@ -102,8 +102,8 @@ internal class CairoPlatformImage : IImage
 
 	public void Save(Stream stream, ImageFormat format = ImageFormat.Png, float quality = 1)
 	{
-		var pixbuf = Surface.CreatePixbuf();
-		pixbuf.SaveToStream(stream);
+		using var pixbuf = Surface.CreatePixbuf();
+		pixbuf.SaveToStream(stream, format);
 	}
 
 	public Task SaveAsync(Stream stream, ImageFormat format = ImageFormat.Png, float quality = 1)

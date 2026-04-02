@@ -28,15 +28,36 @@ public class GtkLayoutPanel : Gtk.Fixed {
     /// </summary>
     public bool IsExternallyManaged { get; set; }
 
+    private CustomRequestModeFunc _requestModeFunc;
+    CustomAllocateFunc _allocateFunc;
+    CustomMeasureFunc _measureFunc;
+    CustomLayout _customLayout;
+
+    // Pin delegates to prevent garbage collection
+    private GCHandle _requestModeFuncHandle;
+    private GCHandle _allocateFuncHandle;
+    private GCHandle _measureFuncHandle;
+
     public GtkLayoutPanel () : base () {
-        SetHexpand (true);
-        SetVexpand (true);
+
 
         // Replace GTK's default FixedLayout with a custom one that allocates
         // children at MAUI-arranged sizes instead of GTK minimums.
+        _requestModeFunc = NativeRequestMode;
+        _measureFunc = NativeMeasure;
+        _allocateFunc = NativeAllocate;
 
-        var layout = CustomLayout.New (NativeRequestMode, NativeMeasure, NativeAllocate);
-        SetLayoutManager (layout);
+        // Pin delegates to prevent GC
+        _requestModeFuncHandle = GCHandle.Alloc(_requestModeFunc);
+        _measureFuncHandle = GCHandle.Alloc(_measureFunc);
+        _allocateFuncHandle = GCHandle.Alloc(_allocateFunc);
+        _ = CustomLayout.GetGType();
+
+        _customLayout = CustomLayout.New (_requestModeFunc, _measureFunc, _allocateFunc);
+        SetLayoutManager (_customLayout);
+
+        SetHexpand (true);
+        SetVexpand (true);
     }
 
     SizeRequestMode NativeRequestMode (Widget widget) => SizeRequestMode.ConstantSize;
@@ -186,6 +207,14 @@ public class GtkLayoutPanel : Gtk.Fixed {
     /// Clean up all children and instance tracking when disposing.
     /// </summary>
     public override void Dispose () {
+        // Free GCHandles to allow delegates to be collected
+        if (_requestModeFuncHandle.IsAllocated)
+            _requestModeFuncHandle.Free();
+        if (_measureFuncHandle.IsAllocated)
+            _measureFuncHandle.Free();
+        if (_allocateFuncHandle.IsAllocated)
+            _allocateFuncHandle.Free();
+
         while (GetFirstChild () is Gtk.Widget child) {
             _childBounds.Remove (child);
             _childTransforms.Remove (child);

@@ -144,6 +144,4 @@ internal class CairoPlatformImage : IImage
 		Surface?.Dispose();
 	}
 
-	[DllImport("libcairo.so.2")]
-	private static extern int cairo_surface_write_to_png(nint surface, [MarshalAs(UnmanagedType.LPUTF8Str)] string filename);
 }

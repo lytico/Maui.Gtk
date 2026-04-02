@@ -133,7 +133,7 @@ internal class CairoImageLoadingService : IImageLoadingService
 	{
 		ArgumentNullException.ThrowIfNull(stream);
 
-		var image = CairoPlatformImage.FromStream(stream);
+		var image = CairoPlatformImage.FromStream(stream, format);
 		if (image == null)
 			throw new ArgumentException("Could not decode image from stream.");
 

@@ -80,7 +80,7 @@ public class GtkDispatcherTimer : IDispatcherTimer
 		_isRunning = false;
 		if (_sourceId > 0)
 		{
-			GLib.Internal.Source.Remove(_sourceId);
+			GLib.Source.Remove(_sourceId);
 			_sourceId = 0;
 		}
 	}

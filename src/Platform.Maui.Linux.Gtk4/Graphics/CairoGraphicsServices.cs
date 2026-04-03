@@ -91,26 +91,16 @@ internal class CairoBitmapExportContext : BitmapExportContext
 	{
 		get
 		{
-			Cairo.Internal.Surface.Flush(_surface.Handle);
+			_surface.Flush();
 			return new CairoPlatformImage(_surface);
 		}
 	}
 
 	public override void WriteToStream(Stream stream)
 	{
-		Cairo.Internal.Surface.Flush(_surface.Handle);
-
-		var tmpPath = Path.Combine(Path.GetTempPath(), $"maui_export_{Guid.NewGuid():N}.png");
-		try
-		{
-			cairo_surface_write_to_png(_surface.Handle.DangerousGetHandle(), tmpPath);
-			using var fs = File.OpenRead(tmpPath);
-			fs.CopyTo(stream);
-		}
-		finally
-		{
-			try { File.Delete(tmpPath); } catch { }
-		}
+		_surface.Flush();
+		using var px = _surface.CreatePixbuf();
+		px.SaveToStream(stream);
 	}
 
 	public override void Dispose()
@@ -119,9 +109,6 @@ internal class CairoBitmapExportContext : BitmapExportContext
 		// Don't dispose _surface here — it may still be referenced via Image
 	}
 
-	[DllImport("libcairo.so.2")]
-	private static extern int cairo_surface_write_to_png(nint surface,
-		[MarshalAs(UnmanagedType.LPUTF8Str)] string filename);
 }
 
 /// <summary>

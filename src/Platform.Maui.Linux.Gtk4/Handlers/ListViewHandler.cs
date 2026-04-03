@@ -417,9 +417,9 @@ public class ListViewHandler : GtkViewHandler<ListView, Gtk.ScrolledWindow>
 				var c = color;
 				area.SetDrawFunc((_, cr, width, height) =>
 				{
-					Cairo.Internal.Context.SetSourceRgba(cr.Handle, c.Red, c.Green, c.Blue, c.Alpha);
-					Cairo.Internal.Context.Rectangle(cr.Handle, 0, 0, width, height);
-					Cairo.Internal.Context.Fill(cr.Handle);
+					cr.SetSourceRgba(c.Red, c.Green, c.Blue, c.Alpha);
+					cr.Rectangle(0, 0, width, height);
+					cr.Fill();
 				});
 			}
 			return area;

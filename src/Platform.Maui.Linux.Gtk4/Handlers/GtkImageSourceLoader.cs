@@ -10,7 +10,8 @@ internal static class GtkImageSourceLoader
 
 	[System.Runtime.InteropServices.DllImport("libcairo.so.2")]
 	static extern int cairo_surface_write_to_png(nint surface,
-		[System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPUTF8Str)] string filename);
+		[System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPUTF8Str)]
+		string filename);
 
 	public static async Task<Gdk.Texture?> LoadTextureAsync(IImageSource? source, CancellationToken cancellationToken,
 		IGtkFontManager? fontManager = null)
@@ -43,9 +44,9 @@ internal static class GtkImageSourceLoader
 
 		var color = fontSource.Color;
 		if (color != null)
-			Cairo.Internal.Context.SetSourceRgba(cr.Handle, color.Red, color.Green, color.Blue, color.Alpha);
+			cr.SetSourceRgba(color.Red, color.Green, color.Blue, color.Alpha);
 		else
-			Cairo.Internal.Context.SetSourceRgba(cr.Handle, 0, 0, 0, 1);
+			cr.SetSourceRgba(0, 0, 0, 1);
 
 		var layout = PangoCairo.Functions.CreateLayout(cr);
 		var fontDesc = Pango.FontDescription.New();
@@ -60,6 +61,7 @@ internal static class GtkImageSourceLoader
 			if (!string.IsNullOrEmpty(resolved))
 				fontFamily = resolved;
 		}
+
 		if (!string.IsNullOrEmpty(fontFamily))
 			fontDesc.SetFamily(fontFamily);
 
@@ -70,10 +72,10 @@ internal static class GtkImageSourceLoader
 		layout.GetPixelSize(out int textW, out int textH);
 		double offsetX = (surfaceSize - textW) / 2.0;
 		double offsetY = (surfaceSize - textH) / 2.0;
-		Cairo.Internal.Context.MoveTo(cr.Handle, offsetX, offsetY);
+		cr.MoveTo(offsetX, offsetY);
 
 		PangoCairo.Functions.ShowLayout(cr, layout);
-		Cairo.Internal.Surface.Flush(surface.Handle);
+		surface.Flush();
 
 		// Render to PNG and load as Gdk.Texture (MemoryTextureBuilder has
 		// issues in GirCore 0.7.0, so we use cairo_surface_write_to_png)
@@ -91,7 +93,8 @@ internal static class GtkImageSourceLoader
 		}
 		finally
 		{
-			try { File.Delete(tmpPath); } catch { }
+			try { File.Delete(tmpPath); }
+			catch { }
 		}
 	}
 
